@@ -9,3 +9,7 @@ Status: core product interview complete, with scope and implementation checks re
 - [First public release roadmap](https://git.subcult.tv/subculture-collective/aski/issues/1): epics, PR-sized work, and native blocking dependencies in execution order.
 
 The reference product is [TAAG](https://patorjk.com/software/taag/). Existing TAAG controls belong in the baseline feature set. The improvements center on grouped variants, uninterrupted editing, palette slots, saved work, and animation.
+
+Research decisions:
+
+- [TAAG parity and font provenance](docs/research/taag-parity.md), including a reproducible audit of the pinned font candidate source.
