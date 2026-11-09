@@ -16,7 +16,7 @@ The user approved the recommendations on November 9, 2026, and added a dedicated
 - Let people save favorites and named collections locally before signing in. Sign-in adds sync across devices.
 - Provide the full studio on desktop, tablet, and phone at launch, including palettes, collections, animation, and GIF export.
 
-The core product interview is complete. A specific aski brand direction remains to be selected from the existing references. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
+The core product interview is complete. The owner selected Ink Arcade / Lilac and approved Fraunces for the wordmark/headings with Atkinson Hyperlegible Next for controls. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
 
 ## Core workflow
 
@@ -32,7 +32,9 @@ The selected visual approach is an expressive creative tool: bold colors, playfu
 
 Use the [Studio reference library](https://subcult.tv/admin/studio/references) and its supporting studies to develop the identity. The library's local sources are under `studio/references/` in the `subcult-tv` repository on Kvant. Studio owns brand masters, guides, and tokens. This repository owns the product interface and its implementation.
 
-The shared library was located during the interview. No specific aski study or production identity has been selected in this interview. Record the selected references and resulting design rules before treating a proposed direction as the final brand.
+The selected system is Ink Arcade / Lilac. The owner requested simpler copy and a distinctive replacement font, then approved the rendered Fraunces/Atkinson pairing. Canonical guides, tokens, masters, licenses and manifest hashes are in `subcult-tv/studio/brands/aski/`, tracked by [Studio PR #122](https://git.subcult.tv/subculture-collective/subcult-tv/pulls/122). Product integration remains a separate roadmap step.
+
+Put the text input and artwork first. Use short control labels and contextual help instead of a promotional hero or repeated feature explanations in the studio.
 
 ## Font families and discovery
 
