@@ -4,6 +4,8 @@ This plan implements the [approved scope](product-scope.md). Each phase has a co
 
 The [first public release roadmap](https://git.subcult.tv/subculture-collective/aski/issues/1) tracks the PR-sized work, research spikes, epics, and native blocking dependencies. Use its execution waves and current frontier when selecting work. This document retains the broader acceptance checks.
 
+The [stack and browser feasibility decision](research/stack-browser-decision.md) records the selected implementation approach, versioned data boundaries, reproducible probe commands, and the distinction between automated engine evidence and actual-device qualification.
+
 ## Interview constraints
 
 Keep browsing, graphic creation, and developer-friendly exports in the first release. Start with a broad catalog, grouping confirmed relatives and exposing color controls according to each font's supported mappings. Complete metadata is not a prerequisite for including a font.
