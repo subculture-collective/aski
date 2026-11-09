@@ -22,7 +22,7 @@ The visual direction is an expressive creative tool with bold colors, playful ty
 
 Include favorites and named collections, preserving the distinction between reusable styles and exact saved designs. Carry local work into the optional account without overwriting existing saved work.
 
-Provide complete editing and exports on desktop, tablet, and phone at launch. Adapt the controls to the screen while retaining palette editing, collections, animation controls, and GIF export. The core product interview is complete. The selected Studio direction, stack, supported browser matrix, export budgets, and deployment target still need reference or technical investigation.
+Provide complete editing and exports on desktop, tablet, and phone at launch. Adapt the controls to the screen while retaining palette editing, collections, animation controls, and GIF export. The core product interview is complete. The research decisions select the stack, initial browser-engine matrix and recommended NUC runtime, and the owner selected the Lilac/Fraunces/Atkinson system. Production export budgets and actual-device qualification remain release work.
 
 ## Starting state
 
