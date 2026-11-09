@@ -8,19 +8,23 @@ The user approved the recommendations on November 9, 2026, and added a dedicated
 - Group related font variants in one family card. Use filters for broader visual categories such as 3D lettering.
 - Launch with a broad catalog. Group confirmed families and keep uncertain fonts separate while their metadata improves.
 - Accept fewer discovery tags or color controls for some fonts initially. Show the controls each font supports.
-- Launch as a free public tool. Editing and exports are free. Optional accounts add saving and sync. Billing and paid feature boundaries are outside the first release.
+- Launch as a free public tool. Editing and exports are free. Optional accounts add cross-device sync. Billing and paid feature boundaries are outside the first release.
 - Animate a selected design through presets and adjustable controls. Font morphing and a multi-scene sequence editor are outside the first release.
 - Use an expressive interface with bold colors, playful typography, and prominent animated previews.
 - Provide favorites plus named collections for organizing styles and saved designs by project or mood. Keep reusable styles distinct from exact saved designs.
 - Use the existing branding and design reference system to develop aski's identity and interface.
+- Let people save favorites and named collections locally before signing in. Sign-in adds sync across devices.
+- Provide the full studio on desktop, tablet, and phone at launch, including palettes, collections, animation, and GIF export.
 
-The interview is ongoing. A specific aski brand direction remains to be selected from the existing references. Whether favorites and collections require sign-in remains open. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
+The core product interview is complete. A specific aski brand direction remains to be selected from the existing references. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
 
 ## Core workflow
 
 Enter text once, browse font families, compare results, customize a result, and export or save it. Text editing remains available throughout the workflow.
 
 The desktop layout has a sticky text editor, a family gallery, and a detail panel for the selected result. On small screens, the detail panel becomes a sheet. Opening the panel preserves the gallery position.
+
+Desktop, tablet, and phone provide the same core capabilities. Adapt the controls to each screen while preserving the full workflow. Export limits must be measured on the supported devices, with GIF export available on all three device classes.
 
 ## Design and branding
 
@@ -123,9 +127,11 @@ Use one effect at a time in the first release. Combining effects remains a later
 
 ## Accounts and saved work
 
-The editor and exports are free and work without an account. Optional accounts enable saving and sync across devices. The proposed sign-in method is passwordless email. The first release has no payment system or paid feature tiers.
+The editor and exports are free and work without an account. Favorites and named collections save locally before sign-in. Optional accounts enable sync across devices. The proposed sign-in method is passwordless email. The first release has no payment system or paid feature tiers.
 
 - Provide a favorites action for reusable styles and named collections for styles and saved designs.
+- Restore local favorites and collections after a reload in the same browser.
+- Explain that local-only data stays in that browser and may be lost if its stored data is cleared.
 - Let a saved item appear in more than one collection without duplicating the underlying design.
 - Keep a favorite style reusable with new text. Reopening a saved design restores its exact settings.
 - Save inputs separately from rendered outputs so an input can be explored in other styles.
@@ -133,7 +139,7 @@ The editor and exports are free and work without an account. Optional accounts e
 - Save a result's text, family, variant, colors, spacing, dimensions, and animation settings as an editable recipe.
 - For an individual saved output, retain the rendered artifact as well as its recipe. Future catalog changes must not silently alter the saved artifact.
 - Allow the user to rename, organize, reopen, and delete saved work.
-- Offer to import local drafts into the account without overwriting existing saved work.
+- Offer to import local drafts, favorites, collections, and saved designs into the account without overwriting existing saved work.
 - Preserve local work when the account is offline. Make sync status and conflicts visible.
 
 ## Approved later additions
@@ -141,6 +147,31 @@ The editor and exports are free and work without an account. Optional accounts e
 The earlier recommendations also included gradients, custom font uploads, and a public community gallery. These remain in the approved backlog. Animation and GIF export move into the first release.
 
 Custom uploads need font validation and attribution handling. Public publishing needs an explicit publish action and reporting controls before the community gallery is released.
+
+## Interview handoff
+
+Goal: deliver a free public text-art studio for discovery, graphic creation, animation, and developer-friendly exports.
+
+In scope: the broad grouped catalog, continuous editing, palettes, supported spacing and seamless-block controls, still exports, GIF effects, local saving, optional account sync, and full desktop, tablet, and phone workflows described above.
+
+Out of scope for the first release: billing, paid feature tiers, font morphing, a multi-scene sequence editor, gradients, custom font uploads, and a public community gallery. The last three remain approved later additions.
+
+Constraints and decisions: use the existing Studio references to develop an expressive identity. Preserve the distinction between reusable styles and saved designs. Sign-in is optional for local collecting.
+
+Acceptance criteria:
+
+- Browse confirmed font families and switch variants without losing the current text or gallery position.
+- Apply a palette or custom color to every slot supported by the selected font.
+- Favorite styles, organize named collections, and recover them after reloading without signing in.
+- Sign in and bring local work into the account without overwriting existing saved work.
+- Generate still exports and an animated GIF that agree with the corresponding preview, within each format's documented limits.
+- Complete browsing, palette editing, collection saving, animation setup, and GIF export on desktop, tablet, and phone.
+
+Verification: use the phased behavior checks in the [implementation plan](implementation-plan.md), including artifact inspection and complete workflows on the supported devices. No application behavior has been tested yet.
+
+Open questions and research: select specific Studio references and the resulting aski identity, complete the TAAG Options inventory, select the application and account stack, establish the supported browser matrix and export budgets, and confirm the runtime host and public endpoint before deployment. These are not additional first-release features.
+
+Recommended route: full implementation plan, refined with reference and technical findings before the affected work begins. The interview itself does not start implementation or deploy a service.
 
 ## Reference baseline and evidence
 
