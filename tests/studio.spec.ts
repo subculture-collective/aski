@@ -34,3 +34,26 @@ test('multiline editing and copy retain exact whitespace', async ({ page, contex
   await expect(input).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+
+test('clipboard feedback does not confirm an older input', async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = window as typeof window & { finishCopy?: () => void; copiedText?: string };
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+      writeText: (text: string) => new Promise<void>(resolve => { state.copiedText = text; state.finishCopy = () => resolve(); }),
+    } });
+  });
+  await page.goto('/');
+  const input = page.getByRole('textbox', { name: 'Text', exact: true });
+  const copy = page.getByRole('button', { name: 'Copy text', exact: true });
+  await input.fill(' A\nB'); await expect.poll(() => page.getByTestId('output').textContent()).toBe(multiline); await expect(copy).toBeEnabled();
+  const before = await page.getByTestId('output').textContent();
+  await copy.click();
+  await input.fill('FINAL'); await expect.poll(() => page.getByTestId('output').textContent()).toBe(final); await expect(copy).toBeEnabled();
+  expect(await page.evaluate(() => (window as typeof window & { copiedText: string }).copiedText)).toBe(before);
+  await page.evaluate(() => (window as typeof window & { finishCopy: () => void }).finishCopy());
+  // Let the pending clipboard continuation and its paint finish.
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  // Do not retry until the normal Copied timer clears a stale message.
+  expect(await page.getByRole('status').textContent()).toBe('');
+});

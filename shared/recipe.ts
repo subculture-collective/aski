@@ -9,6 +9,8 @@ export interface RecipeV1 {
   input: string;
   familyId: typeof FONT.familyId;
   variantId: typeof FONT.variantId;
+  fontSha256: typeof FONT.sha256;
+  rendererVersion: typeof FONT.rendererVersion;
 }
 export function parseRecipe(value: unknown): RecipeV1 {
   if (!value || typeof value !== 'object') throw new Error('Invalid recipe.');
@@ -18,5 +20,6 @@ export function parseRecipe(value: unknown): RecipeV1 {
   if (typeof r.input !== 'string') throw new Error('Text is required.');
   if (r.input.length > MAX_INPUT) throw new Error(`Use ${MAX_INPUT} characters or fewer.`);
   if (r.familyId !== FONT.familyId || r.variantId !== FONT.variantId) throw new Error('This font is not available.');
-  return { schemaVersion: 1, id: r.id, input: r.input, familyId: r.familyId, variantId: r.variantId };
+  if (r.fontSha256 !== FONT.sha256 || r.rendererVersion !== FONT.rendererVersion) throw new Error('This font version is not available.');
+  return { schemaVersion: 1, id: r.id, input: r.input, familyId: r.familyId, variantId: r.variantId, fontSha256: r.fontSha256, rendererVersion: r.rendererVersion };
 }

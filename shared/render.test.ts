@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { FONT, MAX_INPUT, parseRecipe } from './recipe.ts';
 import { loadFont, renderRecipe } from './render.ts';
 loadFont(readFileSync(new URL('../web/fonts/ANSI-Compact.flf', import.meta.url), 'utf8'));
-const recipe = { schemaVersion: 1, id: '00000000-0000-4000-8000-000000000001', input: ' A\nB', familyId: FONT.familyId, variantId: FONT.variantId };
+const recipe = { schemaVersion: 1, id: '00000000-0000-4000-8000-000000000001', input: ' A\nB', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion };
 test('the reviewed font source matches its recorded identity', () => {
   assert.equal(createHash('sha256').update(readFileSync(new URL('../web/fonts/ANSI-Compact.flf', import.meta.url))).digest('hex'), FONT.sha256);
 });
@@ -27,5 +27,7 @@ test('unknown versions, IDs, fonts and oversized input fail explicitly', () => {
   assert.throws(() => parseRecipe({ ...recipe, schemaVersion: 2 }), /version/);
   assert.throws(() => parseRecipe({ ...recipe, id: 'bad' }), /ID/);
   assert.throws(() => parseRecipe({ ...recipe, variantId: 'unknown' }), /font/);
+  assert.throws(() => parseRecipe({ ...recipe, fontSha256: 'wrong' }), /font version/);
+  assert.throws(() => parseRecipe({ ...recipe, rendererVersion: 'unknown' }), /font version/);
   assert.throws(() => renderRecipe({ ...recipe, input: 'a'.repeat(MAX_INPUT + 1) }), /2000/);
 });
