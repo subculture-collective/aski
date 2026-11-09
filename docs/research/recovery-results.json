@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-11-09T21:58:04Z",
+  "postgresImageId": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+  "composeSyntaxOnly": true,
+  "sourceRows": 2,
+  "restoredRowsBeforeDeletion": 2,
+  "remainingRowsAfterDeletion": 1,
+  "artifactSha256": "ac2aae90fed6197ffae78bfb23cb4533d94f2dc5a39d5f0f3a8c082e673de929",
+  "databaseDumpSha256": "f0101a1fd449e255da6853e2ec3769af7ce2e0a4f966f2fdd74efc65a4313db9",
+  "restoreMatches": true,
+  "artifactMatches": true,
+  "corruptionRejected": true,
+  "deletionJournalApplied": true,
+  "rollbackMatches": true,
+  "limits": "Synthetic quiesced data and release-pointer rollback. No live application, mail, credentials, ingress, encrypted off-host restore, migrations or production rollback tested.",
+  "containersRemoved": true
+}
