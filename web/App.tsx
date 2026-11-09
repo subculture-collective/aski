@@ -4,7 +4,7 @@ import type { RecipeV1 } from '../shared/recipe.ts';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
-  const [recipe, setRecipe] = useState<RecipeV1>(() => ({ schemaVersion: 1, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId }));
+  const [recipe, setRecipe] = useState<RecipeV1>(() => ({ schemaVersion: 1, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion }));
   const [result, setResult] = useState<RenderResult | null>(null);
   const [pending, setPending] = useState(true);
   const [error, setError] = useState('');
@@ -49,8 +49,9 @@ export function App() {
 
   async function copy() {
     if (!result || pending || error) return;
-    try { await navigator.clipboard.writeText(result.text); setCopied(true); }
-    catch { setManual(true); }
+    const copiedJob = latestJob.current;
+    try { await navigator.clipboard.writeText(result.text); if (copiedJob === latestJob.current) setCopied(true); }
+    catch { if (copiedJob === latestJob.current) setManual(true); }
   }
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
   return <main>
