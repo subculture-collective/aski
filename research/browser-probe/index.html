@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>aski bounded GIF feasibility probe</title>
+<style>body{font:16px system-ui;max-width:48rem;margin:2rem auto;padding:1rem}textarea,button,a{display:block;margin:1rem 0;padding:.7rem}textarea{width:85%}img{max-width:100%;image-rendering:pixelated}</style>
+<h1>Bounded GIF feasibility probe</h1><p>Research harness, not the aski application. A worker renders a snapshot while this input remains editable.</p>
+<label>Draft<textarea id="draft">ASKI</textarea></label><button id="start">Encode</button><button id="cancel">Cancel</button>
+<output id="status">idle</output><img id="preview" alt="Encoded text-art animation"><a id="download" hidden download="aski-probe.gif">Download GIF</a>
+<script src="storage.js"></script>
+<script>
+let worker, url;
+window.start = options => {
+  worker?.terminate();
+  if (url) URL.revokeObjectURL(url);
+  window.result = null;
+  window.progress = 0;
+  document.querySelector('#status').textContent = 'running';
+  worker = new Worker('worker.js');
+  worker.onmessage = ({data}) => {
+    if (data.type === 'progress') window.progress = data.frame;
+    if (data.type === 'error') document.querySelector('#status').textContent = 'error:' + data.message;
+    if (data.type !== 'done') return;
+    window.result = data;
+    url = URL.createObjectURL(new Blob([data.bytes], {type:'image/gif'}));
+    document.querySelector('#preview').src = url;
+    const link = document.querySelector('#download');
+    link.href = url; link.hidden = false;
+    document.querySelector('#status').textContent = 'done';
+    worker.terminate(); worker = null;
+  };
+  worker.postMessage({text:document.querySelector('#draft').value,width:320,height:128,frames:40,transparent:false,once:false,...options});
+};
+document.querySelector('#start').onclick = () => window.start({});
+document.querySelector('#cancel').onclick = () => {
+  worker?.terminate(); worker=null;
+  document.querySelector('#status').textContent = 'cancelled';
+};
+</script></html>
