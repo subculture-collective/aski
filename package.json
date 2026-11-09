@@ -12,7 +12,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "eslint web shared",
-    "test": "node --test shared/render.test.ts",
+    "test": "node --test shared/*.test.ts",
+    "test:render": "node scripts/import-catalog.mjs --check && node --test shared/render.test.ts shared/catalog.test.ts",
     "test:browser": "playwright test"
   },
   "dependencies": {

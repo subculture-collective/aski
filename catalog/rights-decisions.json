@@ -1,0 +1,48 @@
+{
+  "source": "figlet@1.12.0",
+  "review": "2026-11-09: reviewed original header grants; retain complete headers. Exclude all unresolved candidates.",
+  "approved": [
+    "ANSI Compact",
+    "Circle",
+    "Classy",
+    "Coder Mini",
+    "Emboss 2",
+    "Emboss",
+    "Future Smooth",
+    "Future Thin",
+    "Future",
+    "Letter",
+    "Linguaholic Mini Block",
+    "Linguaholic Neon",
+    "Linguaholic Rounded",
+    "Linguaholic Shadow 3D",
+    "Pagga",
+    "Small Block",
+    "Small Braille",
+    "Upside Down Text",
+    "WideTerm"
+  ],
+  "families": {
+    "Future": [
+      "Future",
+      "Future Thin",
+      "Future Smooth"
+    ],
+    "Emboss": [
+      "Emboss",
+      "Emboss 2"
+    ],
+    "Isometric": [
+      "Isometric1",
+      "Isometric2",
+      "Isometric3",
+      "Isometric4"
+    ],
+    "Standard": [
+      "Standard",
+      "Small",
+      "Slant"
+    ]
+  },
+  "familyEvidence": "Future Thin/Smooth explicitly say based on Future; Emboss headers contain the emboss2 transformation. Other approved designs remain separate pending family evidence. Isometric1\u20134 and Standard/Small/Slant follow the source-header relationships recorded in docs/research/taag-parity.md; they remain unavailable pending redistribution review."
+}

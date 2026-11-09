@@ -1,5 +1,7 @@
 .PHONY: check typecheck lint test build test-ui dev
-check: typecheck lint test build
+check: typecheck lint test test-render build
+test-render:
+	npm run test:render
 typecheck:
 	npm run typecheck
 lint:
