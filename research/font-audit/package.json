@@ -1,0 +1,12 @@
+{
+  "name": "aski-font-audit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "audit": "node audit.mjs",
+    "check": "node audit.mjs --check"
+  },
+  "devDependencies": {
+    "figlet": "1.12.0"
+  }
+}

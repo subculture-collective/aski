@@ -177,6 +177,6 @@ Recommended route: full implementation plan, refined with reference and technica
 
 The reference is [TAAG](https://patorjk.com/software/taag/). A text fetch on November 9, 2026 exposed font selection, an Options entry, Test all, filters, color controls for a displayed style, copying, image saving, and sharing.
 
-The user noted that several recommendations already exist in TAAG's Options. The text fetch did not expose that panel's contents. A direct HTML request returned HTTP 403. The complete Options inventory remains an implementation prerequisite. Existing features must be recorded as parity requirements rather than described as new inventions.
+The user noted that several recommendations already exist in TAAG's Options. The initial text fetch did not expose that panel, and a direct HTML request returned HTTP 403. Wave 1 subsequently inspected the actual browser UI. The [parity and provenance record](research/taag-parity.md) now distinguishes FIGlet controls, TheDraw controls, existing favorites and filters, and catalog licensing limits. Existing features are parity requirements rather than new inventions.
 
 The author's [figlet.js documentation](https://github.com/patorjk/figlet.js/blob/main/README.md) describes horizontal and vertical layout modes and width controls. These engine capabilities are useful candidates, but do not establish which controls TAAG currently exposes.
