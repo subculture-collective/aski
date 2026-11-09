@@ -2,6 +2,16 @@
 
 This plan implements the [approved scope](product-scope.md). Each phase has a commit checkpoint and behavior that must pass before the next phase depends on it.
 
+## Interview constraints
+
+Keep browsing, graphic creation, and developer-friendly exports in the first release. Start with a broad catalog, grouping confirmed relatives and exposing color controls according to each font's supported mappings. Complete metadata is not a prerequisite for including a font.
+
+Editing and exports are free. Optional accounts provide saving and sync. Exclude billing and paid feature tiers from this plan.
+
+Animation uses presets and adjustable effects on a selected design. Exclude font morphing and a multi-scene sequence editor from the first release.
+
+The product interview is ongoing. Resolve visual direction and collection behavior before committing to their interfaces.
+
 ## Starting state
 
 On November 9, 2026, the workspace contained an empty Git repository on an unborn `main` branch. No remote, application code, framework, or deployment configuration was present. The earlier worktree preparation reported `ref_not_found`, consistent with the absence of a base commit.
