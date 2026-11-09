@@ -1,0 +1,45 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { FONT } from './recipe.ts';
+import { DRAFT_KEY, recoverDraft, saveDraft, historyReducer } from './draft.ts';
+import type { RecipeV1 } from './recipe.ts';
+const recipe: RecipeV1 = { schemaVersion: 1, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion };
+function storage(initial: string | null = null) {
+  let value = initial;
+  return { getItem: (key: string) => key === DRAFT_KEY ? value : null,
+    setItem: (key: string, next: string) => { assert.equal(key, DRAFT_KEY); value = next; } };
+}
+test('a versioned draft roundtrips exact multiline input and font provenance', () => {
+  const store = storage(); saveDraft(store, recipe);
+  assert.deepEqual(recoverDraft(store).recipe, recipe);
+  saveDraft(store, { ...recipe, input: 'x'.repeat(2001) });
+  assert.equal(recoverDraft(store).recipe?.input.length, 2001);
+});
+test('legacy envelope migrates without rewriting storage during recovery', () => {
+  const legacy = JSON.stringify({ schemaVersion: 1, recipe }); const store = storage(legacy);
+  assert.deepEqual(recoverDraft(store).recipe, recipe);
+  assert.equal(store.getItem(DRAFT_KEY), legacy);
+});
+test('corrupt, future and invalid-font drafts are retained rather than silently replaced', () => {
+  for (const original of ['{bad', JSON.stringify({ schemaVersion: 99, recipe }), JSON.stringify({ schemaVersion: 2, recipe: { ...recipe, fontSha256: 'drift' } })]) {
+    const store = storage(original); const result = recoverDraft(store);
+    assert.equal(result.writable, false); assert(result.warning); assert.equal(result.recipe, undefined);
+    assert.equal(store.getItem(DRAFT_KEY), original);
+  }
+});
+test('storage security/quota failures are reported without changing active recipe', () => {
+  const store = { getItem: () => { throw new Error('Blocked'); }, setItem: () => { throw new Error('Quota'); } };
+  assert.equal(recoverDraft(store).writable, false);
+  assert.throws(() => saveDraft(store, recipe), /Quota/);
+  assert.equal(recipe.input, 'RECOVER\n ME');
+});
+test('undo/redo restores complete recipes and a new edit invalidates redo', () => {
+  const start = { past: [], present: recipe, future: [] };
+  const edited = historyReducer(start, { type: 'edit', recipe: { ...recipe, input: 'NEW' } });
+  const undone = historyReducer(edited, { type: 'undo' });
+  assert.deepEqual(undone.present, recipe);
+  assert.equal(historyReducer(undone, { type: 'redo' }).present.input, 'NEW');
+  const branched = historyReducer(undone, { type: 'edit', recipe: { ...recipe, input: 'OTHER' } });
+  assert.equal(branched.future.length, 0);
+  assert.equal(historyReducer(start, { type: 'edit', recipe }).past.length, 0);
+});
