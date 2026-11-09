@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FONT, MAX_INPUT } from '../shared/recipe.ts';
+import { variants, getVariant } from '../shared/catalog.ts';
 import type { RecipeV1 } from '../shared/recipe.ts';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
@@ -54,6 +55,7 @@ export function App() {
     catch { if (copiedJob === latestJob.current) setManual(true); }
   }
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
+  const font = getVariant(recipe.variantId);
   return <main>
     <header><h1>aski</h1><button onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></header>
     <div className="studio">
@@ -61,16 +63,25 @@ export function App() {
         <label id="input-title" htmlFor="input">Text</label>
         <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
         <small id="input-limit">Up to {MAX_INPUT} characters</small>
+        <label htmlFor="font">Style</label>
+        <select id="font" value={recipe.variantId} onChange={e => {
+          const next = getVariant(e.target.value); latestJob.current += 1; setPending(!!worker.current);
+          setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256 }));
+        }}>
+          {Array.from(new Set(variants.map(item => item.familyId))).map(family => <optgroup key={family} label={family.replace('figlet/', '')}>
+            {variants.filter(item => item.familyId === family).map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
+          </optgroup>)}
+        </select>
       </section>
       <section aria-labelledby="output-title" aria-busy={pending}>
-        <div className="output-heading"><h2 id="output-title">{FONT.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
+        <div className="output-heading"><h2 id="output-title">{font.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
         <pre tabIndex={0} aria-label="Rendered text art" data-testid="output">{result?.text || ''}</pre>
         <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
-        {error === 'Could not render. Try again.' && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
+        {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
         {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
       </section>
     </div>
-    <footer>ANSI Compact by Loic Cressot. <a href="/font-notice.txt">MIT license</a>.</footer>
+    <footer><a href={font.noticePath}>{font.name} · {font.license} notice</a></footer>
     <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => setManual(false)}>
       <h2 id="copy-title">Copy text</h2><p>Select and copy the text.</p>
       <textarea ref={manualText} aria-label="Text to copy" value={result?.text || ''} readOnly />

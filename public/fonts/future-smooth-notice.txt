@@ -1,0 +1,28 @@
+===============================================================================
+  This is "Future Smooth" (Future Smooth.flf), based on "Future" (future.tlf) by Sam Hocevar. This variant uses arcs instead of sharp corners to smooth out the font. Because heavy arc characters don't exist, the font uses light box drawings instead of heavy ones for consistency.
+
+  2006/10/01 -- Sam Hocevar <sam@hocevar.net>
+                font creation
+                still missing: # % ( ) * / < > \ ^ ~
+  2006/10/02 -- Sam Hocevar <sam@hocevar.net>
+                added Unicode block and line glyphs
+                added: % ( ) * / \ ~
+                fixed: & 2 5 X
+  2026/02/19 -- John Goodliff <johng.io>
+                replaced ┏ with ╭
+                replaced ┓ with ╮
+                replaced ┗ with ╰
+                replaced ┛ with ╯
+                replaced heavy box drawings with light box drawings
+
+  This font is free software. It comes without any warranty, to the extent
+permitted by applicable law. You can redistribute it and/or modify it under
+the terms of the Do What The Fuck You Want To Public License, Version 2,
+as published by Sam Hocevar. See http://sam.zoy.org/wtfpl/COPYING for more
+details.
+
+  Missing characters: # < > ^
+
+  This font is part of TOIlet’s official distribution. More information
+on the TOIlet website at http://caca.zoy.org/wiki/toilet
+===============================================================================

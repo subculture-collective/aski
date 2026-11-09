@@ -4,10 +4,10 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { FONT, MAX_INPUT, parseRecipe } from './recipe.ts';
 import { loadFont, renderRecipe } from './render.ts';
-loadFont(readFileSync(new URL('../web/fonts/ANSI-Compact.flf', import.meta.url), 'utf8'));
+loadFont(readFileSync(new URL('../public/fonts/ansi-compact.flf', import.meta.url), 'utf8'));
 const recipe = { schemaVersion: 1, id: '00000000-0000-4000-8000-000000000001', input: ' A\nB', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion };
 test('the reviewed font source matches its recorded identity', () => {
-  assert.equal(createHash('sha256').update(readFileSync(new URL('../web/fonts/ANSI-Compact.flf', import.meta.url))).digest('hex'), FONT.sha256);
+  assert.equal(createHash('sha256').update(readFileSync(new URL('../public/fonts/ansi-compact.flf', import.meta.url))).digest('hex'), FONT.sha256);
 });
 test('multiline output preserves the recorded leading spaces and line endings', () => {
   const expected = readFileSync(new URL('./fixtures/multiline.txt', import.meta.url), 'utf8');

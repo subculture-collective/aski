@@ -1,0 +1,9 @@
+# Catalog and rights
+
+The candidate inventory retains all 332 names from `figlet@1.12.0`. Only the 19 entries explicitly selected in `catalog/rights-decisions.json` are shipped. Their original MIT or WTFPL redistribution notices were reviewed and retained beside the unchanged font bytes. The other 313 remain unavailable until their rights evidence is reviewed. The engine license does not clear fonts.
+
+Run `node scripts/import-catalog.mjs` after an intentional rights review; `make test-render` checks reproducible import, source/header hashes, identifiers, packaged notices, family mapping, effective glyph coverage and representative output. The importer refuses upstream byte drift. The candidate inventory contains metadata, never unresolved font binaries.
+
+Future Thin and Smooth explicitly derive from Future. Emboss headers describe the Emboss 2 transformation. These share family IDs; other available fonts remain separate. Unknown tags and color mappings are `null`. Foreground/background roles do not imply additional color-slot mappings. The original ANSI Compact recipe IDs remain valid; new IDs use the `figlet/` namespace. Font hashes and renderer versions are independent of those stable IDs.
+
+The worker fetches only the selected font, verifies its SHA-256 before parsing, and caches it for that worker. Glyph coverage includes nonblank defined glyphs and space; blank placeholders and absent code points are reported without changing input. Requests retain the skeleton's sequence checks so late loads cannot replace current output. A temporary load failure can be retried. Native Style selection is provided to exercise the renderer; family gallery browsing remains #15.
