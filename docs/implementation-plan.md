@@ -6,13 +6,15 @@ This plan implements the [approved scope](product-scope.md). Each phase has a co
 
 Keep browsing, graphic creation, and developer-friendly exports in the first release. Start with a broad catalog, grouping confirmed relatives and exposing color controls according to each font's supported mappings. Complete metadata is not a prerequisite for including a font.
 
-Editing and exports are free. Optional accounts provide saving and sync. Exclude billing and paid feature tiers from this plan.
+Editing and exports are free. Favorites and named collections save locally before sign-in. Optional accounts provide cross-device sync. Exclude billing and paid feature tiers from this plan.
 
 Animation uses presets and adjustable effects on a selected design. Exclude font morphing and a multi-scene sequence editor from the first release.
 
 The visual direction is an expressive creative tool with bold colors, playful typography, and prominent animated previews. Develop its specific brand and interface rules from the existing Studio reference library. Studio owns brand masters and tokens. This repository owns product implementation.
 
-Include favorites and named collections, preserving the distinction between reusable styles and exact saved designs. The product interview is ongoing. Resolve whether collections require sign-in before committing to their persistence behavior.
+Include favorites and named collections, preserving the distinction between reusable styles and exact saved designs. Carry local work into the optional account without overwriting existing saved work.
+
+Provide complete editing and exports on desktop, tablet, and phone at launch. Adapt the controls to the screen while retaining palette editing, collections, animation controls, and GIF export. The core product interview is complete. The selected Studio direction, stack, supported browser matrix, export budgets, and deployment target still need reference or technical investigation.
 
 ## Starting state
 
@@ -33,21 +35,24 @@ Acceptance checks:
 - Render representative ASCII and block-character fonts from a recorded catalog.
 - Preserve multiline input and report unsupported characters.
 - Keep the text editor accessible by keyboard on desktop and mobile layouts.
+- Establish a supported browser and device matrix covering desktop, tablet, and phone.
 - Record build, type-check, and relevant test commands in the README.
 
 Commit checkpoint: application shell, catalog, and rendering foundation.
 
 ## 2. Complete browsing and continuous editing
 
-Add grouped variants, filters, pin-and-compare, dimensions, width controls, undo, redo, and local draft recovery.
+Add grouped variants, filters, pin-and-compare, dimensions, width controls, undo, redo, and local draft recovery. Implement browser persistence for favorites and named collections before adding account sync.
 
 Acceptance checks:
 
 - Scroll to a family, choose a variant, change the input, and confirm that the same family remains anchored in view.
 - Confirm that selected variants, filters, pins, and open panels survive input changes.
 - Reload a draft and recover its text and settings.
+- Create favorites and named collections without an account. Reload the same browser and recover the saved items and collection membership.
 - Compare several pinned results and confirm that all use the current input.
 - Change output height substantially without losing the gallery position.
+- Complete browsing, variant selection, and collection organization using touch on tablet and phone layouts.
 
 Commit checkpoint: browsing and draft workflow.
 
@@ -63,6 +68,7 @@ Acceptance checks:
 - Confirm that tightening preserves letter shapes and intentional word spacing.
 - Open a share link in a fresh session and recover the same input and editing settings.
 - Keep normal character rendering available for styles that cannot use seamless mode.
+- Edit color slots and download still exports on desktop, tablet, and phone.
 
 Commit checkpoint: color controls and still exports.
 
@@ -82,6 +88,7 @@ Acceptance checks:
 - Cancel an export and start another without reloading or losing the draft.
 - Reject exports over the supported budget before allocating all frames.
 - Honor reduced motion for preview playback without disabling export.
+- Configure an effect, inspect its preview, and download a playable GIF on desktop, tablet, and phone.
 
 Commit checkpoint: animation section and verified GIF artifacts.
 
@@ -96,7 +103,7 @@ Acceptance checks:
 - Save an input and a specific output, then reopen each from a second session.
 - Reopen an animated output with its effect settings and retrieve its saved GIF artifact.
 - Confirm that an updated catalog does not alter a previously saved artifact.
-- Import a local draft without overwriting an existing saved result.
+- Import local drafts, favorites, collections, and saved designs without overwriting existing saved work.
 - Recover from a failed sync without losing the local draft.
 
 Commit checkpoint: account saving and sync.
@@ -104,6 +111,8 @@ Commit checkpoint: account saving and sync.
 ## 6. Verify and release the first version
 
 Complete keyboard, responsive layout, accessibility, rendering, account, and export checks. Measure typing responsiveness and export limits with representative inputs and device sizes.
+
+Run a complete workflow on each supported device class: browse a family, switch its variant, edit text and colors, save it in a collection, configure animation, and download the GIF. Repeat collection recovery without sign-in and sync from a signed-in second session.
 
 Document configuration, backup and restore of saved work, and release rollback. Provision a runtime only after its host and public endpoint are established. Check the live release and repeat a save-and-export workflow before reporting deployment as complete.
 
