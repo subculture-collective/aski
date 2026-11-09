@@ -10,7 +10,9 @@ Editing and exports are free. Optional accounts provide saving and sync. Exclude
 
 Animation uses presets and adjustable effects on a selected design. Exclude font morphing and a multi-scene sequence editor from the first release.
 
-The product interview is ongoing. Resolve visual direction and collection behavior before committing to their interfaces.
+The visual direction is an expressive creative tool with bold colors, playful typography, and prominent animated previews. Develop its specific brand and interface rules from the existing Studio reference library. Studio owns brand masters and tokens. This repository owns product implementation.
+
+Include favorites and named collections, preserving the distinction between reusable styles and exact saved designs. The product interview is ongoing. Resolve whether collections require sign-in before committing to their persistence behavior.
 
 ## Starting state
 
