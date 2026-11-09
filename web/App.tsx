@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { FONT, MAX_INPUT } from '../shared/recipe.ts';
+import { MAX_INPUT } from '../shared/recipe.ts';
 import { variants, getVariant } from '../shared/catalog.ts';
-import type { RecipeV1 } from '../shared/recipe.ts';
+import { useDraft } from './useDraft.ts';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
-  const [recipe, setRecipe] = useState<RecipeV1>(() => ({ schemaVersion: 1, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion }));
+  const { recipe, setRecipe, undo, redo, canUndo, canRedo, warning, saveCurrent } = useDraft();
   const [result, setResult] = useState<RenderResult | null>(null);
   const [pending, setPending] = useState(true);
   const [error, setError] = useState('');
@@ -56,13 +56,27 @@ export function App() {
   }
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
   const font = getVariant(recipe.variantId);
-  return <main>
+  function moveHistory(direction: 'undo' | 'redo') {
+    latestJob.current += 1; setPending(!!worker.current);
+    if (direction === 'undo') undo(); else redo();
+  }
+  return <main onKeyDown={e => {
+    if (e.target instanceof HTMLInputElement || (e.target instanceof HTMLTextAreaElement && e.target.id !== 'input')) return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z') {
+      e.preventDefault(); if (e.shiftKey ? canRedo : canUndo) moveHistory(e.shiftKey ? 'redo' : 'undo');
+    }
+  }}>
     <header><h1>aski</h1><button onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></header>
     <div className="studio">
       <section aria-labelledby="input-title">
         <label id="input-title" htmlFor="input">Text</label>
         <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
         <small id="input-limit">Up to {MAX_INPUT} characters</small>
+        <div className="history-controls">
+          <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
+          <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
+        </div>
+        {warning && <div className="warning" data-testid="draft-warning"><p>{warning}</p><button onClick={saveCurrent}>Save this draft</button></div>}
         <label htmlFor="font">Style</label>
         <select id="font" value={recipe.variantId} onChange={e => {
           const next = getVariant(e.target.value); latestJob.current += 1; setPending(!!worker.current);
