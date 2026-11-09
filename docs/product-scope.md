@@ -2,6 +2,17 @@
 
 The user approved the recommendations on November 9, 2026, and added a dedicated animation section with GIF export. This document describes the target behavior. It does not describe an implemented application.
 
+## Product interview decisions
+
+- Keep all three workflows central: browsing and collecting styles, creating static or animated graphics, and exporting developer-friendly text. The initial browsing preference did not exclude the other workflows.
+- Group related font variants in one family card. Use filters for broader visual categories such as 3D lettering.
+- Launch with a broad catalog. Group confirmed families and keep uncertain fonts separate while their metadata improves.
+- Accept fewer discovery tags or color controls for some fonts initially. Show the controls each font supports.
+- Launch as a free public tool. Editing and exports are free. Optional accounts add saving and sync. Billing and paid feature boundaries are outside the first release.
+- Animate a selected design through presets and adjustable controls. Font morphing and a multi-scene sequence editor are outside the first release.
+
+The interview is ongoing. Visual direction and the collection experience remain open. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
+
 ## Core workflow
 
 Enter text once, browse font families, compare results, customize a result, and export or save it. Text editing remains available throughout the workflow.
@@ -10,6 +21,7 @@ The desktop layout has a sticky text editor, a family gallery, and a detail pane
 
 ## Font families and discovery
 
+- Favor catalog breadth over requiring complete metadata for every font at launch.
 - Show one gallery card per font family, with toggles for its available variants.
 - Give families and variants stable identifiers. Curate groupings rather than assuming that similar names imply a shared family.
 - Preserve each card's selected variant while the user edits text or browses elsewhere.
@@ -53,6 +65,8 @@ Plain-text appearance depends on the destination's font and spacing. Seamless im
 ## Animation section
 
 Animation is part of the first release. A selected result opens in a dedicated animation section with its text, style, colors, and spacing intact.
+
+Provide animation presets and adjustable controls for the chosen design. Font morphing and multi-scene sequencing are outside the first release.
 
 ### Initial effects
 
@@ -98,7 +112,7 @@ Use one effect at a time in the first release. Combining effects remains a later
 
 ## Accounts and saved work
 
-The editor and exports work without an account. Passwordless email sign-in enables saving across devices.
+The editor and exports are free and work without an account. Optional accounts enable saving and sync across devices. The proposed sign-in method is passwordless email. The first release has no payment system or paid feature tiers.
 
 - Save inputs separately from rendered outputs so an input can be explored in other styles.
 - Save reusable palettes.
