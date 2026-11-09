@@ -6,6 +6,10 @@ The [first public release roadmap](https://git.subcult.tv/subculture-collective/
 
 The [stack and browser feasibility decision](research/stack-browser-decision.md) records the selected implementation approach, versioned data boundaries, reproducible probe commands, and the distinction between automated engine evidence and actual-device qualification.
 
+## Walking skeleton
+
+The anonymous foundation renders one reviewed ANSI Compact font in a worker, preserves multiline output and copies it through the browser clipboard or a manual permission fallback. Its stable recipe/font IDs, startup and actual checks are documented in [README.md](../README.md). Broad catalog, persistent library, brand integration, palettes, animation and account services remain separate roadmap deliveries.
+
 ## Interview constraints
 
 Keep browsing, graphic creation, and developer-friendly exports in the first release. Start with a broad catalog, grouping confirmed relatives and exposing color controls according to each font's supported mappings. Complete metadata is not a prerequisite for including a font.
