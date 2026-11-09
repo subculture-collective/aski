@@ -15,7 +15,7 @@ Decision record for [#9](https://git.subcult.tv/subculture-collective/aski/issue
 | Still output | Copy, Save as image, and Share actions | Preserve these actions; aski specifies additional portable SVG and ANSI exports. |
 | TheDraw output | Colored block art, color toggle, copy menu, image/save/share actions | Preserve format distinctions in the renderer contract; these are not FIGlet fonts. |
 | TheDraw Options | Black/background handling and true-color ANSI preference | Use explicit palette indices and foreground/background cell roles for compatible formats. |
-| Test all | Existing catalog-wide discovery entry point | aski's family gallery improves this workflow; previewing many fonts is not itself new. |
+| Test all | Catalog-wide discovery with section, minimum/maximum height, and favorites-only controls | Preserve these filters. aski adds family grouping and uninterrupted browsing; previewing many fonts is not itself new. |
 
 The FIGlet filter menu includes rainbow/chromostereopsis treatments, flips, sleek rendering, and code comments for Bash, C, C++, Fortran, LaTeX, Lua, MySQL, shell echo, and Visual Basic. Named accounts, collection sync, and GIF editing were not established by this inspection. Their absence from an inspected state is not a proof of absence from the entire site.
 
