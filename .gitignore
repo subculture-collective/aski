@@ -1,3 +1,8 @@
 node_modules/
 research/**/artifacts/
 research/**/dist/
+dist/
+test-results/
+playwright-report/
+.env
+.env.*

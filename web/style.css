@@ -1,0 +1,22 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f6f8; color: #20202a; font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 1400px; margin: auto; padding: 28px; }
+header, .output-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+header { margin-bottom: 24px; }
+h1 { font-size: 32px; margin: 0; letter-spacing: -.06em; }
+h2, label { font-size: 16px; font-weight: 650; margin: 0; }
+button { border: 1px solid #20202a; background: #20202a; color: white; padding: 10px 20px; border-radius: 4px; min-height: 44px; font: inherit; cursor: pointer; }
+button:disabled { background: #e2e2e8; color: #60606d; border-color: #aaaab5; cursor: default; }
+.studio { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(0, 1.3fr); gap: 24px; align-items: start; }
+section { min-width: 0; background: white; padding: 20px; border: 1px solid #b0b0bd; border-radius: 5px; }
+textarea { width: 100%; min-height: 220px; resize: vertical; padding: 14px; border: 1px solid #777785; border-radius: 3px; background: white; color: #20202a; font: 18px/1.5 ui-monospace, monospace; display: block; margin: 12px 0; }
+small, footer, .output-heading span { color: #555562; font-size: 12px; }
+.output-heading { flex-wrap: wrap; gap: 6px; }
+pre { white-space: pre; overflow: auto; margin: 16px 0 0; min-height: 200px; max-height: 65dvh; padding: 16px; border: 1px solid #b0b0bd; background: #fcfcfd; font: 14px/1.05 ui-monospace, monospace; }
+.status { min-height: 30px; font-size: 13px; padding-top: 8px; }
+.warning { font-size: 13px; margin: 6px 0 0; }
+footer { margin-top: 20px; } a { color: #36368b; }
+:focus-visible { outline: 3px solid #4747bd; outline-offset: 3px; }
+dialog { border: 1px solid #20202a; border-radius: 5px; max-width: min(90vw, 800px); width: 100%; color: #20202a; }
+dialog::backdrop { background: #0008; } dialog textarea { white-space: pre; overflow: auto; font-size: 13px; }
+@media (max-width: 700px) { main { padding: 18px; } .studio { grid-template-columns: 1fr; gap: 18px; } section { padding: 16px; } textarea { min-height: 120px; } pre { min-height: 130px; max-height: 420px; font-size: 12px; } }
