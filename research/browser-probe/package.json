@@ -1,0 +1,18 @@
+{
+  "name": "aski-browser-probe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node probe.mjs",
+    "check": "node --test contract.test.mjs"
+  },
+  "devDependencies": {
+    "dexie": "4.4.7",
+    "esbuild": "0.25.12",
+    "figlet": "1.12.0",
+    "gifenc": "1.0.3",
+    "gifuct-js": "2.1.2",
+    "playwright": "1.65.0"
+  }
+}

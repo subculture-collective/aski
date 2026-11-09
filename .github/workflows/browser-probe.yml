@@ -1,0 +1,28 @@
+name: Browser research
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-probe:
+    name: Browser probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --prefix research/browser-probe --ignore-scripts --no-audit --no-fund
+      - run: npm --prefix research/browser-probe run build
+      - run: npm --prefix research/browser-probe run check
+      - run: research/browser-probe/node_modules/.bin/playwright install --with-deps chromium firefox webkit
+      - run: npm --prefix research/browser-probe test
