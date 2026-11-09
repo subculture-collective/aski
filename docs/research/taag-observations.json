@@ -1,0 +1,46 @@
+{
+  "observedAt": "2026-11-09",
+  "browser": "T3 shared Chromium preview; desktop viewport; actual site UI",
+  "fontPickerReportedOptions": 1386,
+  "samples": [
+    {
+      "font": "Standard",
+      "format": "figlet",
+      "url": "https://patorjk.com/software/taag/#p=display&f=Standard&t=ASKI%0AA%F0%9F%99%82&x=none&v=4&h=4&w=80&we=true",
+      "input": "ASKI\nA🙂",
+      "viewport": {
+        "height": 877,
+        "width": 1402
+      },
+      "rows": 9,
+      "columns": 25,
+      "outputSha256": "7ab9433802205af971b5c57aaaa79cb5e92b5a5e23665ddbbc8a10ebf0df214a"
+    },
+    {
+      "font": "Isometric1",
+      "format": "figlet",
+      "url": "https://patorjk.com/software/taag/#p=display&f=Isometric1&t=ASKI%0AA%F0%9F%99%82&x=none&v=4&h=4&w=80&we=false",
+      "input": "ASKI\nA🙂",
+      "viewport": {
+        "height": 877,
+        "width": 1402
+      },
+      "rows": 22,
+      "columns": 54,
+      "outputSha256": "effb9a5a09b7b378209fdf05d43cba3bc2d2cd889097501497ca73c3d2af6c0c"
+    },
+    {
+      "font": "Bleach",
+      "format": "thedraw",
+      "url": "https://patorjk.com/software/taag/#p=display&f=Bleach&t=ASKI%0AA%F0%9F%99%82&x=none&v=4&h=4&w=80&we=false&ft=thedraw",
+      "input": "ASKI\nA🙂",
+      "viewport": {
+        "height": 877,
+        "width": 1402
+      },
+      "rows": 19,
+      "columns": 54,
+      "outputSha256": "a27e9001087e82d2d092a1ef45299fae42d05254128bffba5e10ab9d49030a1b"
+    }
+  ]
+}
