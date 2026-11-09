@@ -10,14 +10,25 @@ The user approved the recommendations on November 9, 2026, and added a dedicated
 - Accept fewer discovery tags or color controls for some fonts initially. Show the controls each font supports.
 - Launch as a free public tool. Editing and exports are free. Optional accounts add saving and sync. Billing and paid feature boundaries are outside the first release.
 - Animate a selected design through presets and adjustable controls. Font morphing and a multi-scene sequence editor are outside the first release.
+- Use an expressive interface with bold colors, playful typography, and prominent animated previews.
+- Provide favorites plus named collections for organizing styles and saved designs by project or mood. Keep reusable styles distinct from exact saved designs.
+- Use the existing branding and design reference system to develop aski's identity and interface.
 
-The interview is ongoing. Visual direction and the collection experience remain open. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
+The interview is ongoing. A specific aski brand direction remains to be selected from the existing references. Whether favorites and collections require sign-in remains open. Detailed control defaults in this document remain implementation proposals unless the user has explicitly settled them.
 
 ## Core workflow
 
 Enter text once, browse font families, compare results, customize a result, and export or save it. Text editing remains available throughout the workflow.
 
 The desktop layout has a sticky text editor, a family gallery, and a detail panel for the selected result. On small screens, the detail panel becomes a sheet. Opening the panel preserves the gallery position.
+
+## Design and branding
+
+The selected visual approach is an expressive creative tool: bold colors, playful interface typography, and prominent animated previews.
+
+Use the [Studio reference library](https://subcult.tv/admin/studio/references) and its supporting studies to develop the identity. The library's local sources are under `studio/references/` in the `subcult-tv` repository on Kvant. Studio owns brand masters, guides, and tokens. This repository owns the product interface and its implementation.
+
+The shared library was located during the interview. No specific aski study or production identity has been selected in this interview. Record the selected references and resulting design rules before treating a proposed direction as the final brand.
 
 ## Font families and discovery
 
@@ -114,6 +125,9 @@ Use one effect at a time in the first release. Combining effects remains a later
 
 The editor and exports are free and work without an account. Optional accounts enable saving and sync across devices. The proposed sign-in method is passwordless email. The first release has no payment system or paid feature tiers.
 
+- Provide a favorites action for reusable styles and named collections for styles and saved designs.
+- Let a saved item appear in more than one collection without duplicating the underlying design.
+- Keep a favorite style reusable with new text. Reopening a saved design restores its exact settings.
 - Save inputs separately from rendered outputs so an input can be explored in other styles.
 - Save reusable palettes.
 - Save a result's text, family, variant, colors, spacing, dimensions, and animation settings as an editable recipe.
