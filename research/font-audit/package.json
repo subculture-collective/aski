@@ -1,6 +1,7 @@
 {
   "name": "aski-font-audit",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "audit": "node audit.mjs",
