@@ -7,7 +7,7 @@ import { decodeShare, encodeShare } from '../shared/share.ts';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
 import type { Slot } from '../shared/recipe.ts';
 import { defaultName, findMembership, parseName } from '../shared/library.ts';
-import type { CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord, PalettePayload } from '../shared/library.ts';
+import type { ArtifactMeta, CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord, PalettePayload } from '../shared/library.ts';
 import { variants, getFamily, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
@@ -23,7 +23,7 @@ import { AnimationPanel } from './AnimationPanel.tsx';
 import { Seamless } from './Seamless.tsx';
 import { ImageExport } from './ImageExport.tsx';
 import { toPng } from './imageExport.ts';
-import { toSvg } from '../shared/image.ts';
+import { DEFAULT_IMAGE, imageSize, toSvg } from '../shared/image.ts';
 import type { ImageOptions } from '../shared/image.ts';
 import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
@@ -172,6 +172,28 @@ export function App() {
       setShareNotice(`Opened a shared design. This version renders it at ${result.columns} × ${result.rows} instead of ${sharedSize.columns} × ${sharedSize.rows}. Undo returns to your previous draft.`);
     setSharedSize(null);
   }, [sharedSize, ready, result]);
+  // Saves the recipe and text snapshot, plus any chosen image files rendered right now with the default
+  // image settings. The files are stored as bytes and never regenerated.
+  async function saveDesign(keep: { png: boolean; svg: boolean }) {
+    if (!result || pending || error) return '';
+    const size = { columns: result.columns, rows: result.rows };
+    const options = { ...DEFAULT_IMAGE, blocks: recipe.layout.blocks && font.blocks };
+    const { width, height } = imageSize(size.columns, size.rows, options);
+    const provenance = { variantId: font.variantId, fontSha256: font.sha256, rendererVersion: recipe.rendererVersion };
+    const files = [];
+    try {
+      if (keep.png) files.push({ mime: 'image/png' as const, bytes: new Uint8Array(await (await toPng(runs, recipe.colors, size, options)).arrayBuffer()), width, height, provenance });
+      if (keep.svg) files.push({ mime: 'image/svg+xml' as const, bytes: new TextEncoder().encode(toSvg(runs, recipe.colors, size, options)), width, height, provenance });
+    } catch { /* an image that cannot be drawn is skipped; the design still saves */ }
+    return library.addDesign({ name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, ...size } }, files);
+  }
+  async function downloadArtifact(meta: ArtifactMeta) {
+    try {
+      const artifact = await library.readArtifact(meta.id);
+      save(new Blob([artifact.bytes as BlobPart], { type: artifact.mime }), artifact.mime === 'image/gif' ? 'gif' : artifact.mime === 'image/png' ? 'png' : 'svg');
+      return '';
+    } catch (failure) { return (failure as Error).message; }
+  }
   async function share() {
     if (!result || pending || error) return;
     try {
@@ -224,7 +246,7 @@ export function App() {
         </div>
         <SavedWork inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
           onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
-          onSaveDesign={() => { if (ready) library.add<DesignPayload>('design', { name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, columns: result.columns, rows: result.rows } }); }}
+          onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}
           onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
         <Favorites favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
           onApply={applyFavorite} onRemove={library.removeFavorite} picker={picker} />
