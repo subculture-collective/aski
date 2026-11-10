@@ -31,7 +31,7 @@ test('only source-confirmed relations share a family; unknown metadata is explic
   assert.equal(getVariant('figlet/future-thin').familyId, getVariant('figlet/future').familyId);
   assert.equal(getVariant('figlet/emboss-2').familyId, getVariant('figlet/emboss').familyId);
   assert.notEqual(getVariant('figlet/linguaholic-neon').familyId, getVariant('figlet/linguaholic-rounded').familyId);
-  assert(variants.every(f => f.tags === null && f.colorMapping === null));
+  assert(variants.every(f => f.tags === null));
   assert.throws(() => getVariant('figlet/isometric1'), /not available/);
 });
 test('coverage follows encoded glyphs and rejects absent controls and Unicode glyphs', () => {

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FONT } from './recipe.ts';
+import { DEFAULT_COLORS, FONT } from './recipe.ts';
 import { DRAFT_KEY, recoverDraft, saveDraft, historyReducer } from './draft.ts';
-import type { RecipeV1 } from './recipe.ts';
-const recipe: RecipeV1 = { schemaVersion: 1, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion };
+import type { Recipe } from './recipe.ts';
+const recipe: Recipe = { schemaVersion: 2, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS, foreground: '#00FF66' } };
 function storage(initial: string | null = null) {
   let value = initial;
   return { getItem: (key: string) => key === DRAFT_KEY ? value : null,
@@ -15,9 +15,10 @@ test('a versioned draft roundtrips exact multiline input and font provenance', (
   saveDraft(store, { ...recipe, input: 'x'.repeat(2001) });
   assert.equal(recoverDraft(store).recipe?.input.length, 2001);
 });
-test('legacy envelope migrates without rewriting storage during recovery', () => {
-  const legacy = JSON.stringify({ schemaVersion: 1, recipe }); const store = storage(legacy);
-  assert.deepEqual(recoverDraft(store).recipe, recipe);
+test('legacy envelope and version-1 recipe migrate without rewriting storage during recovery', () => {
+  const { colors: _colors, ...rest } = recipe; void _colors;
+  const legacy = JSON.stringify({ schemaVersion: 1, recipe: { ...rest, schemaVersion: 1 } }); const store = storage(legacy);
+  assert.deepEqual(recoverDraft(store).recipe, { ...recipe, colors: DEFAULT_COLORS });
   assert.equal(store.getItem(DRAFT_KEY), legacy);
 });
 test('corrupt, future and invalid-font drafts are retained rather than silently replaced', () => {
