@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
 export function SignIn() {
   const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const [email, setEmail] = useState('');
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   return <>
-    <button onClick={() => dialog.current?.showModal()}>Sign in</button>
-    <dialog ref={dialog} aria-labelledby="signin-title">
+    <button ref={trigger} onClick={() => dialog.current?.showModal()}>Sign in</button>
+    <dialog ref={dialog} aria-labelledby="signin-title" onClose={() => trigger.current?.focus()}>
       <h2 id="signin-title">Sign in</h2>
       <form onSubmit={async e => {
         e.preventDefault(); if (pending) return;

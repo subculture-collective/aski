@@ -2,7 +2,7 @@
 
 A text-art studio for browsing font families, editing palettes, saving work, and exporting still images and animated GIFs.
 
-The current application renders 19 reviewed fonts from multiline input and copies whitespace-safe text. Catalog browsing, palettes, saving, animation and image exports follow the roadmap.
+The current application renders 19 reviewed fonts from multiline input and copies whitespace-safe text. Family-gallery browsing, palettes, collections, animation and image exports follow the roadmap.
 
 - [Approved product scope](docs/product-scope.md)
 - [Implementation plan and acceptance checks](docs/implementation-plan.md)
@@ -23,7 +23,7 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor remains on the main thread. The current input limit is 2,000 UTF-16 code units. Unsupported code points are reported and the original input remains editable. The native Style selector keeps confirmed variants together. The shell uses neutral styling until the brand integration step.
+Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor remains on the main thread. The current input limit is 2,000 UTF-16 code units. Unsupported code points are reported and the original input remains editable. The native Style selector keeps confirmed variants together. The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
 
 ```sh
 make check
@@ -48,3 +48,5 @@ See [catalog provenance and import](docs/catalog.md). Run `make test-render` for
 [Draft recovery and undo/redo](docs/drafts.md): `make test-storage` checks the versioned persistence boundary. Browser tests cover reload, text/style history, corrupted drafts and quota failures.
 
 [Sign-in request service](docs/sign-in-requests.md): `make test-account` needs Docker and creates its own temporary PostgreSQL 17 database. `make test-account-ui` exercises the real form against a separate capture inbox. No production mail credentials are needed for these checks. `make check` now includes the account service tests.
+
+[Studio brand handoff](docs/brand-integration.md): `make check-brand` verifies 15 selected source-bound assets. `make check` also inspects the built public file list and copied hashes. The full private Studio pack is not included.
