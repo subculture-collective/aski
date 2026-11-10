@@ -47,8 +47,11 @@ for (const candidate of audit.fonts) {
   const colorMapping = mappings[name] || null;
   const drawn = new Set(Object.values(glyphs).filter(Array.isArray).flatMap(lines => [...lines.join('')]));
   for (const characters of Object.values(colorMapping || {})) for (const character of characters) assert(drawn.has(character), `${name} never draws ${character}`);
+  // Horizontal layout capability comes from the font header: its own default and whether it defines smushing rules.
+  const rules = options.fittingRules;
+  const spacing = { default: ['full', 'fitted', 'smush', 'smush'][rules.hLayout], smush: [1, 2, 3, 4, 5, 6].some(rule => rules[`hRule${rule}`]) };
   fonts.push({ ...entry, colorMapping, coverage, path: '/' + path, noticePath: `/fonts/${slug(name)}-notice.txt`, height: options.height, format: 'figlet',
-    slots: ['foreground', 'background', ...Object.keys(colorMapping || {})] });
+    slots: ['foreground', 'background', ...Object.keys(colorMapping || {})], spacing });
   await emit('public/' + path, source);
   await emit(`public/fonts/${slug(name)}-notice.txt`, notice + '\n');
 }

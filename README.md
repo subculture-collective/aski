@@ -29,6 +29,8 @@ The Styles gallery shows one card per confirmed family. Variant buttons change a
 
 **Colors** assigns a swatch, a custom `#RRGGBB` value or a native color pick to each slot the selected font supports: foreground and background for every font, plus reviewed extra slots (currently a shadow for Linguaholic Shadow 3D). Invalid values leave the last valid color in place. Presets, reset and saved palettes apply every slot at once. Colors are part of the recipe, so they join undo history, the local draft and saved designs. See [Colors](docs/colors.md).
 
+**Layout** sets letter spacing (font default, full width, fitted, or smushed where the font defines smushing rules), an optional maximum width that wraps between words, and left, center or right alignment. See [Layout](docs/layout.md).
+
 The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. **Saved work** keeps reusable text and exact designs (style, recipe provenance and output text) as separate items. **Collections** group favorite styles and saved designs; an item can be in several. Favorites, saved work and collections live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
 
 ```sh
