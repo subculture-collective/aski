@@ -1,0 +1,6 @@
+{
+  "review": "2026-11-10: slot roles come from each font's glyph design, never from punctuation alone. Linguaholic Shadow 3D draws letter faces with full blocks and a separate box-drawing shadow. Every other approved font is foreground/background only until reviewed.",
+  "fonts": {
+    "Linguaholic Shadow 3D": { "shadow": ["╔", "╗", "╚", "╝", "═", "║"] }
+  }
+}

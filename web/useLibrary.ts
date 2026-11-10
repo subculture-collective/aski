@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cascade, createRecord, findFavorite, findMembership, parseName } from '../shared/library.ts';
-import type { CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord, MembershipPayload, RecordType } from '../shared/library.ts';
+import type { PalettePayload, CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord, MembershipPayload, RecordType } from '../shared/library.ts';
 import { deleteRecords, loadLibrary, putRecord } from './libraryStore.ts';
 const UNAVAILABLE = 'This browser cannot save your library. Saved items last until you close this page.';
 export function useLibrary() {
@@ -40,6 +40,6 @@ export function useLibrary() {
     if (existing) remove(existing);
     else save(createRecord<MembershipPayload>('membership', { collectionId, itemType: item.type as MembershipPayload['itemType'], itemId: item.id }));
   }
-  return { collections: ofType<CollectionPayload>('collection'), toggleMembership, records, favorites: ofType<FavoritePayload>('favorite'), inputs: ofType<InputPayload>('input'), designs: ofType<DesignPayload>('design'),
+  return { palettes: ofType<PalettePayload>('palette'), collections: ofType<CollectionPayload>('collection'), toggleMembership, records, favorites: ofType<FavoritePayload>('favorite'), inputs: ofType<InputPayload>('input'), designs: ofType<DesignPayload>('design'),
     warning, toggleFavorite, add: <T,>(type: RecordType, payload: T) => save(createRecord(type, payload)), rename, remove, isFavorite: (favorite: FavoritePayload) => !!findFavorite(records, favorite), removeFavorite: remove };
 }
