@@ -37,6 +37,7 @@ export function App() {
   const [manual, setManual] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [inspected, setInspected] = useState(0);
+  const [pins, setPins] = useState<string[]>([]);
   const [shareNotice, setShareNotice] = useState('');
   const [shareLink, setShareLink] = useState('');
   const [sharedSize, setSharedSize] = useState<{ columns: number; rows: number } | null>(null);
@@ -271,6 +272,8 @@ export function App() {
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
           onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}
+          pins={pins} onPin={variantId => setPins(previous => previous.includes(variantId) ? previous.filter(item => item !== variantId) : [...previous, variantId])}
+          onUseVariant={chooseVariant}
           isFavorite={(familyId, variantId) => library.isFavorite({ familyId, variantId })}
           onFavorite={(familyId, variantId) => library.toggleFavorite({ familyId, variantId })}
           onToggle={family => setExpanded(previous => { const next = new Set(previous); if (!next.delete(family.familyId)) next.add(family.familyId); return next; })} />
