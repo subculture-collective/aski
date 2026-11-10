@@ -1,5 +1,5 @@
 .PHONY: check typecheck lint test build test-ui dev
-check: typecheck lint test test-render test-account build
+check: typecheck lint test test-render test-account check-brand build
 test-account:
 	npm run test:account
 test-account-ui:
@@ -16,7 +16,11 @@ test:
 	npm test
 build:
 	npm run build
+	node scripts/check-build.mjs
 test-ui:
 	npm run test:browser
 dev:
 	npm run dev
+
+check-brand:
+	node scripts/import-brand.mjs
