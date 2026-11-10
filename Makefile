@@ -1,5 +1,9 @@
 .PHONY: check typecheck lint test build test-ui dev
-check: typecheck lint test test-render build
+check: typecheck lint test test-render test-account build
+test-account:
+	npm run test:account
+test-account-ui:
+	npm run test:account-ui
 test-storage:
 	node --test shared/draft.test.ts
 test-render:
