@@ -199,3 +199,4 @@ a.button{display:inline-flex;align-items:center;justify-content:center;min-heigh
 .keep input{width:20px;height:20px;min-height:0;margin:0;}
 .artifacts{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px;}
 .artifacts li{display:grid;gap:4px;}
+.family-details[hidden]{display:none;}

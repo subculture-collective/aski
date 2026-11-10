@@ -58,7 +58,7 @@ export function AnimationPanel({ animation, model, font, colors, blocks, fileNam
   const frame = useMemo(() => active ? frameDataAt(model!, animation, frameTime(animation, current), colors, font) : null, [active, model, animation, current, colors, font]);
   const style = Object.fromEntries(Object.entries(frame?.colors || colors).map(([slot, color]) => [`--slot-${slot}`, color])) as CSSProperties;
   const ownSlots = font.slots.filter(slot => slot !== 'background');
-  return <section className="animation" aria-labelledby="animation-title">
+  return <section className="animation" data-anchor="animation" aria-labelledby="animation-title">
     <h2 id="animation-title">Animation</h2>
     <fieldset className="slots"><legend>Effect</legend>
       {(Object.keys(EFFECT_LABELS) as Animation['effect'][]).map(effect => <label key={effect}>

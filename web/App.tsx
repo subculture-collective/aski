@@ -40,11 +40,14 @@ export function App() {
   const [pins, setPins] = useState<string[]>([]);
   const [shareNotice, setShareNotice] = useState('');
   const [shareLink, setShareLink] = useState('');
-  const [sharedSize, setSharedSize] = useState<{ columns: number; rows: number } | null>(null);
+  const [sharedSize, setSharedSize] = useState<{ columns: number; rows: number; key: string } | null>(null);
   const [opened, setOpened] = useState<{ recipe: string; snapshot: string } | null>(null);
   const [restart, setRestart] = useState(0);
   const worker = useRef<Worker | null>(null);
   const latestJob = useRef(0);
+  // The render key each result was made from, so checks can tell a fresh result from the previous one.
+  const jobKey = useRef('');
+  const [resultKey, setResultKey] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const manualText = useRef<HTMLTextAreaElement>(null);
   const copyButton = useRef<HTMLButtonElement>(null);
@@ -68,7 +71,7 @@ export function App() {
       if (event.data.jobId !== latestJob.current) return;
       setPending(false);
       if ('error' in event.data) { setError(event.data.error); return; }
-      setError(''); setResult(event.data.result);
+      setError(''); setResult(event.data.result); setResultKey(jobKey.current);
     };
     current.onerror = () => {
       current.terminate(); worker.current = null; setPending(false); setError('Could not render. Try again.');
@@ -83,6 +86,7 @@ export function App() {
     setCopied(false);
     if (!worker.current) return;
     setPending(true); setError('');
+    jobKey.current = renderKey;
     worker.current.postMessage({ jobId: ++latestJob.current, recipe });
   }, [renderKey, restart]);
 
@@ -156,7 +160,7 @@ export function App() {
       if (!fragment.startsWith('#share=')) return;
       history.replaceState(null, '', location.pathname + location.search);
       decodeShare(fragment, crypto.randomUUID()).then(({ recipe: shared, size }) => {
-        setRecipe(() => shared); setSharedSize(size);
+        setRecipe(() => shared); setSharedSize({ ...size, key: JSON.stringify([shared.input, shared.variantId, shared.layout.spacing, shared.layout.width, shared.layout.align, shared.animation.effect === 'typewriter']) });
         setShareNotice('Opened a shared design. Undo returns to your previous draft.');
       }, error => setShareNotice(`${(error as Error).message} Your draft is unchanged.`));
     };
@@ -167,25 +171,32 @@ export function App() {
   }, []);
   // Compare the first render of a shared design with the size recorded in the link, once.
   useEffect(() => {
-    if (!sharedSize || !ready) return;
+    if (!sharedSize || !ready || resultKey !== sharedSize.key) return;
     if (sharedSize.columns !== result.columns || sharedSize.rows !== result.rows)
       setShareNotice(`Opened a shared design. This version renders it at ${result.columns} × ${result.rows} instead of ${sharedSize.columns} × ${sharedSize.rows}. Undo returns to your previous draft.`);
     setSharedSize(null);
-  }, [sharedSize, ready, result]);
+  }, [sharedSize, ready, result, resultKey]);
   // Saves the recipe and text snapshot, plus any chosen image files rendered right now with the default
   // image settings. The files are stored as bytes and never regenerated.
+  const savingDesign = useRef(false);
   async function saveDesign(keep: { png: boolean; svg: boolean }) {
-    if (!result || pending || error) return '';
+    if (!result || pending || error || savingDesign.current) return '';
+    savingDesign.current = true;
+    try { return await saveDesignNow(keep, result); } finally { savingDesign.current = false; }
+  }
+  async function saveDesignNow(keep: { png: boolean; svg: boolean }, result: RenderResult) {
     const size = { columns: result.columns, rows: result.rows };
     const options = { ...DEFAULT_IMAGE, blocks: recipe.layout.blocks && font.blocks };
-    const { width, height } = imageSize(size.columns, size.rows, options);
+    let width = 0, height = 0, tooLarge = false;
+    if (keep.png || keep.svg) try { ({ width, height } = imageSize(size.columns, size.rows, options)); } catch { tooLarge = true; }
     const provenance = { variantId: font.variantId, fontSha256: font.sha256, rendererVersion: recipe.rendererVersion };
-    const files = [];
-    try {
-      if (keep.png) files.push({ mime: 'image/png' as const, bytes: new Uint8Array(await (await toPng(runs, recipe.colors, size, options)).arrayBuffer()), width, height, provenance });
-      if (keep.svg) files.push({ mime: 'image/svg+xml' as const, bytes: new TextEncoder().encode(toSvg(runs, recipe.colors, size, options)), width, height, provenance });
-    } catch { /* an image that cannot be drawn is skipped; the design still saves */ }
-    return library.addDesign({ name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, ...size } }, files);
+    const files = [], missing: string[] = [];
+    // Each format is made separately; one that cannot be drawn is reported and the design still saves.
+    if (tooLarge) missing.push(...[keep.png && 'PNG', keep.svg && 'SVG'].filter((format): format is string => !!format));
+    else if (keep.png) try { files.push({ mime: 'image/png' as const, bytes: new Uint8Array(await (await toPng(runs, recipe.colors, size, options)).arrayBuffer()), width, height, provenance }); } catch { missing.push('PNG'); }
+    if (!tooLarge && keep.svg) try { files.push({ mime: 'image/svg+xml' as const, bytes: new TextEncoder().encode(toSvg(runs, recipe.colors, size, options)), width, height, provenance }); } catch { missing.push('SVG'); }
+    const stored = await library.addDesign({ name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, ...size } }, files);
+    return stored || (missing.length ? `The design is saved, but its ${missing.join(' and ')} could not be made at this size.` : '');
   }
   // The GIF was encoded from this recipe; it is stored as-is with the design and its animation settings.
   async function saveDesignWithGif(gif: { bytes: Uint8Array; width: number; height: number }) {

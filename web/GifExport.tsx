@@ -29,9 +29,11 @@ export function GifExport({ model, animation, colors, variantId, blocks, fileNam
   } catch (error) { limit = (error as Error).message; }
   const stop = () => { worker.current?.terminate(); worker.current = null; };
   useEffect(() => () => { stop(); }, []);
-  // A finished GIF belongs to the settings it was made from; any change clears it.
+  // A GIF belongs to the settings it was made from. Any change stops a running job and clears a finished
+  // one, so an older GIF can never be saved with a newer design.
   useEffect(() => {
-    setState(previous => { if (previous.kind === 'done') URL.revokeObjectURL(previous.url); return previous.kind === 'encoding' ? previous : { kind: 'idle' }; });
+    stop();
+    setState(previous => { if (previous.kind === 'done') URL.revokeObjectURL(previous.url); return previous.kind === 'idle' ? previous : { kind: 'idle' }; });
   }, [model, animation, colors, scale, transparent, blocks]);
   function start() {
     if (!model || limit) return;

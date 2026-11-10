@@ -33,7 +33,7 @@ export function Collections({ records, collections, onCreate, onRename, onDelete
   const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState('');
   function attempt(action: () => void) { try { action(); setMessage(''); return true; } catch (error) { setMessage((error as Error).message); return false; } }
-  return <section className="collections" aria-labelledby="collections-title">
+  return <section className="collections" data-anchor="collections" aria-labelledby="collections-title">
     <h2 id="collections-title">Collections</h2>
     <form className="new-collection" onSubmit={event => { event.preventDefault(); if (attempt(() => onCreate(name))) setName(''); }}>
       <label htmlFor="collection-name">New collection</label>

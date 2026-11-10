@@ -1,7 +1,7 @@
 import * as gifenc from 'gifenc';
 // Bundlers load gifenc's ES module (named exports); Node loads its CommonJS build (exports on `default`).
 const { GIFEncoder, applyPalette, quantize } = ('GIFEncoder' in gifenc ? gifenc : (gifenc as unknown as { default: typeof gifenc }).default);
-import { frameCount, frameTime } from './animation.ts';
+import { cycleMs, frameCount, frameTime } from './animation.ts';
 import type { Animation } from './animation.ts';
 // Budgets are checked before any frame is drawn or encoded.
 export const GIF_LIMITS = { side: 2048, frames: 600, pixelFrames: 120_000_000 } as const;
@@ -14,8 +14,10 @@ export function validateGif(width: number, height: number, frames: number) {
 }
 // GIF delays are whole centiseconds. Rounding the cumulative time keeps the total length exact.
 export function gifSchedule(animation: Animation) {
-  const centiseconds = (index: number) => Math.round(frameTime(animation, index) / 10);
-  return Array.from({ length: frameCount(animation) }, (_, index) => ({ index, delayCs: centiseconds(index + 1) - centiseconds(index) }));
+  const count = frameCount(animation);
+  // The last frame runs to the end of the cycle, so the total is exactly duration + hold.
+  const centiseconds = (index: number) => Math.round((index >= count ? cycleMs(animation) : frameTime(animation, index)) / 10);
+  return Array.from({ length: count }, (_, index) => ({ index, delayCs: centiseconds(index + 1) - centiseconds(index) }));
 }
 export interface GifOptions { width: number; height: number; transparent: boolean; loop: boolean }
 const same = (a: Uint8ClampedArray | Uint8Array, b: Uint8ClampedArray | Uint8Array) => a.length === b.length && a.every((value, index) => value === b[index]);

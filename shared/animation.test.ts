@@ -44,7 +44,9 @@ test('typewriter frames keep the final canvas and type one prefix at a time', ()
     assert.equal(frameAt(model, animation, 2000), model.typewriter!.at(-1));
   }
   assert.deepEqual(typewriterPrefixes(3), [0, 1, 2, 3]);
-  assert.equal(typewriterPrefixes(2000).length, TYPEWRITER_STEPS + 1);
+  // Long inputs use fewer prefix renders to bound the work.
+  assert.equal(typewriterPrefixes(300).length, TYPEWRITER_STEPS + 1);
+  assert.equal(typewriterPrefixes(2000).length, 4);
   assert.equal(typewriterPrefixes(2000).at(-1), 2000);
   assert.equal(render('figlet/future', 'X', { effect: 'reveal' }).typewriter, undefined);
 });

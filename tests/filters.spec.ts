@@ -8,18 +8,18 @@ const settled = (page: Page) => expect(page.locator('.preview[aria-busy=true]'))
 test('search and look filters combine and keep 3D and line styles as separate families', async ({ page }) => {
   await page.goto('/');
   await find(page).getByLabel('Search styles').fill('thin');
-  expect(await names(page)).toEqual(['Future']);
+  await expect(cards(page).locator('h3')).toHaveText(['Future']);
   await find(page).getByLabel('Search styles').fill('');
   await find(page).getByRole('checkbox', { name: 'Lines' }).check();
-  expect(await names(page)).toEqual(['Emboss', 'Future', 'Linguaholic Neon', 'Linguaholic Rounded', 'Linguaholic Shadow 3D']);
+  await expect(cards(page).locator('h3')).toHaveText(['Emboss', 'Future', 'Linguaholic Neon', 'Linguaholic Rounded', 'Linguaholic Shadow 3D']);
   await find(page).getByLabel('Search styles').fill('lingua');
-  expect(await names(page)).toEqual(['Linguaholic Neon', 'Linguaholic Rounded', 'Linguaholic Shadow 3D']);
+  await expect(cards(page).locator('h3')).toHaveText(['Linguaholic Neon', 'Linguaholic Rounded', 'Linguaholic Shadow 3D']);
   await expect(page.getByTestId('filter-count')).toContainText('Showing 3 of 16 families');
   await expect(page.getByTestId('meta-figlet-linguaholic-shadow-3d')).toContainText('Blocks, Lines');
   // Filters and variants survive text edits.
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('EDIT\nTWO');
   await expect(find(page).getByRole('checkbox', { name: 'Lines' })).toBeChecked();
-  expect(await names(page)).toEqual(['Linguaholic Neon', 'Linguaholic Rounded', 'Linguaholic Shadow 3D']);
+  await expect(cards(page).locator('h3')).toHaveText(['Linguaholic Neon', 'Linguaholic Rounded', 'Linguaholic Shadow 3D']);
 });
 
 test('dimension and character filters use the current text and offer a way back from no results', async ({ page }) => {

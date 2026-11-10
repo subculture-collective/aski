@@ -16,9 +16,13 @@ function open() {
       for (const name of [STORE, ARTIFACTS]) if (!pending.result.objectStoreNames.contains(name))
         pending.result.createObjectStore(name, { keyPath: ['namespace', 'id'] }).createIndex('namespace', 'namespace');
     };
-    pending.onsuccess = () => resolve(pending.result);
+    pending.onsuccess = () => {
+      // Let another tab running a newer build upgrade the database; this tab reopens on its next use.
+      pending.result.onversionchange = () => { pending.result.close(); opening = null; };
+      resolve(pending.result);
+    };
     pending.onerror = () => reject(pending.error);
-    pending.onblocked = () => reject(new Error('Library upgrade blocked by another tab.'));
+    pending.onblocked = () => reject(new Error('blocked'));
   });
   opening.catch(() => { opening = null; });
   return opening;
@@ -41,15 +45,25 @@ export const putRecord = (record: LibraryRecord) => transact('readwrite', store 
 // Anonymous records have never been synced, so removing one deletes it outright.
 // Deletes in one transaction so a collection and its memberships, or a design and its unused files,
 // disappear together.
+// A file is deleted only if no stored record still lists it, including records this build cannot read.
 export async function deleteRecords(records: LibraryRecord[], artifacts: string[] = [], namespace = LIBRARY_NAMESPACE) {
   const transaction = (await open()).transaction([STORE, ARTIFACTS], 'readwrite');
   for (const record of records) transaction.objectStore(STORE).delete([record.namespace, record.id]);
-  for (const id of artifacts) transaction.objectStore(ARTIFACTS).delete([namespace, id]);
+  if (artifacts.length) {
+    const rows = transaction.objectStore(STORE).index('namespace').getAll(namespace);
+    rows.onsuccess = () => {
+      const doomed = new Set(records.map(record => record.id));
+      const used = new Set(rows.result.filter(row => !doomed.has(row?.id)).flatMap(row => Array.isArray(row?.payload?.artifacts) ? row.payload.artifacts : []));
+      for (const id of artifacts) if (!used.has(id)) transaction.objectStore(ARTIFACTS).delete([namespace, id]);
+    };
+  }
   await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error); });
 }
-export async function putArtifact(artifact: Artifact) {
-  const transaction = (await open()).transaction(ARTIFACTS, 'readwrite');
-  transaction.objectStore(ARTIFACTS).put(parseArtifact(artifact));
+// Stores a design and its files in one transaction: either all of them are saved or none are.
+export async function putDesignWithArtifacts(design: LibraryRecord, artifacts: Artifact[]) {
+  const transaction = (await open()).transaction([STORE, ARTIFACTS], 'readwrite');
+  for (const artifact of artifacts) transaction.objectStore(ARTIFACTS).put(parseArtifact(artifact));
+  transaction.objectStore(STORE).put(parseRecord(design));
   await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error); });
 }
 // Metadata only; bytes are read when a file is downloaded.

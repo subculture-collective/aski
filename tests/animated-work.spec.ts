@@ -25,7 +25,11 @@ test('a saved design keeps its animation settings and the original GIF', async (
   await expect(page.getByTestId('gif-save-note')).toHaveText('Saved with this GIF in Saved work.');
   const saved = page.getByRole('region', { name: 'Saved work' }).getByRole('listitem', { name: 'Design ANSI Compact: MOVE', exact: true });
   await expect(saved.getByText(/^Original GIF/)).toBeVisible();
-  await page.waitForTimeout(300);
+  // Wait until the design and its GIF are stored before reloading.
+  await expect.poll(() => page.evaluate(() => new Promise<number>(resolve => {
+    const open = indexedDB.open('aski-library');
+    open.onsuccess = () => { const count = open.result.transaction('artifacts').objectStore('artifacts').count(); count.onsuccess = () => { open.result.close(); resolve(count.result); }; };
+  }))).toBe(1);
   // Change everything, reload, then reopen the design.
   await page.reload();
   await panel(page).getByRole('radio', { name: 'Reveal' }).check();

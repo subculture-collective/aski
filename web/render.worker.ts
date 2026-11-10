@@ -19,10 +19,17 @@ async function ensureFont(id: string) {
   }
   await loading.get(id);
 }
-self.onmessage = async (event: MessageEvent<RenderRequest>) => {
-  const { jobId, recipe } = event.data;
+// Renders only the newest request: requests that queued up behind a long render are skipped (the page
+// ignores replies for old jobs anyway).
+let newest: RenderRequest | null = null;
+self.onmessage = (event: MessageEvent<RenderRequest>) => {
+  const first = !newest;
+  newest = event.data;
+  if (first) setTimeout(() => { const job = newest!; newest = null; void render(job); });
+};
+async function render({ jobId, recipe }: RenderRequest) {
   let reply: RenderReply;
   try { const parsed = parseRecipe(recipe); await ensureFont(parsed.variantId); reply = { jobId, result: renderRecipe(parsed) }; }
   catch (error) { reply = { jobId, error: error instanceof Error ? error.message : 'Could not render this text.' }; }
   self.postMessage(reply);
-};
+}
