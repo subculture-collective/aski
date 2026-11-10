@@ -1,9 +1,11 @@
-.PHONY: check typecheck lint test build test-ui dev test-export
+.PHONY: check typecheck lint test build test-ui dev test-export test-animation
 check: typecheck lint test test-render test-account check-brand build
 test-account:
 	npm run test:account
 test-account-ui:
 	npm run test:account-ui
+test-animation:
+	node --test shared/animation.test.ts
 test-export:
 	node --test shared/color.test.ts shared/export.test.ts
 test-storage:

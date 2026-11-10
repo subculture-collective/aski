@@ -135,9 +135,9 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .art{background:var(--slot-background);color:var(--slot-foreground);}
 .slot-shadow{color:var(--slot-shadow);}
 .slot-highlight{color:var(--slot-highlight);}
-.colors,.layout{display:grid;gap:12px;min-width:0;padding:20px;background:var(--aski-panel);border:var(--aski-border);border-radius:var(--aski-radius);}
-.colors fieldset,.layout fieldset{margin:0;padding:0;border:0;min-width:0;}
-.colors legend,.colors>form>label,.layout legend,.layout>form>label{font-weight:700;font-size:15px;margin-bottom:6px;padding:0;}
+.colors,.layout,.animation{display:grid;gap:12px;min-width:0;padding:20px;background:var(--aski-panel);border:var(--aski-border);border-radius:var(--aski-radius);}
+.colors fieldset,.layout fieldset,.animation fieldset{margin:0;padding:0;border:0;min-width:0;}
+.colors legend,.colors>form>label,.layout legend,.layout>form>label,.animation legend{font-weight:700;font-size:15px;margin-bottom:6px;padding:0;}
 .slots{display:flex;flex-wrap:wrap;gap:6px;}
 .slots label{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;font-size:14px;border:var(--aski-border);border-radius:var(--aski-radius);background:var(--aski-paper);cursor:pointer;}
 .slots input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;min-height:0;}
@@ -155,6 +155,8 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .palette-strip{display:inline-flex;margin-right:8px;vertical-align:middle;border:var(--aski-border);}
 .palette-strip span{width:14px;height:18px;}
 .slots label[aria-disabled]{color:var(--aski-muted);background:var(--aski-panel);border-style:dashed;cursor:default;}
-.layout h2,.colors h2{font-size:24px;}
+.layout h2,.colors h2,.animation h2{font-size:24px;}
+.animation-preview{min-height:120px;max-height:40vh;border:var(--aski-border);border-radius:var(--aski-radius);}
+.item-actions .hint{align-self:center;}
 .exports{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 16px;}
 .exports .hint{flex-basis:100%;}
