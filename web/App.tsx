@@ -17,6 +17,7 @@ import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
 import { Colors } from './Colors.tsx';
 import { LayoutControls } from './LayoutControls.tsx';
+import { AnimationPanel } from './AnimationPanel.tsx';
 import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
@@ -64,7 +65,7 @@ export function App() {
   }, [restart]);
 
   // Only text and font change the rendered text; colors are applied to the existing result.
-  const renderKey = JSON.stringify([recipe.input, recipe.variantId, recipe.layout]);
+  const renderKey = JSON.stringify([recipe.input, recipe.variantId, recipe.layout, recipe.animation.effect === 'typewriter']);
   // A layout effect marks the result pending in the same commit as the edit, so a stale result never looks current.
   useLayoutEffect(() => {
     setCopied(false);
@@ -200,6 +201,8 @@ export function App() {
           onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
         <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
           onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
+        <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} style={artColors}
+          onChange={animation => setRecipe(previous => ({ ...previous, animation }))} />
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
           onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}

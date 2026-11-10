@@ -42,7 +42,7 @@ test('colors are validated #RRGGBB values and version-1 recipes migrate to defau
   assert.deepEqual(parseColors({ foreground: '#000000' }), { ...DEFAULT_COLORS, foreground: '#000000' });
   const v1 = { schemaVersion: 1, id: '00000000-0000-4000-8000-000000000001', input: 'A', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion };
   assert.deepEqual(parseRecipe(v1).colors, DEFAULT_COLORS);
-  assert.equal(parseRecipe(v1).schemaVersion, 3);
+  assert.equal(parseRecipe(v1).schemaVersion, 4);
   assert.throws(() => parseRecipe({ ...v1, schemaVersion: 2, colors: { foreground: 'nope' } }), /#RRGGBB/);
   assert.deepEqual(parsePalette({ name: 'Mine', slots: { background: '#000000' } }).slots, { ...DEFAULT_COLORS, background: '#000000' });
   assert.throws(() => parsePalette({ name: '', slots: {} }), /name/);
