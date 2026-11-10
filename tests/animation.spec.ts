@@ -96,3 +96,31 @@ test('transport, seeking and timing settings survive text and color edits', asyn
   await expect(scrubber).toHaveAttribute('max', '15');
   await expect(panel(page).getByRole('radio', { name: 'Play once' })).toBeChecked();
 });
+
+test('palette cycle, shimmer and glitch are repeatable and keep their settings', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const input = page.getByRole('textbox', { name: 'Text', exact: true });
+  await input.fill('FX');
+  const scrubber = panel(page).getByRole('slider', { name: 'Frame' });
+  await panel(page).getByRole('radio', { name: 'Palette cycle' }).check();
+  await expect(page.getByTestId('cycle-note')).toContainText('ANSI Compact has one color slot');
+  await scrubber.fill('13');
+  await expect(preview(page)).toHaveCSS('color', 'rgb(99, 48, 181)');
+  await page.getByLabel('Style', { exact: true }).selectOption('figlet/linguaholic-shadow-3d');
+  await expect(page.getByTestId('cycle-note')).toContainText('Rotates the foreground and shadow colors');
+  await panel(page).getByRole('radio', { name: 'Shimmer' }).check();
+  await panel(page).getByRole('slider', { name: 'Intensity' }).fill('5');
+  await scrubber.fill('8');
+  await expect(preview(page).locator('.slot-highlight').first()).toBeVisible();
+  await panel(page).getByRole('radio', { name: 'Glitch' }).check();
+  await scrubber.fill('5');
+  const first = await preview(page).textContent();
+  await scrubber.fill('6'); await scrubber.fill('5');
+  expect(await preview(page).textContent()).toBe(first);
+  await panel(page).getByRole('button', { name: 'New glitch pattern' }).click();
+  await expect(panel(page).getByText(/^Pattern \d+\./)).not.toHaveText(/^Pattern 1\./);
+  await input.fill('FX2');
+  await expect(panel(page).getByRole('radio', { name: 'Glitch' })).toBeChecked();
+  await expect(panel(page).getByRole('slider', { name: 'Intensity' })).toHaveValue('5');
+});

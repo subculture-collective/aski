@@ -201,7 +201,7 @@ export function App() {
           onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
         <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
           onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
-        <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} style={artColors}
+        <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} colors={recipe.colors}
           onChange={animation => setRecipe(previous => ({ ...previous, animation }))} />
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
