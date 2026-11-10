@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { colorize } from '../shared/color.ts';
+import { exportName, toAnsi, toCodeBlock } from '../shared/export.ts';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
 import type { Slot } from '../shared/recipe.ts';
 import { defaultName, findMembership, parseName } from '../shared/library.ts';
@@ -81,11 +82,21 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [copied]);
 
-  async function copy() {
+  async function copy(format: 'text' | 'code' = 'text') {
     if (!result || pending || error) return;
     const copiedJob = latestJob.current;
-    try { await navigator.clipboard.writeText(result.text); if (copiedJob === latestJob.current) setCopied(true); }
-    catch { if (copiedJob === latestJob.current) { setManualValue(result.text); setManual(true); } }
+    const value = format === 'code' ? toCodeBlock(result.text) : result.text;
+    try { await navigator.clipboard.writeText(value); if (copiedJob === latestJob.current) setCopied(true); }
+    catch { if (copiedJob === latestJob.current) { setManualValue(value); setManual(true); } }
+  }
+  // Downloads are built from the same result that is displayed; UTF-8 without a byte-order mark.
+  function download(format: 'text' | 'ansi') {
+    if (!result || pending || error) return;
+    const body = format === 'ansi' ? toAnsi(runs, recipe.colors) : result.text;
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain;charset=utf-8' }));
+    const link = Object.assign(document.createElement('a'), { href: url, download: exportName(`${font.name} ${recipe.input}`, format === 'ansi' ? 'ans' : 'txt') });
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   async function copySaved(text: string) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -176,6 +187,12 @@ export function App() {
           <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
           {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
           {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
+          <div className="exports" role="group" aria-label="Export">
+            <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
+            <button onClick={() => download('text')} disabled={!ready || !result.text}>Download text</button>
+            <button onClick={() => download('ansi')} disabled={!ready || !result.text}>Download ANSI</button>
+            <p className="hint">Plain text and code blocks keep every space and line break but no colors or animation. ANSI keeps colors for terminals that support 24-bit color.</p>
+          </div>
           {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
         </section>
         <Colors slots={font.slots as Slot[]} colors={recipe.colors} palettes={library.palettes}
