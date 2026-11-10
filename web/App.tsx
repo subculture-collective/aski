@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_INPUT } from '../shared/recipe.ts';
 import { variants, getVariant } from '../shared/catalog.ts';
+import type { FontFamily } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
 import { SignIn } from './SignIn.tsx';
+import { Gallery } from './Gallery.tsx';
+import { useScrollAnchor } from './useScrollAnchor.ts';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -18,6 +21,16 @@ export function App() {
   const dialog = useRef<HTMLDialogElement>(null);
   const manualText = useRef<HTMLTextAreaElement>(null);
   const copyButton = useRef<HTMLButtonElement>(null);
+  const studio = useRef<HTMLDivElement>(null);
+  const editor = useRef<HTMLElement>(null);
+  const [chosenVariants, setChosenVariants] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  // On phones the editor sticks to the top, so content behind it is not in view.
+  const inset = useCallback(() => {
+    const box = editor.current?.getBoundingClientRect();
+    return box && matchMedia('(max-width: 760px)').matches && box.top <= 1 ? box.bottom : 0;
+  }, []);
+  useScrollAnchor(studio, inset);
 
   useEffect(() => {
     const current = new Worker(new URL('./render.worker.ts', import.meta.url), { type: 'module' });
@@ -58,6 +71,15 @@ export function App() {
   }
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
   const font = getVariant(recipe.variantId);
+  // Remember the active family's variant so switching to another family and back keeps it.
+  useEffect(() => setChosenVariants(previous => previous[recipe.familyId] === recipe.variantId ? previous
+    : { ...previous, [recipe.familyId]: recipe.variantId }), [recipe.familyId, recipe.variantId]);
+  const variantFor = (family: FontFamily) => family.familyId === recipe.familyId ? recipe.variantId
+    : chosenVariants[family.familyId] || family.defaultVariantId;
+  function chooseVariant(variantId: string) {
+    const next = getVariant(variantId); latestJob.current += 1; setPending(!!worker.current);
+    setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256 }));
+  }
   function moveHistory(direction: 'undo' | 'redo') {
     latestJob.current += 1; setPending(!!worker.current);
     if (direction === 'undo') undo(); else redo();
@@ -69,33 +91,40 @@ export function App() {
     }
   }}>
     <header><h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1><div className="header-actions"><SignIn /><button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
-    <div className="studio">
-      <section className="editor" aria-labelledby="input-title">
-        <label id="input-title" htmlFor="input">Text</label>
-        <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
-        <small id="input-limit">Up to {MAX_INPUT} characters</small>
-        <div className="history-controls">
-          <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
-          <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
+    <div className="studio" ref={studio}>
+      <div className="controls">
+        <section className="editor" ref={editor} aria-labelledby="input-title">
+          <label id="input-title" htmlFor="input">Text</label>
+          <div className="history-controls">
+            <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
+            <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
+          </div>
+          <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
+          <small id="input-limit">Up to {MAX_INPUT} characters</small>
+        </section>
+        <div className="style-controls">
+          {warning && <div className="warning" data-testid="draft-warning"><p>{warning}</p><button onClick={saveCurrent}>Save this draft</button></div>}
+          <label htmlFor="font">Style</label>
+          <select id="font" value={recipe.variantId} onChange={e => chooseVariant(e.target.value)}>
+            {Array.from(new Set(variants.map(item => item.familyId))).map(family => <optgroup key={family} label={family.replace('figlet/', '')}>
+              {variants.filter(item => item.familyId === family).map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
+            </optgroup>)}
+          </select>
         </div>
-        {warning && <div className="warning" data-testid="draft-warning"><p>{warning}</p><button onClick={saveCurrent}>Save this draft</button></div>}
-        <label htmlFor="font">Style</label>
-        <select id="font" value={recipe.variantId} onChange={e => {
-          const next = getVariant(e.target.value); latestJob.current += 1; setPending(!!worker.current);
-          setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256 }));
-        }}>
-          {Array.from(new Set(variants.map(item => item.familyId))).map(family => <optgroup key={family} label={family.replace('figlet/', '')}>
-            {variants.filter(item => item.familyId === family).map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
-          </optgroup>)}
-        </select>
-      </section>
-      <section className="artwork" aria-labelledby="output-title" aria-busy={pending}>
-        <div className="output-heading"><h2 id="output-title">{font.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
-        <pre tabIndex={0} aria-label="Rendered text art" data-testid="output">{result?.text || ''}</pre>
-        <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
-        {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
-        {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
-      </section>
+      </div>
+      <div className="workspace">
+        <section className="artwork" data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
+          <div className="output-heading"><h2 id="output-title">{font.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
+          <pre tabIndex={0} aria-label="Rendered text art" data-testid="output">{result?.text || ''}</pre>
+          <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
+          {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
+          {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
+        </section>
+        <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
+          onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
+          onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}
+          onToggle={family => setExpanded(previous => { const next = new Set(previous); if (!next.delete(family.familyId)) next.add(family.familyId); return next; })} />
+      </div>
     </div>
     <footer><a href={font.noticePath}>{font.name} · {font.license} notice</a><span>Type: <a href="/brand/fonts/fraunces-OFL.txt">Fraunces</a> · <a href="/brand/fonts/atkinsonhyperlegiblenext-OFL.txt">Atkinson</a></span></footer>
     <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => { setManual(false); copyButton.current?.focus(); }}>
