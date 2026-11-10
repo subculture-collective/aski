@@ -1,10 +1,10 @@
 import { useEffect, useReducer, useState } from 'react';
 import { recoverDraft, saveDraft, historyReducer } from '../shared/draft.ts';
-import { FONT } from '../shared/recipe.ts';
-import type { RecipeV1 } from '../shared/recipe.ts';
+import { DEFAULT_COLORS, FONT } from '../shared/recipe.ts';
+import type { Recipe } from '../shared/recipe.ts';
 export function useDraft() {
   const [initial] = useState(() => {
-    const fallback: RecipeV1 = { schemaVersion: 1, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion };
+    const fallback: Recipe = { schemaVersion: 2, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS } };
     try { return { fallback, ...recoverDraft(localStorage) }; }
     catch { return { fallback, recipe: undefined, writable: false, warning: 'Browser storage is unavailable. Keep a copy of your text.' }; }
   });
@@ -21,7 +21,7 @@ export function useDraft() {
     try { saveDraft(localStorage, recipe); setWarning(''); setSaving(true); }
     catch { setSaving(false); setWarning('Could not save in this browser. Your current text is still here.'); }
   }
-  function setRecipe(update: (previous: RecipeV1) => RecipeV1) { dispatch({ type: 'edit', recipe: update(recipe) }); }
+  function setRecipe(update: (previous: Recipe) => Recipe) { dispatch({ type: 'edit', recipe: update(recipe) }); }
   return { recipe, setRecipe, undo: () => dispatch({ type: 'undo' }), redo: () => dispatch({ type: 'redo' }),
     canUndo: !!history.past.length, canRedo: !!history.future.length, warning, saveCurrent };
 }

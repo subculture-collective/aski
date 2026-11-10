@@ -1,5 +1,6 @@
 import { getFamily, getVariant } from './catalog.ts';
-import type { RecipeV1 } from './recipe.ts';
+import { parseColors } from './recipe.ts';
+import type { Colors, StoredRecipe } from './recipe.ts';
 // Local library records follow the account contract's envelope (docs/account-sync-contract.md):
 // UUID, type, schemaVersion, payload and revision. Anonymous records stay in the "anonymous" namespace;
 // revision 0 means the record has never been acknowledged by a server.
@@ -8,9 +9,14 @@ export const RECORD_TYPES = ['input', 'palette', 'design', 'favorite', 'collecti
 export type RecordType = typeof RECORD_TYPES[number];
 export interface FavoritePayload { familyId: string; variantId?: string }
 export interface InputPayload { text: string; name: string }
+export interface CollectionPayload { name: string }
+// Collections hold reusable styles (favorites) and exact saved designs by reference.
+export const MEMBER_TYPES = ['favorite', 'design'] as const;
+export interface MembershipPayload { collectionId: string; itemType: typeof MEMBER_TYPES[number]; itemId: string }
 // A design keeps the editable recipe and the exact text it produced when saved. The snapshot is never
 // re-rendered, so a later font or renderer change cannot alter it.
-export interface DesignPayload { name: string; recipe: RecipeV1; snapshot: { text: string; columns: number; rows: number } }
+export interface PalettePayload { name: string; slots: Colors }
+export interface DesignPayload { name: string; recipe: StoredRecipe; snapshot: { text: string; columns: number; rows: number } }
 export interface LibraryRecord<T = unknown> {
   namespace: string; id: string; type: RecordType; schemaVersion: 1; payload: T;
   revision: number; deletedAt: string | null; createdAt: string; updatedAt: string;
@@ -30,6 +36,9 @@ export function parseRecord(value: unknown): LibraryRecord {
   if (r.type === 'favorite') parseFavorite(r.payload);
   if (r.type === 'input') parseInput(r.payload);
   if (r.type === 'design') parseDesign(r.payload);
+  if (r.type === 'collection') parseName((r.payload as Partial<CollectionPayload> | null)?.name);
+  if (r.type === 'membership') parseMembership(r.payload);
+  if (r.type === 'palette') parsePalette(r.payload);
   return r as LibraryRecord;
 }
 // A favorite names a stable family and, optionally, one of its variants. It never holds text or output.
@@ -60,15 +69,46 @@ export function parseInput(value: unknown): InputPayload {
 // Recipe provenance is stored as written. Whether this build can still render it is checked on open.
 export function parseDesign(value: unknown): DesignPayload {
   const p = value as Partial<DesignPayload> | null;
-  const recipe = p?.recipe as Partial<RecipeV1> | undefined;
+  const recipe = p?.recipe as Partial<StoredRecipe> | undefined;
   const snapshot = p?.snapshot;
-  if (!recipe || recipe.schemaVersion !== 1 || typeof recipe.input !== 'string' || typeof recipe.familyId !== 'string'
+  if (!recipe || (recipe.schemaVersion !== 1 && recipe.schemaVersion !== 2) || typeof recipe.input !== 'string' || typeof recipe.familyId !== 'string'
     || typeof recipe.variantId !== 'string' || typeof recipe.fontSha256 !== 'string' || typeof recipe.rendererVersion !== 'string') throw new Error('Invalid saved design.');
   if (!snapshot || typeof snapshot.text !== 'string' || !Number.isInteger(snapshot.columns) || !Number.isInteger(snapshot.rows)) throw new Error('Invalid saved design.');
-  return { name: parseName(p!.name), recipe: recipe as RecipeV1, snapshot: { text: snapshot.text, columns: snapshot.columns, rows: snapshot.rows } };
+  return { name: parseName(p!.name), recipe: recipe as StoredRecipe, snapshot: { text: snapshot.text, columns: snapshot.columns, rows: snapshot.rows } };
 }
 // Default names come from the first line of text, shortened to fit a list.
 export function defaultName(text: string, prefix = '') {
   const line = Array.from(text.split(/\r?\n/).find(item => item.trim()) || 'Untitled').slice(0, 40).join('').trim();
   return (prefix ? `${prefix}: ${line}` : line).slice(0, MAX_NAME);
+}
+export function parseMembership(value: unknown): MembershipPayload {
+  const p = value as Partial<MembershipPayload> | null;
+  if (!p || typeof p.collectionId !== 'string' || !UUID.test(p.collectionId) || typeof p.itemId !== 'string' || !UUID.test(p.itemId)
+    || !MEMBER_TYPES.includes(p.itemType as MembershipPayload['itemType'])) throw new Error('Invalid collection membership.');
+  return { collectionId: p.collectionId, itemType: p.itemType!, itemId: p.itemId };
+}
+const live = (records: LibraryRecord[]) => records.filter(record => !record.deletedAt);
+// Membership is unique per collection and item.
+export function findMembership(records: LibraryRecord[], collectionId: string, itemId: string) {
+  return live(records).find(record => record.type === 'membership'
+    && (record.payload as MembershipPayload).collectionId === collectionId && (record.payload as MembershipPayload).itemId === itemId) as LibraryRecord<MembershipPayload> | undefined;
+}
+// Records to delete with a collection or item: the record and the memberships that point at it.
+// Removing a collection never removes the favorites or designs inside it.
+export function cascade(records: LibraryRecord[], target: LibraryRecord) {
+  return [target, ...live(records).filter(record => record.type === 'membership'
+    && ((record.payload as MembershipPayload).collectionId === target.id || (record.payload as MembershipPayload).itemId === target.id))];
+}
+// Members in insertion order, skipping references to items that no longer exist.
+export function membersOf(records: LibraryRecord[], collectionId: string) {
+  const items = new Map(live(records).map(record => [record.id, record]));
+  return live(records).filter(record => record.type === 'membership' && (record.payload as MembershipPayload).collectionId === collectionId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(record => items.get((record.payload as MembershipPayload).itemId)).filter(item => item && item.type !== 'membership') as LibraryRecord<FavoritePayload | DesignPayload>[];
+}
+// A saved palette assigns a #RRGGBB color to every known slot.
+export function parsePalette(value: unknown): PalettePayload {
+  const p = value as Partial<PalettePayload> | null;
+  if (!p) throw new Error('Invalid palette.');
+  return { name: parseName(p.name), slots: parseColors(p.slots) };
 }

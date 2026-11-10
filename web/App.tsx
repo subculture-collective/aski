@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { colorize } from '../shared/color.ts';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
-import { defaultName } from '../shared/library.ts';
-import type { DesignPayload, InputPayload, LibraryRecord } from '../shared/library.ts';
+import type { Slot } from '../shared/recipe.ts';
+import { defaultName, findMembership, parseName } from '../shared/library.ts';
+import type { CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord, PalettePayload } from '../shared/library.ts';
 import { variants, getFamily, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
@@ -11,6 +14,8 @@ import { useScrollAnchor } from './useScrollAnchor.ts';
 import { useLibrary } from './useLibrary.ts';
 import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
+import { Colors } from './Colors.tsx';
+import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -55,12 +60,14 @@ export function App() {
     return () => { current.terminate(); if (worker.current === current) worker.current = null; };
   }, [restart]);
 
+  // Only text and font change the rendered text; colors are applied to the existing result.
+  const renderKey = JSON.stringify([recipe.input, recipe.variantId]);
   useEffect(() => {
     setCopied(false);
     if (!worker.current) return;
     setPending(true); setError('');
     worker.current.postMessage({ jobId: ++latestJob.current, recipe });
-  }, [recipe, restart]);
+  }, [renderKey, restart]);
 
   useEffect(() => {
     if (manual) { dialog.current?.showModal(); manualText.current?.select(); }
@@ -84,33 +91,37 @@ export function App() {
   function openSaved(record: LibraryRecord<InputPayload | DesignPayload>) {
     if (record.type === 'input') {
       const { text } = record.payload as InputPayload;
-      latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: text }));
+      setRecipe(previous => ({ ...previous, input: text }));
       return '';
     }
     const design = record.payload as DesignPayload;
     let saved;
     try { saved = parseRecipe(design.recipe); }
     catch { return 'This design needs a font or renderer this version does not have. Its saved text is still available.'; }
-    latestJob.current += 1; setPending(!!worker.current); setRecipe(() => saved);
+    setRecipe(() => saved);
     setOpened({ recipe: JSON.stringify(saved), snapshot: design.snapshot.text });
     return '';
   }
+  const font = getVariant(recipe.variantId);
   const ready = !!result && !pending && !error;
+  const runs = useMemo(() => colorize(result?.text || '', font), [result, font]);
+  const artColors = Object.fromEntries(Object.entries(recipe.colors).map(([slot, color]) => [`--slot-${slot}`, color])) as CSSProperties;
+  const picker = (item: LibraryRecord<FavoritePayload | DesignPayload>) => <CollectionPicker item={item} collections={library.collections}
+    isMember={collectionId => !!findMembership(library.records, collectionId, item.id)} onToggle={collectionId => library.toggleMembership(collectionId, item)} />;
+  const applyFavorite = (favorite: FavoritePayload) => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)));
   // A reopened design re-renders with this build; say so if that no longer matches its saved text.
   const openedDiffers = ready && opened?.recipe === JSON.stringify(recipe) && opened.snapshot !== result.text;
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
-  const font = getVariant(recipe.variantId);
   // Remember the active family's variant so switching to another family and back keeps it.
   useEffect(() => setChosenVariants(previous => previous[recipe.familyId] === recipe.variantId ? previous
     : { ...previous, [recipe.familyId]: recipe.variantId }), [recipe.familyId, recipe.variantId]);
   const variantFor = (family: FontFamily) => family.familyId === recipe.familyId ? recipe.variantId
     : chosenVariants[family.familyId] || family.defaultVariantId;
   function chooseVariant(variantId: string) {
-    const next = getVariant(variantId); latestJob.current += 1; setPending(!!worker.current);
+    const next = getVariant(variantId);
     setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256 }));
   }
   function moveHistory(direction: 'undo' | 'redo') {
-    latestJob.current += 1; setPending(!!worker.current);
     if (direction === 'undo') undo(); else redo();
   }
   return <main onKeyDown={e => {
@@ -128,7 +139,7 @@ export function App() {
             <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
             <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
           </div>
-          <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
+          <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
           <small id="input-limit">Up to {MAX_INPUT} characters</small>
         </section>
         <div className="style-controls">
@@ -143,19 +154,28 @@ export function App() {
         <SavedWork inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
           onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
           onSaveDesign={() => { if (ready) library.add<DesignPayload>('design', { name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, columns: result.columns, rows: result.rows } }); }}
-          onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} />
+          onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
         <Favorites favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
-          onApply={favorite => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)))} onRemove={library.removeFavorite} />
+          onApply={applyFavorite} onRemove={library.removeFavorite} picker={picker} />
+        <Collections records={library.records} collections={library.collections}
+          onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}
+          onOpen={item => { if (item.type === 'design') return openSaved(item as LibraryRecord<DesignPayload>); applyFavorite(item.payload as FavoritePayload); return ''; }}
+          onRemoveMember={(collectionId, item) => library.toggleMembership(collectionId, item)} />
       </div>
       <div className="workspace">
         <section className="artwork" data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
           <div className="output-heading"><h2 id="output-title">{font.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
-          <pre tabIndex={0} aria-label="Rendered text art" data-testid="output">{result?.text || ''}</pre>
+          <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={artColors}>
+            {runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
+          </pre>
           <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
           {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
           {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
           {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
         </section>
+        <Colors slots={font.slots as Slot[]} colors={recipe.colors} palettes={library.palettes}
+          onChange={colors => setRecipe(previous => ({ ...previous, colors }))}
+          onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
           onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}

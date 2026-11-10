@@ -37,4 +37,9 @@ export async function loadLibrary(namespace = LIBRARY_NAMESPACE) {
 }
 export const putRecord = (record: LibraryRecord) => transact('readwrite', store => store.put(parseRecord(record)));
 // Anonymous records have never been synced, so removing one deletes it outright.
-export const deleteRecord = (record: LibraryRecord) => transact('readwrite', store => store.delete([record.namespace, record.id]));
+// Deletes in one transaction so a collection and its memberships disappear together.
+export async function deleteRecords(records: LibraryRecord[]) {
+  const transaction = (await open()).transaction(STORE, 'readwrite');
+  for (const record of records) transaction.objectStore(STORE).delete([record.namespace, record.id]);
+  await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error); });
+}
