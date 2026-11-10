@@ -187,6 +187,12 @@ export function App() {
     } catch { /* an image that cannot be drawn is skipped; the design still saves */ }
     return library.addDesign({ name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, ...size } }, files);
   }
+  // The GIF was encoded from this recipe; it is stored as-is with the design and its animation settings.
+  async function saveDesignWithGif(gif: { bytes: Uint8Array; width: number; height: number }) {
+    if (!result || pending || error) return 'The artwork changed; create the GIF again before saving.';
+    return library.addDesign({ name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, columns: result.columns, rows: result.rows } },
+      [{ mime: 'image/gif', bytes: gif.bytes, width: gif.width, height: gif.height, provenance: { variantId: font.variantId, fontSha256: font.sha256, rendererVersion: recipe.rendererVersion } }]);
+  }
   async function downloadArtifact(meta: ArtifactMeta) {
     try {
       const artifact = await library.readArtifact(meta.id);
@@ -289,7 +295,7 @@ export function App() {
         <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
           onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
         <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} colors={recipe.colors} blocks={recipe.layout.blocks && font.blocks}
-          fileName={exportName(`${font.name} ${recipe.input}`, 'gif')} onInspect={setInspected}
+          fileName={exportName(`${font.name} ${recipe.input}`, 'gif')} onInspect={setInspected} onSaveGif={saveDesignWithGif}
           onChange={animation => setRecipe(previous => ({ ...previous, animation }))} />
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
