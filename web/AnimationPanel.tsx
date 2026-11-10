@@ -89,7 +89,7 @@ export function AnimationPanel({ animation, model, font, colors, blocks, fileNam
       <div className="item-actions">
         <button aria-pressed={playing} onClick={() => setPlaying(value => !value)} disabled={!model}>{playing ? 'Pause' : 'Play'}</button>
         <button onClick={() => { setIndex(0); setPlaying(true); }} disabled={!model}>Restart</button>
-        <span className="hint" data-testid="frame-label">Frame {current + 1} of {count}</span>
+        <span className="hint frame-label" data-testid="frame-label">Frame {current + 1} of {count}</span>
       </div>
       <label htmlFor="scrubber">Frame</label>
       <input id="scrubber" className="scrubber" type="range" min={1} max={count} step={1} value={current + 1} disabled={!model}
