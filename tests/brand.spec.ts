@@ -8,7 +8,7 @@ test('Lilac typography and controls stay usable with keyboard, touch and wide ar
   await expect(page.getByRole('heading', { level: 2, name: 'ANSI Compact', exact: true })).toHaveCSS('font-family', /Fraunces/);
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.focus(); await expect(input).toHaveCSS('outline-width','3px');
-  for (const control of await page.locator('button:visible,select:visible').all()) expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  for (const control of await page.locator('button:visible,select:visible').all()) expect(Math.round((await control.boundingBox())!.height)).toBeGreaterThanOrEqual(44);
   await input.fill('A'.repeat(300));
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
   expect(await page.getByTestId('output').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);

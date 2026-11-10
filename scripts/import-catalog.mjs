@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const packageRoot = dirname(dirname(require.resolve('figlet')));
 const audit = JSON.parse(await readFile(new URL('research/font-audit/catalog-audit.json', root)));
 const rights = JSON.parse(await readFile(new URL('catalog/rights-decisions.json', root)));
+const mappings = JSON.parse(await readFile(new URL('catalog/color-mappings.json', root))).fonts;
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const slug = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const approved = new Set(rights.approved);
@@ -42,11 +43,17 @@ for (const candidate of audit.fonts) {
   const coverage = Object.keys(glyphs).filter(key => /^\d+$/.test(key)).map(Number).filter(cp =>
     cp === 32 || glyphs[cp].some(line => line.split(options.hardBlank).join(' ').trim().length > 0));
   const path = `fonts/${slug(name)}.flf`;
-  fonts.push({ ...entry, coverage, path: '/' + path, noticePath: `/fonts/${slug(name)}-notice.txt`, height: options.height, format: 'figlet', slots: ['foreground','background'] });
+  // Reviewed slot mappings must name characters the font actually draws.
+  const colorMapping = mappings[name] || null;
+  const drawn = new Set(Object.values(glyphs).filter(Array.isArray).flatMap(lines => [...lines.join('')]));
+  for (const characters of Object.values(colorMapping || {})) for (const character of characters) assert(drawn.has(character), `${name} never draws ${character}`);
+  fonts.push({ ...entry, colorMapping, coverage, path: '/' + path, noticePath: `/fonts/${slug(name)}-notice.txt`, height: options.height, format: 'figlet',
+    slots: ['foreground', 'background', ...Object.keys(colorMapping || {})] });
   await emit('public/' + path, source);
   await emit(`public/fonts/${slug(name)}-notice.txt`, notice + '\n');
 }
 assert.equal(fonts.length, approved.size);
+for (const name of Object.keys(mappings)) assert(fonts.some(font => font.name === name), `Color mapping for unapproved font: ${name}`);
 const expected = new Set(fonts.flatMap(x => [x.path.split('/').pop(), x.noticePath.split('/').pop()]));
 if (check) for (const file of await readdir(new URL('public/fonts/', root))) assert(expected.has(file), `Unapproved packaged font: ${file}`);
 await emit('shared/catalog-data.json', JSON.stringify(fonts, null, 2) + '\n');

@@ -2429,7 +2429,16 @@
     "rights": "approved",
     "license": "MIT",
     "tags": null,
-    "colorMapping": null,
+    "colorMapping": {
+      "shadow": [
+        "╔",
+        "╗",
+        "╚",
+        "╝",
+        "═",
+        "║"
+      ]
+    },
     "coverage": [
       32,
       33,
@@ -2540,7 +2549,8 @@
     "format": "figlet",
     "slots": [
       "foreground",
-      "background"
+      "background",
+      "shadow"
     ]
   },
   {
