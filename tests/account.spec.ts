@@ -1,0 +1,31 @@
+import { test, expect } from '@playwright/test';
+test.skip(process.env.ASKI_ACCOUNT_TEST !== '1', 'Run make test-account-ui for an isolated database and capture transport.');
+test('the real sign-in form delivers to the capture inbox without changing the draft', async ({ page }) => {
+  const before=await (await fetch(process.env.ASKI_API_URL+'/__test/inbox')).json();
+  await page.goto('/'); const input=page.getByRole('textbox',{name:'Text',exact:true}); await input.fill('MY LOCAL WORK');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await page.getByLabel('Email',{exact:true}).fill('browser@example.test');
+  await page.getByRole('button',{name:'Email a link',exact:true}).click();
+  await expect(page.getByRole('dialog').getByRole('status')).toHaveText('Check your inbox for a sign-in link.');
+  const inbox=await (await fetch(process.env.ASKI_API_URL+'/__test/inbox')).json();
+  expect(inbox.messages).toBe(before.messages+1); expect(inbox.hashed).toBe(true); expect(inbox.fragmentOnly).toBe(true);
+  expect(await page.evaluate(()=>JSON.stringify(localStorage).includes('browser@example.test'))).toBe(false);
+  await page.getByRole('button',{name:'Keep creating',exact:true}).click();
+  await expect(input).toHaveValue('MY LOCAL WORK');
+  await expect(page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
+});
+test('mail outage and rate limiting preserve anonymous editing', async ({ page }) => {
+  await page.goto('/'); const input=page.getByRole('textbox',{name:'Text',exact:true}); await input.fill('KEEP CREATING');
+  await page.route('**/api/sign-in/request',route=>route.fulfill({status:503,body:'{}'}));
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await page.getByLabel('Email',{exact:true}).fill('browser@example.test');
+  await page.getByRole('button',{name:'Email a link',exact:true}).click();
+  await expect(page.getByRole('dialog').getByRole('status')).toContainText('Sign-in is unavailable');
+  await page.unroute('**/api/sign-in/request');
+  await page.route('**/api/sign-in/request',route=>route.fulfill({status:429,body:'{}'}));
+  await page.getByRole('button',{name:'Email a link',exact:true}).click();
+  await expect(page.getByRole('dialog').getByRole('status')).toHaveText('Too many requests. Try again later.');
+  await page.getByRole('button',{name:'Keep creating',exact:true}).click();
+  await expect(input).toHaveValue('KEEP CREATING'); await input.fill('STILL EDITING');
+  await expect(page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
+});
