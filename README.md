@@ -132,6 +132,7 @@ The feature notes in `docs/` go into detail: [catalog and rights](docs/catalog.m
 
 ## License
 
-No license file is included, so default copyright applies. Each shipped font
-keeps its own MIT or WTFPL notice next to it in `public/fonts/`, and the FIGlet
-engine's license is in `public/figlet-license.txt`.
+aski is licensed under the GNU General Public License, version 3 or later
+(GPL-3.0-or-later). See [LICENSE](LICENSE). Each shipped font keeps its own
+MIT or WTFPL notice next to it in `public/fonts/`, and the FIGlet engine's
+license is in `public/figlet-license.txt`.
