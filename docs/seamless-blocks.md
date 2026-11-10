@@ -1,0 +1,9 @@
+# Seamless blocks
+
+Block characters in a text font often show thin gaps between cells, because the destination font's glyphs do not fill the line height. **Seamless blocks** draws the same artwork as rectangles instead, for fonts that use only block elements. Copied and downloaded text never changes.
+
+`shared/cells.ts` records the supported glyphs: full block, upper and lower halves, left and right halves, upper and right eighths, lower eighths (▁–▇), left eighths (▏–▉), all quadrant combinations (▖▗▘▝▚▞▙▛▜▟) and the three shades (░▒▓, drawn as the same color at 25, 50 and 75% opacity). A cell is 8 × 16 units, so every edge lands on a whole pixel at any whole-number scale and neighbours share edges exactly. Horizontal neighbours with the same geometry and color merge into one rectangle. The preview uses `shape-rendering="crispEdges"`.
+
+The importer marks a font `blocks: true` only when every character any of its glyphs draws is in that table. ANSI Compact, Classy, Coder Mini, Linguaholic Mini Block and Small Block qualify. Pagga does not (some glyphs use `/` and `\`), nor do box-drawing or letter-based styles, so they are never converted. Characters without a shape produce nothing rather than a guessed block. The toggle appears only for qualifying fonts; the setting (`layout.blocks`, added within version 3 with a default of false) is kept when switching fonts and applies again on a qualifying one.
+
+`make test-render` and `make test-export` rasterize shapes at 1×, 2×, 3× and 5× and check that full blocks cover every pixel, that half blocks, stacked halves and quadrants meet edge to edge, that merged runs and shade roles are correct, which fonts qualify, and that a real rendering's shape area matches its block cells. The browser suite rasterizes the live SVG and samples across the edge between two adjacent full blocks.

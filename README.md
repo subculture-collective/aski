@@ -35,6 +35,8 @@ The **Export** group copies a Markdown code block and downloads exact plain text
 
 **Animation** previews typewriter and directional reveal effects on the selected design, on a canvas fixed to the finished artwork's size. See [Animation](docs/animation.md).
 
+**Seamless blocks** draws block-element fonts as gap-free shapes. See [Seamless blocks](docs/seamless-blocks.md).
+
 The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. **Saved work** keeps reusable text and exact designs (style, recipe provenance and output text) as separate items. **Collections** group favorite styles and saved designs; an item can be in several. Favorites, saved work and collections live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
 
 ```sh

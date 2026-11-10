@@ -377,7 +377,8 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true
   },
   {
     "name": "Circle",
@@ -539,7 +540,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Classy",
@@ -865,7 +867,8 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true
   },
   {
     "name": "Coder Mini",
@@ -1191,7 +1194,8 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true
   },
   {
     "name": "Emboss 2",
@@ -1319,7 +1323,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Emboss",
@@ -1447,7 +1452,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Future Smooth",
@@ -1607,7 +1613,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Future Thin",
@@ -1767,7 +1774,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Future",
@@ -1927,7 +1935,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Letter",
@@ -2085,7 +2094,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Linguaholic Mini Block",
@@ -2213,7 +2223,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": true
   },
   {
     "name": "Linguaholic Neon",
@@ -2341,7 +2352,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Linguaholic Rounded",
@@ -2469,7 +2481,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Linguaholic Shadow 3D",
@@ -2607,7 +2620,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Pagga",
@@ -2787,7 +2801,8 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Small Block",
@@ -3069,7 +3084,8 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true
   },
   {
     "name": "Small Braille",
@@ -3197,7 +3213,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "Upside Down Text",
@@ -3325,7 +3342,8 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   },
   {
     "name": "WideTerm",
@@ -3460,6 +3478,7 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false
   }
 ]
