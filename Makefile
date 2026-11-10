@@ -7,7 +7,7 @@ test-account-ui:
 test-animation:
 	node --test shared/animation.test.ts
 test-export:
-	node --test shared/color.test.ts shared/export.test.ts shared/cells.test.ts
+	node --test shared/color.test.ts shared/export.test.ts shared/cells.test.ts shared/image.test.ts
 test-storage:
 	node --test shared/draft.test.ts shared/library.test.ts
 test-render:
