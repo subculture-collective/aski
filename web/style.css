@@ -25,7 +25,7 @@ a{color:var(--aski-ink);text-underline-offset:3px;}
 a:hover{background:var(--aski-secondary);}
 :focus-visible{outline:3px solid var(--aski-focus);outline-offset:4px;}
 .studio{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:24px;align-items:start;}
-.controls{display:grid;gap:16px;position:sticky;top:24px;min-width:0;}
+.controls{display:grid;gap:20px;position:sticky;top:24px;min-width:0;max-height:calc(100vh - 48px);overflow:auto;padding:4px;margin:-4px;}
 .editor,.style-controls{display:grid;gap:12px;min-width:0;}
 .editor{grid-template-columns:minmax(0,1fr) auto;align-items:center;}
 .editor>textarea,.editor>small{grid-column:1/-1;}
@@ -101,3 +101,13 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .favorite-list button[aria-pressed=true]{background:var(--aski-secondary);}
 .favorite-list .remove{min-width:44px;padding:0;font-size:20px;}
 .family-heading h3{margin-right:auto;}
+.saved-work{display:grid;gap:8px;min-width:0;}
+.saved-work h2{font-size:22px;}
+.saved-work h3{font-size:17px;margin-top:4px;}
+.saved-list{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+.saved-list li{display:grid;gap:6px;padding:8px;border:var(--aski-border);border-radius:var(--aski-radius);background:var(--aski-panel);min-width:0;}
+.saved-list .open{text-align:left;overflow-wrap:anywhere;}
+.saved-list form{display:grid;gap:6px;}
+.item-actions{display:flex;flex-wrap:wrap;gap:6px;}
+.item-actions button{flex:1 1 auto;padding:8px 10px;font-size:14px;}
+.item-note{margin:0;font-size:13px;}

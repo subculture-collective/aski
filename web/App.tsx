@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAX_INPUT } from '../shared/recipe.ts';
+import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
+import { defaultName } from '../shared/library.ts';
+import type { DesignPayload, InputPayload, LibraryRecord } from '../shared/library.ts';
 import { variants, getFamily, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
@@ -8,6 +10,7 @@ import { Gallery } from './Gallery.tsx';
 import { useScrollAnchor } from './useScrollAnchor.ts';
 import { useLibrary } from './useLibrary.ts';
 import { Favorites } from './Favorites.tsx';
+import { SavedWork } from './SavedWork.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -17,6 +20,8 @@ export function App() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState(false);
+  const [manualValue, setManualValue] = useState('');
+  const [opened, setOpened] = useState<{ recipe: string; snapshot: string } | null>(null);
   const [restart, setRestart] = useState(0);
   const worker = useRef<Worker | null>(null);
   const latestJob = useRef(0);
@@ -70,8 +75,29 @@ export function App() {
     if (!result || pending || error) return;
     const copiedJob = latestJob.current;
     try { await navigator.clipboard.writeText(result.text); if (copiedJob === latestJob.current) setCopied(true); }
-    catch { if (copiedJob === latestJob.current) setManual(true); }
+    catch { if (copiedJob === latestJob.current) { setManualValue(result.text); setManual(true); } }
   }
+  async function copySaved(text: string) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch { setManualValue(text); setManual(true); return false; }
+  }
+  function openSaved(record: LibraryRecord<InputPayload | DesignPayload>) {
+    if (record.type === 'input') {
+      const { text } = record.payload as InputPayload;
+      latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: text }));
+      return '';
+    }
+    const design = record.payload as DesignPayload;
+    let saved;
+    try { saved = parseRecipe(design.recipe); }
+    catch { return 'This design needs a font or renderer this version does not have. Its saved text is still available.'; }
+    latestJob.current += 1; setPending(!!worker.current); setRecipe(() => saved);
+    setOpened({ recipe: JSON.stringify(saved), snapshot: design.snapshot.text });
+    return '';
+  }
+  const ready = !!result && !pending && !error;
+  // A reopened design re-renders with this build; say so if that no longer matches its saved text.
+  const openedDiffers = ready && opened?.recipe === JSON.stringify(recipe) && opened.snapshot !== result.text;
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
   const font = getVariant(recipe.variantId);
   // Remember the active family's variant so switching to another family and back keeps it.
@@ -114,6 +140,10 @@ export function App() {
             </optgroup>)}
           </select>
         </div>
+        <SavedWork inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
+          onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
+          onSaveDesign={() => { if (ready) library.add<DesignPayload>('design', { name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, columns: result.columns, rows: result.rows } }); }}
+          onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} />
         <Favorites favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
           onApply={favorite => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)))} onRemove={library.removeFavorite} />
       </div>
@@ -124,6 +154,7 @@ export function App() {
           <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
           {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
           {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
+          {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
         </section>
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
@@ -136,7 +167,7 @@ export function App() {
     <footer><a href={font.noticePath}>{font.name} · {font.license} notice</a><span>Type: <a href="/brand/fonts/fraunces-OFL.txt">Fraunces</a> · <a href="/brand/fonts/atkinsonhyperlegiblenext-OFL.txt">Atkinson</a></span></footer>
     <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => { setManual(false); copyButton.current?.focus(); }}>
       <h2 id="copy-title">Copy text</h2><p>Select and copy the text.</p>
-      <textarea ref={manualText} aria-label="Text to copy" value={result?.text || ''} readOnly />
+      <textarea ref={manualText} aria-label="Text to copy" value={manualValue} readOnly />
       <button onClick={() => dialog.current?.close()}>Done</button>
     </dialog>
   </main>;
