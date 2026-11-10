@@ -6,12 +6,14 @@ import { imageSize } from '../shared/image.ts';
 import type { ImageOptions } from '../shared/image.ts';
 import type { Colors } from '../shared/recipe.ts';
 import type { GifJob, GifReply } from './gif.worker.ts';
-type State = { kind: 'idle' } | { kind: 'encoding'; done: number; total: number } | { kind: 'done'; url: string; bytes: number; frames: number } | { kind: 'error'; message: string };
+type State = { kind: 'idle' } | { kind: 'encoding'; done: number; total: number } | { kind: 'done'; url: string; bytes: number; frames: number; data: Uint8Array; width: number; height: number } | { kind: 'error'; message: string };
 const kilobytes = (bytes: number) => bytes < 1024 ? `${bytes} bytes` : `${(bytes / 1024).toFixed(1)} KB`;
 // Encodes in a dedicated worker with progress and cancellation. The draft is never touched.
-export function GifExport({ model, animation, colors, variantId, blocks, fileName }: {
+export function GifExport({ model, animation, colors, variantId, blocks, fileName, onSave }: {
   model: FrameModel | null; animation: Animation; colors: Colors; variantId: string; blocks: boolean; fileName: string;
+  onSave: (gif: { bytes: Uint8Array; width: number; height: number }) => Promise<string>;
 }) {
+  const [saveNote, setSaveNote] = useState('');
   const [scale, setScale] = useState(1);
   const [transparent, setTransparent] = useState(false);
   const [state, setState] = useState<State>({ kind: 'idle' });
@@ -37,12 +39,13 @@ export function GifExport({ model, animation, colors, variantId, blocks, fileNam
     const current = new Worker(new URL('./gif.worker.ts', import.meta.url), { type: 'module' });
     worker.current = current;
     const jobId = ++jobs.current;
-    setState({ kind: 'encoding', done: 0, total: frames });
+    setState({ kind: 'encoding', done: 0, total: frames }); setSaveNote('');
+    const { width, height } = imageSize(model.columns, model.rows, options);
     current.onmessage = (event: MessageEvent<GifReply>) => {
       if (event.data.jobId !== jobId) return;
       const reply = event.data;
       if (reply.type === 'progress') setState({ kind: 'encoding', done: reply.done, total: reply.total });
-      else if (reply.type === 'done') { stop(); setState({ kind: 'done', url: URL.createObjectURL(new Blob([reply.bytes as BlobPart], { type: 'image/gif' })), bytes: reply.bytes.length, frames: reply.frames }); }
+      else if (reply.type === 'done') { stop(); setState({ kind: 'done', url: URL.createObjectURL(new Blob([reply.bytes as BlobPart], { type: 'image/gif' })), bytes: reply.bytes.length, frames: reply.frames, data: reply.bytes, width, height }); }
       else { stop(); setState({ kind: 'error', message: `${reply.message} Your design is unchanged.` }); }
     };
     current.onerror = () => { stop(); setState({ kind: 'error', message: 'The GIF encoder stopped. Your design is unchanged; try again.' }); };
@@ -70,7 +73,11 @@ export function GifExport({ model, animation, colors, variantId, blocks, fileNam
     {state.kind === 'done' && <div className="gif-result">
       <img src={state.url} alt="Encoded GIF sample" />
       <p className="hint" data-testid="gif-result">{kilobytes(state.bytes)}, {state.frames} stored {state.frames === 1 ? 'frame' : 'frames'} (identical neighbours merged). GIF keeps up to 256 colors per frame and on/off transparency, so soft edges may look harder than the preview.</p>
-      <a className="button" href={state.url} download={fileName}>Download GIF</a>
+      <div className="item-actions">
+        <a className="button" href={state.url} download={fileName}>Download GIF</a>
+        <button onClick={() => void onSave({ bytes: state.data, width: state.width, height: state.height }).then(message => setSaveNote(message || 'Saved with this GIF in Saved work.'))}>Save design with this GIF</button>
+      </div>
+      {saveNote && <p className="item-note" data-testid="gif-save-note">{saveNote}</p>}
     </div>}
   </div>;
 }

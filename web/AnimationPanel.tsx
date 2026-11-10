@@ -7,7 +7,7 @@ import { GifExport } from './GifExport.tsx';
 import type { FontVariant } from '../shared/catalog.ts';
 const EFFECT_LABELS = { none: 'None', typewriter: 'Typewriter', reveal: 'Reveal', 'palette-cycle': 'Palette cycle', shimmer: 'Shimmer', glitch: 'Glitch' } as const;
 const DIRECTION_LABELS = { down: 'Top to bottom', up: 'Bottom to top', right: 'Left to right', left: 'Right to left' } as const;
-interface AnimationProps { animation: Animation; model: FrameModel | null; font: FontVariant; colors: Colors; blocks: boolean; fileName: string; onInspect: (index: number) => void; onChange: (animation: Animation) => void }
+interface AnimationProps { animation: Animation; model: FrameModel | null; font: FontVariant; colors: Colors; blocks: boolean; fileName: string; onInspect: (index: number) => void; onSaveGif: (gif: { bytes: Uint8Array; width: number; height: number }) => Promise<string>; onChange: (animation: Animation) => void }
 const RATES = [6, 8, 10, 12, 15, 20, 24, 30];
 // Seconds in the controls, whole milliseconds in the recipe.
 function SecondsField({ id, label, value, range, onCommit }: { id: string; label: string; value: number; range: readonly [number, number]; onCommit: (ms: number) => string }) {
@@ -28,7 +28,7 @@ function SecondsField({ id, label, value, range, onCommit }: { id: string; label
 }
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Previews the selected design with the shared frame function. Reduced motion starts paused.
-export function AnimationPanel({ animation, model, font, colors, blocks, fileName, onInspect, onChange }: AnimationProps) {
+export function AnimationPanel({ animation, model, font, colors, blocks, fileName, onInspect, onSaveGif, onChange }: AnimationProps) {
   const [playing, setPlaying] = useState(() => !reducedMotion());
   const [index, setIndex] = useState(0);
   const count = frameCount(animation);
@@ -108,7 +108,7 @@ export function AnimationPanel({ animation, model, font, colors, blocks, fileNam
         <label><input type="radio" name="loop" checked={!animation.loop} onChange={() => update({ loop: false })} />Play once</label>
       </fieldset>
       {!model && <p className="hint">The preview starts when the artwork has rendered.</p>}
-      <GifExport model={model} animation={animation} colors={colors} variantId={font.variantId} blocks={blocks} fileName={fileName} />
+      <GifExport model={model} animation={animation} colors={colors} variantId={font.variantId} blocks={blocks} fileName={fileName} onSave={onSaveGif} />
     </>}
   </section>;
 }
