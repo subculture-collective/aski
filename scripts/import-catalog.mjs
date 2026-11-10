@@ -20,6 +20,10 @@ async function emit(path, bytes) {
   if (check) assert.equal(hash(await readFile(dest)), hash(bytes), `Catalog drift: ${path}`);
   else { await mkdir(dirname(dest.pathname), { recursive: true }); await writeFile(dest, bytes); }
 }
+// Each look names a Unicode range the letters are drawn with; a font can have several.
+const LOOKS = { block: /[\u2580-\u2590\u2594-\u259f]/u, shaded: /[\u2591-\u2593]/u, line: /[\u2500-\u257f]/u, braille: /[\u2800-\u28ff]/u,
+  letter: /[A-Za-z]/, enclosed: /[\u2460-\u24ff]/u, wide: /[\uff01-\uff5e]/u, symbol: /[^\sA-Za-z\u2460-\u24ff\u2500-\u259f\u2800-\u28ff\uff01-\uff5e]/u };
+const looksOf = text => Object.keys(LOOKS).filter(look => LOOKS[look].test(text));
 const fonts = [], candidates = [];
 for (const candidate of audit.fonts) {
   const source = await readFile(join(packageRoot, 'fonts', candidate.file));
@@ -54,7 +58,9 @@ for (const candidate of audit.fonts) {
   fonts.push({ ...entry, colorMapping, coverage, path: '/' + path, noticePath: `/fonts/${slug(name)}-notice.txt`, height: options.height, format: 'figlet',
     slots: ['foreground', 'background', ...Object.keys(colorMapping || {})], spacing,
     // Seamless blocks only when every drawn character is a known block shape (hard blanks render as spaces).
-    blocks: supportsBlocks([...drawn].filter(character => character !== options.hardBlank)) });
+    blocks: supportsBlocks([...drawn].filter(character => character !== options.hardBlank)),
+    // Broad looks from the characters the font draws for A–Z; tags stay null until reviewed.
+    looks: looksOf(Array.from({ length: 26 }, (_, index) => glyphs[65 + index] || []).flat().join('').split(options.hardBlank).join(' ')) });
   await emit('public/' + path, source);
   await emit(`public/fonts/${slug(name)}-notice.txt`, notice + '\n');
 }
