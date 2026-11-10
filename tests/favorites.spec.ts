@@ -4,7 +4,7 @@ const card = (page: Page, name: string) => page.locator('article.family-card').f
 const favorites = (page: Page) => page.getByRole('region', { name: 'Favorites' });
 // The list updates immediately; IndexedDB commits shortly after. Wait for it before reloading.
 const stored = (page: Page) => page.evaluate(() => new Promise<number>(resolve => {
-  const open = indexedDB.open('aski-library', 1);
+  const open = indexedDB.open('aski-library');
   open.onsuccess = () => { const all = open.result.transaction('records').objectStore('records').count(); all.onsuccess = () => { open.result.close(); resolve(all.result); }; };
 }));
 
@@ -50,7 +50,7 @@ test('unreadable library records are kept and reported', async ({ page }) => {
   await expect(favorites(page).getByRole('listitem')).toHaveCount(1);
   await expect.poll(() => stored(page)).toBe(1);
   await page.evaluate(() => new Promise<void>((resolve, reject) => {
-    const open = indexedDB.open('aski-library', 1);
+    const open = indexedDB.open('aski-library');
     open.onsuccess = () => {
       const transaction = open.result.transaction('records', 'readwrite');
       transaction.objectStore('records').put({ namespace: 'anonymous', id: '00000000-0000-4000-8000-0000000000ff', type: 'favorite', schemaVersion: 9, payload: {}, revision: 0 });
@@ -61,7 +61,7 @@ test('unreadable library records are kept and reported', async ({ page }) => {
   await expect(page.getByTestId('library-warning')).toHaveText('1 saved item could not be read and was kept unchanged.');
   await expect(favorites(page).getByRole('listitem')).toHaveCount(1);
   const kept = await page.evaluate(() => new Promise(resolve => {
-    const open = indexedDB.open('aski-library', 1);
+    const open = indexedDB.open('aski-library');
     open.onsuccess = () => { const get = open.result.transaction('records').objectStore('records').get(['anonymous', '00000000-0000-4000-8000-0000000000ff']); get.onsuccess = () => { open.result.close(); resolve(get.result?.schemaVersion); }; };
   }));
   expect(kept).toBe(9);

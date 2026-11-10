@@ -59,3 +59,11 @@ test('each confirmed family is listed once with every variant and a stable defau
   assert.equal(getFamily('ansi-compact').defaultVariantId, 'ansi-compact.regular');
   assert.throws(() => getFamily('figlet/unknown'), /not available/);
 });
+test('looks come from the characters each font draws for letters', () => {
+  assert.deepEqual(getVariant('figlet/linguaholic-shadow-3d').looks, ['block', 'line']);
+  assert.deepEqual(getVariant('figlet/small-braille').looks, ['braille']);
+  assert.deepEqual(getVariant('figlet/letter').looks, ['letter']);
+  // Related 3D and line styles stay separate families even when they share a look.
+  assert.notEqual(getVariant('figlet/linguaholic-shadow-3d').familyId, getVariant('figlet/emboss').familyId);
+  assert(variants.every(font => Array.isArray(font.looks)));
+});

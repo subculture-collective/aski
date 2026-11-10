@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_COLORS, DEFAULT_LAYOUT, FONT } from './recipe.ts';
+import { DEFAULT_ANIMATION } from './animation.ts';
 import { DRAFT_KEY, recoverDraft, saveDraft, historyReducer } from './draft.ts';
 import type { Recipe } from './recipe.ts';
-const recipe: Recipe = { schemaVersion: 3, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS, foreground: '#00FF66' }, layout: { spacing: 'full', width: 40, align: 'center' } };
+const recipe: Recipe = { schemaVersion: 4, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS, foreground: '#00FF66' }, layout: { spacing: 'full', width: 40, align: 'center', blocks: true }, animation: { ...DEFAULT_ANIMATION, effect: 'reveal', direction: 'left' } };
 function storage(initial: string | null = null) {
   let value = initial;
   return { getItem: (key: string) => key === DRAFT_KEY ? value : null,
@@ -16,9 +17,9 @@ test('a versioned draft roundtrips exact multiline input and font provenance', (
   assert.equal(recoverDraft(store).recipe?.input.length, 2001);
 });
 test('legacy envelope and version-1 recipe migrate without rewriting storage during recovery', () => {
-  const { colors: _colors, layout: _layout, ...rest } = recipe; void _colors; void _layout;
+  const { colors: _colors, layout: _layout, animation: _animation, ...rest } = recipe; void _colors; void _layout; void _animation;
   const legacy = JSON.stringify({ schemaVersion: 1, recipe: { ...rest, schemaVersion: 1 } }); const store = storage(legacy);
-  assert.deepEqual(recoverDraft(store).recipe, { ...recipe, colors: DEFAULT_COLORS, layout: DEFAULT_LAYOUT });
+  assert.deepEqual(recoverDraft(store).recipe, { ...recipe, colors: DEFAULT_COLORS, layout: DEFAULT_LAYOUT, animation: DEFAULT_ANIMATION });
   assert.equal(store.getItem(DRAFT_KEY), legacy);
 });
 test('corrupt, future and invalid-font drafts are retained rather than silently replaced', () => {

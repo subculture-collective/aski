@@ -1,4 +1,6 @@
 import { getVariant } from './catalog.ts';
+import { DEFAULT_ANIMATION, parseAnimation } from './animation.ts';
+import type { Animation } from './animation.ts';
 export const FONT = {
   familyId: 'ansi-compact', variantId: 'ansi-compact.regular',
   sha256: '7725d789f12f20f854a2d0fb6f23df3080fefd0753e94055f2078b3853afe30f', name: 'ANSI Compact', rendererVersion: 'figlet@1.12.0',
@@ -21,12 +23,16 @@ export const ALIGNMENTS = ['left', 'center', 'right'] as const;
 export const MIN_WIDTH = 20;
 export const MAX_WIDTH = 1000;
 // Version 3 adds layout: horizontal spacing mode, an optional maximum width in columns and block alignment.
-export interface Layout { spacing: Spacing; width: number | null; align: typeof ALIGNMENTS[number] }
-export const DEFAULT_LAYOUT: Layout = { spacing: 'default', width: null, align: 'left' };
+// `blocks` draws block characters as solid shapes where the font supports it; text output is unchanged.
+// It was added within version 3 before any release; records without it take false.
+export interface Layout { spacing: Spacing; width: number | null; align: typeof ALIGNMENTS[number]; blocks: boolean }
+export const DEFAULT_LAYOUT: Layout = { spacing: 'default', width: null, align: 'left', blocks: false };
 export interface RecipeV2 extends Omit<RecipeV1, 'schemaVersion'> { schemaVersion: 2; colors: Colors }
-export interface Recipe extends Omit<RecipeV2, 'schemaVersion'> { schemaVersion: 3; layout: Layout }
-export type StoredRecipe = RecipeV1 | RecipeV2 | Recipe;
-export const RECIPE_VERSIONS: readonly number[] = [1, 2, 3];
+export interface RecipeV3 extends Omit<RecipeV2, 'schemaVersion'> { schemaVersion: 3; layout: Layout }
+// Version 4 adds animation settings (effect, direction and timing).
+export interface Recipe extends Omit<RecipeV3, 'schemaVersion'> { schemaVersion: 4; animation: Animation }
+export type StoredRecipe = RecipeV1 | RecipeV2 | RecipeV3 | Recipe;
+export const RECIPE_VERSIONS: readonly number[] = [1, 2, 3, 4];
 export function parseWidth(value: unknown): number | null {
   if (value === null || value === '') return null;
   const width = typeof value === 'string' ? Number(value.trim()) : value;
@@ -40,7 +46,8 @@ export function parseLayout(value: unknown, font: { spacing: { smush: boolean } 
   if (!SPACINGS.includes(l.spacing as Spacing)) throw new Error('Unknown spacing mode.');
   if (l.spacing === 'smush' && !font.spacing.smush) throw new Error('This font does not define smushing rules.');
   if (!ALIGNMENTS.includes(l.align as Layout['align'])) throw new Error('Unknown alignment.');
-  return { spacing: l.spacing!, width: parseWidth(l.width), align: l.align! };
+  if (l.blocks !== undefined && typeof l.blocks !== 'boolean') throw new Error('Invalid block setting.');
+  return { spacing: l.spacing!, width: parseWidth(l.width), align: l.align!, blocks: l.blocks ?? false };
 }
 export function parseColor(value: unknown): string {
   const match = typeof value === 'string' && /^#?([\da-f]{6})$/i.exec(value.trim());
@@ -65,6 +72,7 @@ export function parseRecipe(value: unknown): Recipe {
   if (r.familyId !== font.familyId) throw new Error('This font is not available.');
   if (r.fontSha256 !== font.sha256 || r.rendererVersion !== FONT.rendererVersion) throw new Error('This font version is not available.');
   const colors = r.schemaVersion === 1 ? { ...DEFAULT_COLORS } : parseColors(r.colors);
-  const layout = r.schemaVersion === 3 ? parseLayout(r.layout, font) : { ...DEFAULT_LAYOUT };
-  return { schemaVersion: 3, id: r.id, input: r.input, familyId: font.familyId, variantId: font.variantId, fontSha256: font.sha256, rendererVersion: r.rendererVersion, colors, layout };
+  const layout = r.schemaVersion! >= 3 ? parseLayout(r.layout, font) : { ...DEFAULT_LAYOUT };
+  const animation = r.schemaVersion! >= 4 ? parseAnimation(r.animation) : { ...DEFAULT_ANIMATION };
+  return { schemaVersion: 4, id: r.id, input: r.input, familyId: font.familyId, variantId: font.variantId, fontSha256: font.sha256, rendererVersion: r.rendererVersion, colors, layout, animation };
 }

@@ -85,3 +85,22 @@ test('collections hold styles and designs by reference; removing one never remov
   assert.throws(() => parseMembership({ collectionId: project.id, itemType: 'input', itemId: style.id }), /membership/);
   assert.throws(() => parseRecord({ ...project, payload: { name: '' } }), /name/);
 });
+import { orphanedArtifacts, parseArtifact, sha256 } from './library.ts';
+import { createHash } from 'node:crypto';
+test('designs reference immutable artifacts; only unreferenced ones are removed with a design', async () => {
+  const shared = '00000000-0000-4000-8000-0000000000a1', own = '00000000-0000-4000-8000-0000000000a2';
+  const base = { name: 'D', recipe, snapshot: { text: 'x', columns: 1, rows: 1 } };
+  const first = createRecord('design', { ...base, artifacts: [shared, own] }, NOW);
+  const second = createRecord('design', { ...base, artifacts: [shared] }, NOW);
+  assert.deepEqual(parseDesign(first.payload).artifacts, [shared, own]);
+  assert.throws(() => parseDesign({ ...base, artifacts: ['nope'] }), /design/);
+  assert.deepEqual(orphanedArtifacts([first, second], first), [own]);
+  assert.deepEqual(orphanedArtifacts([second], second), [shared]);
+  const bytes = new TextEncoder().encode('<svg/>');
+  const artifact = { namespace: 'anonymous', id: own, sha256: await sha256(bytes), mime: 'image/svg+xml' as const, byteLength: bytes.length, width: 1, height: 1,
+    provenance: { variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: 'figlet@0.1.0' }, createdAt: NOW, bytes };
+  assert.equal(parseArtifact(artifact), artifact);
+  assert.equal(artifact.sha256, createHash('sha256').update(bytes).digest('hex'));
+  assert.throws(() => parseArtifact({ ...artifact, mime: 'text/html' }), /saved file/);
+  assert.throws(() => parseArtifact({ ...artifact, byteLength: 99 }), /saved file/);
+});

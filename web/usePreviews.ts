@@ -3,6 +3,9 @@ import { getVariant } from '../shared/catalog.ts';
 import { FONT } from '../shared/recipe.ts';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 export const PREVIEW_LIMIT = 160;
+// A preview that takes longer than this (for example a font request that never answers) is abandoned so
+// the rest of the queue keeps going.
+export const PREVIEW_TIMEOUT = 15_000;
 const PREVIEW_ID = '00000000-0000-4000-8000-000000000000';
 export function previewInput(input: string) {
   const characters = Array.from(input.replace(/\r\n?/g, '\n'));
@@ -17,6 +20,8 @@ export function usePreviews(input: string, wanted: string[]) {
   const worker = useRef<Worker | null>(null);
   const inFlight = useRef<{ jobId: number; variantId: string; input: string } | null>(null);
   const jobs = useRef(0);
+  const timer = useRef(0);
+  const [generation, setGeneration] = useState(0);
   const latest = useRef({ text, wanted, previews });
   useEffect(() => { latest.current = { text, wanted, previews }; });
   function pump() {
@@ -26,6 +31,15 @@ export function usePreviews(input: string, wanted: string[]) {
     if (!next) return;
     const font = getVariant(next);
     inFlight.current = { jobId: ++jobs.current, variantId: next, input: text };
+    const jobId = jobs.current;
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      if (inFlight.current?.jobId !== jobId) return;
+      const job = inFlight.current;
+      inFlight.current = null;
+      setPreviews(previous => ({ ...previous, [job.variantId]: { input: job.input, error: 'Preview timed out.' } }));
+      setGeneration(value => value + 1); // replace the stuck worker
+    }, PREVIEW_TIMEOUT);
     worker.current.postMessage({ jobId: inFlight.current.jobId, recipe: { schemaVersion: 1, id: PREVIEW_ID, input: text,
       familyId: font.familyId, variantId: next, fontSha256: font.sha256, rendererVersion: FONT.rendererVersion } });
   }
@@ -34,7 +48,7 @@ export function usePreviews(input: string, wanted: string[]) {
     worker.current = current;
     const finish = (value: Omit<Preview, 'input'>) => {
       const job = inFlight.current; if (!job) return;
-      inFlight.current = null;
+      inFlight.current = null; clearTimeout(timer.current);
       setPreviews(previous => ({ ...previous, [job.variantId]: { input: job.input, ...value } }));
     };
     current.onmessage = (event: MessageEvent<RenderReply>) => {
@@ -42,8 +56,9 @@ export function usePreviews(input: string, wanted: string[]) {
       finish('error' in event.data ? { error: event.data.error } : { result: event.data.result });
     };
     current.onerror = () => finish({ error: 'Preview unavailable.' });
-    return () => { current.terminate(); if (worker.current === current) worker.current = null; inFlight.current = null; };
-  }, []);
+    current.onmessageerror = () => finish({ error: 'Preview unavailable.' });
+    return () => { current.terminate(); clearTimeout(timer.current); if (worker.current === current) worker.current = null; inFlight.current = null; };
+  }, [generation]);
   useEffect(pump);
   return { previews, text, truncated: text !== input.replace(/\r\n?/g, '\n') };
 }

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 const multiline = readFileSync(new URL('../shared/fixtures/multiline.txt', import.meta.url), 'utf8');
-const exportGroup = (page: import('@playwright/test').Page) => page.getByRole('group', { name: 'Export' });
+const exportGroup = (page: import('@playwright/test').Page) => page.getByRole('group', { name: 'Export', exact: true });
 
 test('text and ANSI downloads keep exact whitespace; ANSI carries colors and resets', async ({ page }) => {
   await page.goto('/');

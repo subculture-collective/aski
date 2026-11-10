@@ -17,12 +17,13 @@
     "test:account": "node scripts/test-account.mjs",
     "test:account-ui": "node scripts/test-account.mjs --browser",
     "test": "node --test shared/*.test.ts",
-    "test:render": "node scripts/import-catalog.mjs --check && node --test shared/render.test.ts shared/catalog.test.ts shared/layout.test.ts",
+    "test:render": "node scripts/import-catalog.mjs --check && node --test shared/render.test.ts shared/catalog.test.ts shared/layout.test.ts shared/cells.test.ts",
     "test:browser": "playwright test"
   },
   "dependencies": {
     "better-auth": "1.7.18",
     "figlet": "1.12.0",
+    "gifenc": "1.0.3",
     "hono": "4.13.17",
     "pg": "8.23.1",
     "react": "19.3.1",
@@ -37,6 +38,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "eslint": "10.14.0",
+    "gifuct-js": "2.1.2",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.2",
     "vite": "8.3.7"
