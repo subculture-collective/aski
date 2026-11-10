@@ -57,3 +57,27 @@ test('a changed renderer leaves the saved snapshot and provenance untouched', ()
   const current = parseDesign({ name: 'Now', recipe, snapshot });
   assert.equal(renderRecipe(parseRecipe(current.recipe)).text, current.snapshot.text);
 });
+import { cascade, findMembership, membersOf, parseMembership } from './library.ts';
+test('collections hold styles and designs by reference; removing one never removes the items', () => {
+  const style = createRecord('favorite', { familyId: 'figlet/circle' }, '2026-01-01T00:00:00.000Z');
+  const design = createRecord('design', { name: 'D', recipe, snapshot: { text: 'x', columns: 1, rows: 1 } }, '2026-01-02T00:00:00.000Z');
+  const project = createRecord('collection', { name: 'Project' }, NOW);
+  const other = createRecord('collection', { name: 'Project' }, NOW);
+  const m = (collection: typeof project, item: { id: string; type: string }, at: string) => createRecord('membership', { collectionId: collection.id, itemType: item.type as 'favorite', itemId: item.id }, at);
+  const records = [style, design, project, other, m(project, style, '2026-01-03T00:00:00.000Z'), m(project, design, '2026-01-04T00:00:00.000Z'), m(other, design, '2026-01-05T00:00:00.000Z')];
+  assert.deepEqual(membersOf(records, project.id), [style, design]);
+  assert.deepEqual(membersOf(records, other.id), [design]);
+  assert(findMembership(records, other.id, design.id)); assert.equal(findMembership(records, other.id, style.id), undefined);
+  // Equal names are separate collections.
+  assert.notEqual(project.id, other.id);
+  const goneWithProject = cascade(records, project);
+  assert.deepEqual(goneWithProject.map(r => r.type), ['collection', 'membership', 'membership']);
+  const remaining = records.filter(r => !goneWithProject.includes(r));
+  assert(remaining.includes(style) && remaining.includes(design));
+  assert.deepEqual(membersOf(remaining, other.id), [design]);
+  const goneWithDesign = cascade(records, design);
+  assert.deepEqual(goneWithDesign.map(r => r.type), ['design', 'membership', 'membership']);
+  assert.deepEqual(membersOf(records.filter(r => !goneWithDesign.includes(r)), project.id), [style]);
+  assert.throws(() => parseMembership({ collectionId: project.id, itemType: 'input', itemId: style.id }), /membership/);
+  assert.throws(() => parseRecord({ ...project, payload: { name: '' } }), /name/);
+});

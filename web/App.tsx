@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
-import { defaultName } from '../shared/library.ts';
-import type { DesignPayload, InputPayload, LibraryRecord } from '../shared/library.ts';
+import { defaultName, findMembership, parseName } from '../shared/library.ts';
+import type { CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord } from '../shared/library.ts';
 import { variants, getFamily, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
@@ -11,6 +11,7 @@ import { useScrollAnchor } from './useScrollAnchor.ts';
 import { useLibrary } from './useLibrary.ts';
 import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
+import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -96,6 +97,9 @@ export function App() {
     return '';
   }
   const ready = !!result && !pending && !error;
+  const picker = (item: LibraryRecord<FavoritePayload | DesignPayload>) => <CollectionPicker item={item} collections={library.collections}
+    isMember={collectionId => !!findMembership(library.records, collectionId, item.id)} onToggle={collectionId => library.toggleMembership(collectionId, item)} />;
+  const applyFavorite = (favorite: FavoritePayload) => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)));
   // A reopened design re-renders with this build; say so if that no longer matches its saved text.
   const openedDiffers = ready && opened?.recipe === JSON.stringify(recipe) && opened.snapshot !== result.text;
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
@@ -143,9 +147,13 @@ export function App() {
         <SavedWork inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
           onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
           onSaveDesign={() => { if (ready) library.add<DesignPayload>('design', { name: defaultName(recipe.input, font.name), recipe: { ...recipe, id: crypto.randomUUID() }, snapshot: { text: result.text, columns: result.columns, rows: result.rows } }); }}
-          onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} />
+          onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
         <Favorites favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
-          onApply={favorite => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)))} onRemove={library.removeFavorite} />
+          onApply={applyFavorite} onRemove={library.removeFavorite} picker={picker} />
+        <Collections records={library.records} collections={library.collections}
+          onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}
+          onOpen={item => { if (item.type === 'design') return openSaved(item as LibraryRecord<DesignPayload>); applyFavorite(item.payload as FavoritePayload); return ''; }}
+          onRemoveMember={(collectionId, item) => library.toggleMembership(collectionId, item)} />
       </div>
       <div className="workspace">
         <section className="artwork" data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>

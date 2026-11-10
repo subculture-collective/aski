@@ -111,3 +111,23 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .item-actions{display:flex;flex-wrap:wrap;gap:6px;}
 .item-actions button{flex:1 1 auto;padding:8px 10px;font-size:14px;}
 .item-note{margin:0;font-size:13px;}
+.picker{display:grid;gap:6px;}
+.picker>button{padding:8px 10px;font-size:14px;}
+.picker fieldset{display:grid;gap:2px;margin:0;padding:8px;border:var(--aski-border);border-radius:var(--aski-radius);}
+.picker legend{font-size:13px;font-weight:700;padding:0 4px;}
+.picker label{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:400;cursor:pointer;}
+.picker input{width:22px;height:22px;min-height:0;margin:0;accent-color:var(--aski-focus);}
+.collections{display:grid;gap:8px;min-width:0;}
+.collections h2{font-size:22px;}
+.collections h3{font-size:17px;}
+.collections h3 small{font-family:var(--aski-body);font-weight:400;}
+.new-collection{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;}
+.members{list-style:none;margin:0;padding:0;display:grid;gap:4px;}
+.members li{display:flex;align-items:center;gap:6px;min-width:0;}
+.members .open{flex:1;min-width:0;text-align:left;overflow-wrap:anywhere;padding:8px 10px;font-size:14px;}
+.members .remove{min-width:44px;padding:0;font-size:20px;}
+.kind{font-size:12px;font-weight:700;padding:2px 6px;border:var(--aski-border);border-radius:var(--aski-radius);white-space:nowrap;}
+.members li[data-kind=favorite] .kind{background:var(--aski-accent);}
+.members li[data-kind=design] .kind{background:var(--aski-secondary);}
+.favorite-list li{flex-wrap:wrap;}
+.favorite-list li .picker{flex-basis:100%;}

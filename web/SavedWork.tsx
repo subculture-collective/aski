@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import type { DesignPayload, InputPayload, LibraryRecord } from '../shared/library.ts';
 import { MAX_NAME } from '../shared/library.ts';
 type Item = LibraryRecord<InputPayload | DesignPayload>;
@@ -7,10 +8,11 @@ interface SavedWorkProps {
   onSaveInput: () => void; onSaveDesign: () => void;
   onOpen: (record: Item) => string; onRename: (record: Item, name: string) => void;
   onDelete: (record: Item) => void; onCopy: (text: string) => Promise<boolean>;
+  picker: (record: LibraryRecord<DesignPayload>) => ReactNode;
 }
 // Saved text is reusable with any style; a saved design reopens its own recipe and keeps the exact text
 // it produced when saved.
-export function SavedWork({ inputs, designs, canSaveDesign, onSaveInput, onSaveDesign, onOpen, onRename, onDelete, onCopy }: SavedWorkProps) {
+export function SavedWork({ inputs, designs, canSaveDesign, onSaveInput, onSaveDesign, onOpen, onRename, onDelete, onCopy, picker }: SavedWorkProps) {
   const [renaming, setRenaming] = useState('');
   const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState('');
@@ -38,6 +40,7 @@ export function SavedWork({ inputs, designs, canSaveDesign, onSaveInput, onSaveD
           <button onClick={() => { setRenaming(record.id); setDraftName(record.payload.name); setDeleting(''); }}>Rename</button>
           <button onClick={() => { setDeleting(record.id); setRenaming(''); }}>Delete</button>
         </div>)}
+      {design && renaming !== record.id && picker(record as LibraryRecord<DesignPayload>)}
       {notes[record.id] && <p className="item-note" data-testid="saved-note">{notes[record.id]}</p>}
     </li>;
   }
