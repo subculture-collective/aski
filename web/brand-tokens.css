@@ -1,0 +1,2 @@
+:root{--aski-paper:#F1ECFF;--aski-ink:#211B30;--aski-panel:#FFFFFF;--aski-accent:#D4FF60;--aski-secondary:#C4B1FF;--aski-muted:#5A506D;--aski-focus:#6330B5;--aski-display:"Fraunces",serif;--aski-body:"Atkinson Hyperlegible Next",sans-serif;--aski-radius:3px;--aski-border:2px solid #211B30;--aski-shadow:4px 4px 0 #211B30;--aski-motion:100ms;}
+@media(prefers-reduced-motion:reduce){:root{--aski-motion:0ms;}}

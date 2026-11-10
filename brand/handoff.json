@@ -1,0 +1,144 @@
+{
+  "repository": "https://git.subcult.tv/subculture-collective/subcult-tv",
+  "commit": "9a463b2fe6861e6e991f45fa5f92cdd1c47b848a",
+  "pack": "studio/brands/aski",
+  "manifestSha256": "6f28ca35e17244fd3fe520c0d4ff60f153f542e7ed81d4ae5fa733e703d5cf0a",
+  "approval": "Owner selected Lilac and approved Fraunces headings/wordmark with Atkinson Hyperlegible Next controls: Use this pairing.",
+  "files": [
+    {
+      "source": "tokens.css",
+      "destination": "web/brand-tokens.css",
+      "usage": "semantic UI tokens",
+      "license": "brand rules",
+      "transform": "unchanged copy",
+      "sha256": "bf55b673fad98de90438f2bef89f1ba2612e427e311bb3873a26d72ddc23246d",
+      "bytes": 409
+    },
+    {
+      "source": "logos/lockup-primary-outlined.svg",
+      "destination": "public/brand/lockup.svg",
+      "usage": "header wordmark",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "7dcdb242d7bfee5bee99e48b6c156f3d9cd26d94029b79ad97f8c6185e6490cf",
+      "bytes": 4942
+    },
+    {
+      "source": "logos/mark-primary.svg",
+      "destination": "public/brand/mark.svg",
+      "usage": "standalone pixel mark",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "5367aa38e952b3d14bcc2f7cb78215cb52f50107ae811eae280bf99d79579807",
+      "bytes": 1316
+    },
+    {
+      "source": "web/favicon.svg",
+      "destination": "public/favicon.svg",
+      "usage": "browser icon",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "15690e5637e31a80d6dd8ad5efb7cca05aed70ece9d2b51a894c23a911696ed2",
+      "bytes": 1308
+    },
+    {
+      "source": "fonts/AtkinsonHyperlegibleNext-Regular.otf",
+      "destination": "public/brand/fonts/AtkinsonHyperlegibleNext-Regular.otf",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy",
+      "sha256": "2a5e641eb7d42f5949d9fc84df1e7840c3c7bb1151dae178a8f20a3251e946d0",
+      "bytes": 42916
+    },
+    {
+      "source": "fonts/AtkinsonHyperlegibleNext-Bold.otf",
+      "destination": "public/brand/fonts/AtkinsonHyperlegibleNext-Bold.otf",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy",
+      "sha256": "91485fed9ea491b764a6e037f9b2f8a20d21070a9345a85ce3fc42262e3c8b10",
+      "bytes": 45384
+    },
+    {
+      "source": "fonts/Fraunces-1.ttf",
+      "destination": "public/brand/fonts/Fraunces-1.ttf",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy",
+      "sha256": "f0a9d39b9f14079c55070189562da36c794f824cbcf514b50a0ad0ef20c69379",
+      "bytes": 71588
+    },
+    {
+      "source": "fonts/atkinsonhyperlegiblenext-OFL.txt",
+      "destination": "public/brand/fonts/atkinsonhyperlegiblenext-OFL.txt",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy",
+      "sha256": "aca6a428580965d2297d1b718042dd427c2a9443ece3b0d02d758e161e0c4030",
+      "bytes": 4431
+    },
+    {
+      "source": "fonts/fraunces-OFL.txt",
+      "destination": "public/brand/fonts/fraunces-OFL.txt",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy",
+      "sha256": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
+      "bytes": 4391
+    },
+    {
+      "source": "web/icon-32.png",
+      "destination": "public/brand/icon-32.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "db494e13bc9fe628c47276d4df6114b269017471a1d12231e42e1e3884abf1ce",
+      "bytes": 163
+    },
+    {
+      "source": "web/icon-180.png",
+      "destination": "public/brand/icon-180.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "817768482330282bcb764802a38ab412cab3b0a0fda5d16a30ceaf3d867bf516",
+      "bytes": 570
+    },
+    {
+      "source": "web/icon-192.png",
+      "destination": "public/brand/icon-192.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "10f7ab94346cb180528e342160a14b4a2257f4aefba6fc53dc26498591ff625b",
+      "bytes": 627
+    },
+    {
+      "source": "web/icon-512.png",
+      "destination": "public/brand/icon-512.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "dc125e8c149e2a8ca2b1e23f46789824967d9763891dcc6002e76b299285fad5",
+      "bytes": 1971
+    },
+    {
+      "source": "web/maskable.png",
+      "destination": "public/brand/maskable.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "9b18310c98a4d47195aa9eb5084436fc0585a6a0e0bdb4b9badf25cc4caa5d79",
+      "bytes": 1968
+    },
+    {
+      "source": "web/open-graph.png",
+      "destination": "public/brand/open-graph.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy",
+      "sha256": "617cebe652d76bd4dc880f86c977bad37718b1e40ab50d9b44d80634efe5caed",
+      "bytes": 20186
+    }
+  ]
+}
