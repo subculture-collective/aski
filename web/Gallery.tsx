@@ -6,8 +6,9 @@ interface GalleryProps {
   input: string; activeFamilyId: string; variantFor: (family: FontFamily) => string;
   expanded: ReadonlySet<string>; onVariant: (family: FontFamily, variantId: string) => void;
   onUse: (family: FontFamily) => void; onToggle: (family: FontFamily) => void;
+  isFavorite: (familyId: string, variantId: string) => boolean; onFavorite: (familyId: string, variantId: string) => void;
 }
-export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant, onUse, onToggle }: GalleryProps) {
+export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant, onUse, onToggle, isFavorite, onFavorite }: GalleryProps) {
   const selected = families.map(variantFor);
   const { previews, text, truncated } = usePreviews(input, selected);
   return <section className="gallery" aria-labelledby="gallery-title">
@@ -21,7 +22,9 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         const active = family.familyId === activeFamilyId;
         const open = expanded.has(family.familyId);
         return <article key={family.familyId} className="family-card" data-anchor={family.familyId} data-active={active || undefined} aria-labelledby={`family-${id}`}>
-          <div className="family-heading"><h3 id={`family-${id}`}>{family.name}</h3>{active && <span className="badge">In use</span>}</div>
+          <div className="family-heading"><h3 id={`family-${id}`}>{family.name}</h3>{active && <span className="badge">In use</span>}
+            <button className="favorite" aria-pressed={isFavorite(family.familyId, variant.variantId)} aria-label={`Favorite ${variant.name}`}
+              onClick={() => onFavorite(family.familyId, variant.variantId)}>{isFavorite(family.familyId, variant.variantId) ? '★' : '☆'}</button></div>
           {family.variants.length > 1 && <fieldset className="variants"><legend>Variant</legend>
               {family.variants.map(item => <label key={item.variantId}>
                 <input type="radio" name={`variant-${id}`} value={item.variantId} checked={item.variantId === variant.variantId} onChange={() => onVariant(family, item.variantId)} />

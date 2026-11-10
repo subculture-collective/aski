@@ -25,7 +25,9 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor remains on the main thread. The current input limit is 2,000 UTF-16 code units. Unsupported code points are reported and the original input remains editable. The native Style selector keeps confirmed variants together.
 
-The Styles gallery shows one card per confirmed family. Variant buttons change a card's preview; on the family in use they also change the design, which joins undo history. **Use style** selects a family with its chosen variant, and **Details** lists its line height, character coverage and license. Previews render in a second worker, one at a time, from the first 160 characters, so the selected design is never queued behind them. While text changes, the card you last touched (or the first card in view) keeps its screen position, even when previews or the design above it change height. On phones the text editor stays pinned to the top. The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
+The Styles gallery shows one card per confirmed family. Variant buttons change a card's preview; on the family in use they also change the design, which joins undo history. **Use style** selects a family with its chosen variant, and **Details** lists its line height, character coverage and license. Previews render in a second worker, one at a time, from the first 160 characters, so the selected design is never queued behind them. While text changes, the card you last touched (or the first card in view) keeps its screen position, even when previews or the design above it change height. On phones the text editor stays pinned to the top.
+
+The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. Favorites live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
 
 ```sh
 make check
@@ -47,7 +49,7 @@ ANSI Compact is by Loic Cressot; its included font header explicitly states MIT 
 
 See [catalog provenance and import](docs/catalog.md). Run `make test-render` for catalog and glyph-coverage checks.
 
-[Draft recovery and undo/redo](docs/drafts.md): `make test-storage` checks the versioned persistence boundary. Browser tests cover reload, text/style history, corrupted drafts and quota failures.
+[Draft recovery and undo/redo](docs/drafts.md): `make test-storage` checks the versioned draft and library records. Browser tests cover reload, text/style history, corrupted drafts and quota failures.
 
 [Sign-in request service](docs/sign-in-requests.md): `make test-account` needs Docker and creates its own temporary PostgreSQL 17 database. `make test-account-ui` exercises the real form against a separate capture inbox. No production mail credentials are needed for these checks. `make check` now includes the account service tests.
 
