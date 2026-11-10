@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { variants, getVariant } from './catalog.ts';
+import { variants, families, getFamily, getVariant } from './catalog.ts';
 import { loadFont, renderRecipe } from './render.ts';
 import { FONT } from './recipe.ts';
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
@@ -47,4 +47,15 @@ test('licensed 3D multiline output matches the pinned parity sample', () => {
   const audit = JSON.parse(readFileSync(new URL('../research/font-audit/catalog-audit.json', import.meta.url), 'utf8'));
   const sample = audit.samples.find((s: { font: string; input: string }) => s.font === font.name && s.input === 'ASKI\nA🙂');
   assert.equal(hash(renderRecipe(recipe(font.variantId, sample.input)).text), sample.outputSha256);
+});
+test('each confirmed family is listed once with every variant and a stable default', () => {
+  assert.equal(families.length, new Set(variants.map(f => f.familyId)).size);
+  assert.deepEqual(families.flatMap(f => f.variants.map(v => v.variantId)).sort(), variants.map(v => v.variantId).sort());
+  for (const family of families) {
+    assert(family.variants.every(v => v.familyId === family.familyId));
+    assert.equal(family.variants[0].variantId, family.defaultVariantId);
+  }
+  assert.deepEqual(getFamily('figlet/future').variants.map(v => v.name), ['Future', 'Future Smooth', 'Future Thin']);
+  assert.equal(getFamily('ansi-compact').defaultVariantId, 'ansi-compact.regular');
+  assert.throws(() => getFamily('figlet/unknown'), /not available/);
 });
