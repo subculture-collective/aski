@@ -5,6 +5,8 @@ on:
     branches: [main]
 env:
   PLAYWRIGHT_SKIP_BROWSER_GC: '1'
+  NAPI_RS_FORCE_WASI: 'error'
+  NAPI_RS_ENFORCE_VERSION_CHECK: '1'
 jobs:
   check:
     runs-on: ubuntu-latest
