@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_INPUT } from '../shared/recipe.ts';
-import { variants, getVariant } from '../shared/catalog.ts';
+import { variants, getFamily, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
 import { SignIn } from './SignIn.tsx';
 import { Gallery } from './Gallery.tsx';
 import { useScrollAnchor } from './useScrollAnchor.ts';
+import { useLibrary } from './useLibrary.ts';
+import { Favorites } from './Favorites.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -24,6 +26,7 @@ export function App() {
   const studio = useRef<HTMLDivElement>(null);
   const editor = useRef<HTMLElement>(null);
   const [chosenVariants, setChosenVariants] = useState<Record<string, string>>({});
+  const library = useLibrary();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   // On phones the editor sticks to the top, so content behind it is not in view.
   const inset = useCallback(() => {
@@ -111,6 +114,8 @@ export function App() {
             </optgroup>)}
           </select>
         </div>
+        <Favorites favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
+          onApply={favorite => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)))} onRemove={library.removeFavorite} />
       </div>
       <div className="workspace">
         <section className="artwork" data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
@@ -123,6 +128,8 @@ export function App() {
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
           onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}
+          isFavorite={(familyId, variantId) => library.isFavorite({ familyId, variantId })}
+          onFavorite={(familyId, variantId) => library.toggleFavorite({ familyId, variantId })}
           onToggle={family => setExpanded(previous => { const next = new Set(previous); if (!next.delete(family.familyId)) next.add(family.familyId); return next; })} />
       </div>
     </div>

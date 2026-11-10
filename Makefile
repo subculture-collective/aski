@@ -5,7 +5,7 @@ test-account:
 test-account-ui:
 	npm run test:account-ui
 test-storage:
-	node --test shared/draft.test.ts
+	node --test shared/draft.test.ts shared/library.test.ts
 test-render:
 	npm run test:render
 typecheck:
