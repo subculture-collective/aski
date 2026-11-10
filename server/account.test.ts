@@ -7,7 +7,7 @@ const pool = new Pool({ connectionString: process.env.ASKI_TEST_DATABASE_URL });
 const inbox: { email: string; url: string }[] = [];
 const options = { pool, origin: 'http://127.0.0.1:4179', secret: 'synthetic-account-test-secret-with-adequate-entropy-0123456789', mailer: { send: async (mail: { email: string; url: string }) => { inbox.push(mail); } } };
 let service: ReturnType<typeof createAccountService>;
-before(async () => { assert(process.env.ASKI_TEST_DATABASE_URL); service = createAccountService(options); await migrateAccount(service.auth, pool); });
+before(async () => { assert(process.env.ASKI_TEST_DATABASE_URL && process.env.ASKI_ACCOUNT_TEST === '1'); assert.equal((await pool.query('SELECT current_database() AS name')).rows[0].name,'aski_test'); service = createAccountService(options); await migrateAccount(service.auth, pool); });
 beforeEach(async () => { await pool.query('TRUNCATE "verification", "user", aski_request_limit CASCADE'); inbox.length = 0; });
 after(async () => { await pool.end(); });
 function request(email: string, ip = '192.0.2.1', app = service.app, extra: Record<string, unknown> = {}) {
