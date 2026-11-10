@@ -23,6 +23,8 @@ test('reload restores text/style; undo and redo include complete editing changes
 });
 test('corrupt or future drafts stay intact until explicit replacement', async ({ page }) => {
   await page.goto('/');
+  // Wait for the app's first save so it cannot overwrite the corrupt draft before the reload.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('aski:draft'))).not.toBeNull();
   await page.evaluate(() => { localStorage.setItem('aski:draft', '{bad'); localStorage.setItem('unrelated', 'keep'); });
   await page.reload();
   await expect(page.getByTestId('draft-warning')).toBeVisible();

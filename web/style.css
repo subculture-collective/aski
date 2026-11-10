@@ -159,6 +159,8 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .layout h2,.colors h2,.animation h2{font-size:24px;}
 .animation-preview{min-height:120px;max-height:40vh;border:var(--aski-border);border-radius:var(--aski-radius);}
 .item-actions .hint{align-self:center;}
+/* On its own line so the changing frame number never resizes the playback buttons. */
+.item-actions .frame-label{flex-basis:100%;font-variant-numeric:tabular-nums;}
 .exports{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 16px;}
 .exports .hint{flex-basis:100%;}
 .scrubber{width:100%;min-height:44px;padding:0;border:0;background:none;accent-color:var(--aski-focus);}
