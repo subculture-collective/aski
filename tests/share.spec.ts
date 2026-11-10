@@ -30,6 +30,8 @@ test('a share link restores every editable setting in a fresh browser profile', 
   await expect(other.getByTestId('output')).toHaveCSS('color', 'rgb(255, 77, 109)');
   expect(await other.getByTestId('output').textContent()).toBe(output);
   expect(new URL(other.url()).hash).toBe('');
+  // The size check compares the shared design's own render, not the previous draft's.
+  await expect(other.getByTestId('share-notice')).toHaveText('Opened a shared design. Undo returns to your previous draft.');
   expect(dialogs).toEqual([]);
   await other.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(other.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue('MY OWN DRAFT');

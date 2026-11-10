@@ -53,11 +53,11 @@ export function SavedWork({ inputs, designs, canSaveDesign, onSaveInput, onSaveD
       {notes[record.id] && <p className="item-note" data-testid="saved-note">{notes[record.id]}</p>}
     </li>;
   }
-  return <section className="saved-work" aria-labelledby="saved-title">
+  return <section className="saved-work" data-anchor="saved" aria-labelledby="saved-title">
     <h2 id="saved-title">Saved work</h2>
     <div className="item-actions">
       <button onClick={onSaveInput}>Save text</button>
-      <button onClick={() => void onSaveDesign(keep).then(setSaveNote)} disabled={!canSaveDesign}>Save design</button>
+      <button onClick={() => void onSaveDesign(keep).then(setSaveNote, () => setSaveNote('Could not save this design. Your draft is unchanged.'))} disabled={!canSaveDesign}>Save design</button>
     </div>
     <fieldset className="keep"><legend>With a saved design, also keep</legend>
       <label><input type="checkbox" checked={keep.png} onChange={event => setKeep({ ...keep, png: event.target.checked })} />PNG</label>

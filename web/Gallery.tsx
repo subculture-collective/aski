@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { families, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { PREVIEW_LIMIT, usePreviews } from './usePreviews.ts';
@@ -19,6 +19,18 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
   const { previews, text, truncated } = usePreviews(input, [...new Set([...selected, ...pins])]);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const set = (change: Partial<Filters>) => setFilters(previous => ({ ...previous, ...change }));
+  const search = useRef<HTMLInputElement>(null);
+  // Clearing removes the button that was pressed, so move focus to the search field.
+  const clearFilters = () => { setFilters(NO_FILTERS); search.current?.focus(); };
+  // Unpinning removes the pressed button; focus the next pin, or the search field when none remain.
+  const unpin = (variantId: string) => {
+    const rest = pins.filter(item => item !== variantId);
+    onPin(variantId);
+    requestAnimationFrame(() => {
+      const next = rest[Math.min(pins.indexOf(variantId), rest.length - 1)];
+      (next ? document.querySelector<HTMLElement>(`[data-testid="pinned-${slug(next)}"] button`) : search.current)?.focus();
+    });
+  };
   const characters = [...new Set(Array.from(input.replace(/\r\n?/g, '\n')).filter(character => character !== '\n'))];
   const limit = (value: string) => /^\d+$/.test(value.trim()) ? Number(value) : null;
   // Uncategorized families (no recorded look) stay visible, marked, when a look filter is on.
@@ -47,8 +59,8 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
             <strong>{variant.name}</strong>
             <pre className="preview" aria-label={`${variant.name} comparison`} aria-busy={preview?.input !== text}>{preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}</pre>
             <div className="card-actions">
-              <button onClick={() => onUseVariant(variantId)}>Use</button>
-              <button aria-label={`Unpin ${variant.name}`} onClick={() => onPin(variantId)}>Unpin</button>
+              <button aria-label={`Use ${variant.name}`} onClick={() => onUseVariant(variantId)}>Use</button>
+              <button aria-label={`Unpin ${variant.name}`} onClick={() => unpin(variantId)}>Unpin</button>
             </div>
           </div>;
         })}
@@ -56,7 +68,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
     </section>}
     <div className="filters" role="search" aria-label="Find styles">
       <div className="field"><label htmlFor="style-search">Search styles</label>
-        <input id="style-search" type="search" value={filters.query} placeholder="Family or variant name" onChange={event => set({ query: event.target.value })} /></div>
+        <input id="style-search" ref={search} type="search" value={filters.query} placeholder="Family or variant name" onChange={event => set({ query: event.target.value })} /></div>
       <fieldset className="slots"><legend>Look</legend>
         {Object.entries(LOOK_LABELS).map(([look, label]) => <label key={look}>
           <input type="checkbox" checked={filters.looks.includes(look)} onChange={event => set({ looks: event.target.checked ? [...filters.looks, look] : filters.looks.filter(item => item !== look) })} />{label}
@@ -67,7 +79,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         <div className="field"><label htmlFor="max-rows">Max rows</label><input id="max-rows" inputMode="numeric" value={filters.maxRows} placeholder="Any" onChange={event => set({ maxRows: event.target.value })} /></div>
       </div>
       <label className="toggle"><input type="checkbox" checked={filters.supportsText} onChange={event => set({ supportsText: event.target.checked })} />Supports every character in my text</label>
-      <p className="hint" data-testid="filter-count">Showing {shown.length} of {families.length} families. Sizes are columns × rows for your text{truncated ? ` (first ${PREVIEW_LIMIT} characters)` : ''}. Looks come from the characters each font draws; reviewed style tags are not recorded yet.</p>
+      <p className="hint" data-testid="filter-count" aria-live="polite">Showing {shown.length} of {families.length} families. Sizes are columns × rows for your text{truncated ? ` (first ${PREVIEW_LIMIT} characters)` : ''}. Looks come from the characters each font draws; reviewed style tags are not recorded yet.</p>
     </div>
     {truncated && <p className="gallery-note">Previews show the first {PREVIEW_LIMIT} characters. The selected style renders all of your text.</p>}
     <div className="family-grid">
@@ -88,7 +100,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
               </label>)}
             </fieldset>}
           <p className="card-meta" data-testid={`meta-${id}`}>
-            {preview?.input === text && preview.result ? `${preview.result.columns} × ${preview.result.rows}` : 'Measuring…'}
+            {preview?.input !== text ? 'Measuring…' : preview.result ? `${preview.result.columns} × ${preview.result.rows}` : 'Size unavailable'}
             {' · '}{variant.looks.length ? variant.looks.map(look => LOOK_LABELS[look]).join(', ') : 'Look not recorded'}{uncategorized ? ' (shown because its look is unknown)' : ''}
           </p>
           <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}>
@@ -99,7 +111,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
             <button aria-expanded={open} aria-controls={`details-${id}`} onClick={() => onToggle(family)}>Details</button>
             <button aria-pressed={pins.includes(variant.variantId)} aria-label={`Pin ${variant.name}`} onClick={() => onPin(variant.variantId)}>Pin</button>
           </div>
-          {open && <dl id={`details-${id}`} className="family-details">
+          {<dl id={`details-${id}`} className="family-details" hidden={!open}>
             <dt>Variants</dt><dd>{family.variants.length}</dd>
             <dt>Line height</dt><dd>{variant.height} rows</dd>
             <dt>Characters</dt><dd>{variant.coverage.length} supported</dd>
@@ -108,7 +120,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         </article>;
       })}
     </div>
-    {!shown.length && <div className="empty" data-testid="no-results"><p>No styles match these filters.</p><button onClick={() => setFilters(NO_FILTERS)}>Clear filters</button></div>}
-    {filtered && shown.length > 0 && <button className="clear-filters" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>}
+    {!shown.length && <div className="empty" data-testid="no-results"><p>No styles match these filters.</p><button onClick={clearFilters}>Clear filters</button></div>}
+    {filtered && shown.length > 0 && <button className="clear-filters" onClick={clearFilters}>Clear filters</button>}
   </section>;
 }

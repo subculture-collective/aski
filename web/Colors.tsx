@@ -35,7 +35,7 @@ export function Colors({ slots, colors, palettes, onChange, onSavePalette, onDel
   const [message, setMessage] = useState('');
   const [paletteName, setPaletteName] = useState('');
   const assign = (value: string) => { onChange({ ...colors, [slot]: value }); setMessage(''); };
-  return <section className="colors" aria-labelledby="colors-title">
+  return <section className="colors" data-anchor="colors" aria-labelledby="colors-title">
     <h2 id="colors-title">Colors</h2>
     <fieldset className="slots"><legend>Slot</legend>
       {slots.map(item => <label key={item}>

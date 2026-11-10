@@ -40,13 +40,13 @@ export function parseRecord(value: unknown): LibraryRecord {
   if (typeof r.id !== 'string' || !UUID.test(r.id)) throw new Error('Invalid library record ID.');
   if (!RECORD_TYPES.includes(r.type as RecordType)) throw new Error('Unknown library record type.');
   if (typeof r.namespace !== 'string' || !Number.isInteger(r.revision) || r.revision! < 0) throw new Error('Invalid library record.');
-  if (r.type === 'favorite') parseFavorite(r.payload);
-  if (r.type === 'input') parseInput(r.payload);
-  if (r.type === 'design') parseDesign(r.payload);
-  if (r.type === 'collection') parseName((r.payload as Partial<CollectionPayload> | null)?.name);
-  if (r.type === 'membership') parseMembership(r.payload);
-  if (r.type === 'palette') parsePalette(r.payload);
-  return r as LibraryRecord;
+  const time = (value: unknown) => typeof value === 'string' && !Number.isNaN(Date.parse(value));
+  if (!time(r.createdAt) || !time(r.updatedAt) || (r.deletedAt !== null && !time(r.deletedAt))) throw new Error('Invalid library record.');
+  // Returns the validated, normalized payload so callers never use an unchecked shape.
+  const payload = r.type === 'favorite' ? parseFavorite(r.payload) : r.type === 'input' ? parseInput(r.payload)
+    : r.type === 'design' ? parseDesign(r.payload) : r.type === 'collection' ? { name: parseName((r.payload as Partial<CollectionPayload> | null)?.name) }
+      : r.type === 'membership' ? parseMembership(r.payload) : parsePalette(r.payload);
+  return { ...(r as LibraryRecord), payload };
 }
 // A favorite names a stable family and, optionally, one of its variants. It never holds text or output.
 export function parseFavorite(value: unknown): FavoritePayload {

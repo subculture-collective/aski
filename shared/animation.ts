@@ -35,13 +35,15 @@ export const cycleMs = (animation: Animation) => animation.durationMs + animatio
 export const frameCount = (animation: Animation) => Math.max(1, Math.ceil(cycleMs(animation) * animation.fps / 1000));
 // Frame i is shown at exactly i / fps seconds, so preview and export sample the same instants.
 export const frameTime = (animation: Animation, index: number) => index * 1000 / animation.fps;
+// Loops repeat every duration + hold exactly; the last frame lasts until the cycle ends.
 export const frameIndex = (animation: Animation, timeMs: number) => {
-  const count = frameCount(animation);
-  const index = Math.floor(Math.max(0, timeMs) * animation.fps / 1000);
-  return animation.loop ? index % count : Math.min(index, count - 1);
+  const time = Math.max(0, timeMs);
+  const index = Math.floor((animation.loop ? time % cycleMs(animation) : time) * animation.fps / 1000);
+  return Math.min(index, frameCount(animation) - 1);
 };
+// Long inputs get fewer prefix renders so typewriter stays within about 24 renders of 300 characters.
 export function typewriterPrefixes(characters: number) {
-  const steps = Math.min(TYPEWRITER_STEPS, characters);
+  const steps = Math.min(TYPEWRITER_STEPS, characters, Math.max(2, Math.floor(TYPEWRITER_STEPS * 300 / Math.max(characters, 1))));
   return Array.from({ length: steps + 1 }, (_, step) => steps ? Math.round(step * characters / steps) : 0);
 }
 export function toCanvas(text: string, columns: number, rows: number) {

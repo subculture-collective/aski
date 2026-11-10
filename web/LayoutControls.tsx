@@ -8,7 +8,7 @@ interface LayoutProps { layout: Layout; fontName: string; fontDefault: string; c
 export function LayoutControls({ layout, fontName, fontDefault, canSmush, onChange }: LayoutProps) {
   const [width, setWidth] = useState('');
   const [message, setMessage] = useState('');
-  return <section className="layout" aria-labelledby="layout-title">
+  return <section className="layout" data-anchor="layout" aria-labelledby="layout-title">
     <h2 id="layout-title">Layout</h2>
     <fieldset className="slots"><legend>Letter spacing</legend>
       {(Object.keys(SPACING_LABELS) as Spacing[]).map(spacing => {

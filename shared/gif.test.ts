@@ -17,6 +17,11 @@ test('the schedule keeps exact total time in whole centiseconds', () => {
   assert.equal(schedule.length, 18);
   assert.equal(schedule.reduce((sum, frame) => sum + frame.delayCs, 0), 150);
   assert(schedule.every(frame => frame.delayCs === 8 || frame.delayCs === 9));
+  // Cycles that are not a whole number of frames: the last frame runs to the end.
+  for (const [durationMs, holdMs, fps] of [[2500, 0, 15], [2000, 1500, 15], [1234, 0, 12], [500, 0, 1]]) {
+    const total = gifSchedule({ ...DEFAULT_ANIMATION, durationMs, holdMs, fps }).reduce((sum, frame) => sum + frame.delayCs, 0);
+    assert.equal(total, Math.round((durationMs + holdMs) / 10), `${durationMs}+${holdMs} at ${fps} fps`);
+  }
 });
 test('opaque looping GIFs keep frame count, delays, disposal and merge identical frames', () => {
   const gif = createGif({ width: W, height: H, transparent: false, loop: true });
