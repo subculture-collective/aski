@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { createRecord, findFavorite } from '../shared/library.ts';
-import type { FavoritePayload, LibraryRecord } from '../shared/library.ts';
+import { createRecord, findFavorite, parseName } from '../shared/library.ts';
+import type { DesignPayload, FavoritePayload, InputPayload, LibraryRecord, RecordType } from '../shared/library.ts';
 import { deleteRecord, loadLibrary, putRecord } from './libraryStore.ts';
-const UNAVAILABLE = 'This browser cannot save your library. Favorites last until you close this page.';
+const UNAVAILABLE = 'This browser cannot save your library. Saved items last until you close this page.';
 export function useLibrary() {
   const [records, setRecords] = useState<LibraryRecord[]>([]);
   const [warning, setWarning] = useState('');
@@ -24,11 +24,15 @@ export function useLibrary() {
     setRecords(previous => previous.filter(item => item.id !== record.id));
     deleteRecord(record).catch(() => setWarning(UNAVAILABLE));
   }
-  const favorites = records.filter(record => record.type === 'favorite' && !record.deletedAt)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)) as LibraryRecord<FavoritePayload>[];
+  const ofType = <T,>(type: RecordType) => records.filter(record => record.type === type && !record.deletedAt)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)) as LibraryRecord<T>[];
+  function rename(record: LibraryRecord<InputPayload | DesignPayload>, name: string) {
+    save({ ...record, payload: { ...record.payload, name: parseName(name) }, updatedAt: new Date().toISOString() });
+  }
   function toggleFavorite(favorite: FavoritePayload) {
     const existing = findFavorite(records, favorite);
     if (existing) remove(existing); else save(createRecord('favorite', favorite));
   }
-  return { records, favorites, warning, toggleFavorite, isFavorite: (favorite: FavoritePayload) => !!findFavorite(records, favorite), removeFavorite: remove };
+  return { records, favorites: ofType<FavoritePayload>('favorite'), inputs: ofType<InputPayload>('input'), designs: ofType<DesignPayload>('design'),
+    warning, toggleFavorite, add: <T,>(type: RecordType, payload: T) => save(createRecord(type, payload)), rename, remove, isFavorite: (favorite: FavoritePayload) => !!findFavorite(records, favorite), removeFavorite: remove };
 }

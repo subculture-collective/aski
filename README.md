@@ -27,7 +27,7 @@ Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor r
 
 The Styles gallery shows one card per confirmed family. Variant buttons change a card's preview; on the family in use they also change the design, which joins undo history. **Use style** selects a family with its chosen variant, and **Details** lists its line height, character coverage and license. Previews render in a second worker, one at a time, from the first 160 characters, so the selected design is never queued behind them. While text changes, the card you last touched (or the first card in view) keeps its screen position, even when previews or the design above it change height. On phones the text editor stays pinned to the top.
 
-The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. Favorites live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
+The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. **Saved work** keeps reusable text and exact designs (style, recipe provenance and output text) as separate items. Favorites and saved work live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
 
 ```sh
 make check
