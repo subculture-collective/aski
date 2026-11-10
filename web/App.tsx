@@ -19,6 +19,10 @@ import { Colors } from './Colors.tsx';
 import { LayoutControls } from './LayoutControls.tsx';
 import { AnimationPanel } from './AnimationPanel.tsx';
 import { Seamless } from './Seamless.tsx';
+import { ImageExport } from './ImageExport.tsx';
+import { toPng } from './imageExport.ts';
+import { toSvg } from '../shared/image.ts';
+import type { ImageOptions } from '../shared/image.ts';
 import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
@@ -92,13 +96,20 @@ export function App() {
     catch { if (copiedJob === latestJob.current) { setManualValue(value); setManual(true); } }
   }
   // Downloads are built from the same result that is displayed; UTF-8 without a byte-order mark.
-  function download(format: 'text' | 'ansi') {
-    if (!result || pending || error) return;
-    const body = format === 'ansi' ? toAnsi(runs, recipe.colors) : result.text;
-    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain;charset=utf-8' }));
-    const link = Object.assign(document.createElement('a'), { href: url, download: exportName(`${font.name} ${recipe.input}`, format === 'ansi' ? 'ans' : 'txt') });
+  function save(blob: Blob, extension: string) {
+    const url = URL.createObjectURL(blob);
+    const link = Object.assign(document.createElement('a'), { href: url, download: exportName(`${font.name} ${recipe.input}`, extension) });
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function download(format: 'text' | 'ansi') {
+    if (!result || pending || error) return;
+    save(new Blob([format === 'ansi' ? toAnsi(runs, recipe.colors) : result.text], { type: 'text/plain;charset=utf-8' }), format === 'ansi' ? 'ans' : 'txt');
+  }
+  async function exportImage(format: 'png' | 'svg', options: ImageOptions) {
+    if (!result || pending || error) throw new Error('The artwork is not ready.');
+    const size = { columns: result.columns, rows: result.rows };
+    save(format === 'svg' ? new Blob([toSvg(runs, recipe.colors, size, options)], { type: 'image/svg+xml' }) : await toPng(runs, recipe.colors, size, options), format);
   }
   async function copySaved(text: string) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -197,6 +208,7 @@ export function App() {
             <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
             <button onClick={() => download('text')} disabled={!ready || !result.text}>Download text</button>
             <button onClick={() => download('ansi')} disabled={!ready || !result.text}>Download ANSI</button>
+            <ImageExport columns={result?.columns || 0} rows={result?.rows || 0} blocks={recipe.layout.blocks && font.blocks} disabled={!ready || !result.text} onExport={exportImage} />
             <p className="hint">Plain text and code blocks keep every space and line break but no colors or animation. ANSI keeps colors for terminals that support 24-bit color.</p>
           </div>
           {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
