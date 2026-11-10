@@ -31,7 +31,7 @@ The Styles gallery shows one card per confirmed family. Variant buttons change a
 
 **Layout** sets letter spacing (font default, full width, fitted, or smushed where the font defines smushing rules), an optional maximum width that wraps between words, and left, center or right alignment. See [Layout](docs/layout.md).
 
-The **Export** group copies a Markdown code block, downloads exact plain text or 24-bit ANSI with per-line resets, and downloads PNG or self-contained SVG at a chosen scale, padding and background. See [Text and ANSI export](docs/export.md).
+The **Export** group copies a Markdown code block, downloads exact plain text or 24-bit ANSI with per-line resets, downloads PNG or self-contained SVG at a chosen scale, padding and background, and creates [share links](docs/share-links.md) that carry the design in the URL fragment. See [Text and ANSI export](docs/export.md).
 
 **Animation** previews typewriter and directional reveal effects on the selected design, on a canvas fixed to the finished artwork's size. See [Animation](docs/animation.md). **Create GIF** encodes the same frames in a worker with progress and cancellation; see [GIF export](docs/gif.md).
 

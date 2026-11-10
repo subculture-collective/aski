@@ -1,0 +1,11 @@
+# Share links
+
+**Share link** (in the Export group) creates a link only when pressed. The design travels inside the link's fragment (`#share=1.…`), which browsers do not send to servers, so nothing is stored or logged anywhere. The link holds the editable recipe: text, family and variant IDs, font SHA-256, renderer version, colors, layout (spacing, width, alignment, seamless blocks) and animation settings (effect, direction, timing, intensity, seed), plus the columns and rows it rendered at. It never holds the recipe ID, saved items, favorites, collections, palettes or account data.
+
+Format, version 1: `{ v: 1, recipe, size }` as UTF-8 JSON, compressed with the browser's `deflate-raw` `CompressionStream`, base64url-encoded, after `#share=1.`. The recipe carries its own `schemaVersion`, so later animation or layout fields arrive through a new recipe version: an older aski reports "comes from a newer version" instead of guessing.
+
+Opening a link validates it with the same recipe parser as drafts and saved designs, gives it a fresh recipe ID, and applies it as one undoable edit, so **Undo** returns to the previous draft. The fragment is then removed so a reload does not apply it again. If this version renders the design at a different size than the link recorded, the notice says so. Damaged, oversized and newer-version links show an explanation and leave the draft unchanged. Opening a link needs no account.
+
+**Link size.** Measured with the version-1 encoder: "ASKI" gives 497 characters; 2,000 repeated characters, 524; 2,000 varied CJK characters (the worst case tried), 6,676. Links are capped at 16,000 characters and decompress to at most 256 KB, both checked before use. Modern browsers accept far longer URLs, but some chat apps shorten or cut long links; the panel shows the length.
+
+`make test-storage` covers round trips with HTML-like and Unicode text, privacy of the recipe ID, the worst-case size, and malformed, oversized, inflating, future-version and invalid-font payloads. The browser suite opens a copied link in a fresh browser context and compares text, style, colors, layout, animation and the rendered output, checks that HTML-like input stays text, that Undo restores the earlier draft, and that bad links keep the draft.
