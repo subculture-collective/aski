@@ -12,7 +12,6 @@ test('trace what moves the Pause button', async ({ page }) => {
   await page.waitForTimeout(500);
   await panel.getByRole('radio', { name: 'Reveal' }).check();
   await panel.getByRole('radio', { name: 'Right to left' }).check();
-  await panel.getByRole('button', { name: 'Pause' }).scrollIntoViewIfNeeded();
   const samples = await page.evaluate(() => new Promise<unknown[]>(resolve => {
     const out: unknown[] = []; const start = performance.now(); (window as any).__scrolls = [];
     const pause = [...document.querySelectorAll('button')].find(b => b.textContent === 'Pause')!;
