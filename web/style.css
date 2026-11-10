@@ -160,3 +160,7 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .item-actions .hint{align-self:center;}
 .exports{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 16px;}
 .exports .hint{flex-basis:100%;}
+.scrubber{width:100%;min-height:44px;padding:0;border:0;background:none;accent-color:var(--aski-focus);}
+.timing{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
+.field{display:grid;gap:6px;align-content:start;}
+.animation>label{font-weight:700;font-size:15px;}
