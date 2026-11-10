@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { CSSProperties } from 'react';
 import { colorize } from '../shared/color.ts';
 import { exportName, toAnsi, toCodeBlock } from '../shared/export.ts';
+import { frameDataAt, frameTime } from '../shared/animation.ts';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
 import type { Slot } from '../shared/recipe.ts';
 import { defaultName, findMembership, parseName } from '../shared/library.ts';
@@ -34,6 +35,7 @@ export function App() {
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState(false);
   const [manualValue, setManualValue] = useState('');
+  const [inspected, setInspected] = useState(0);
   const [opened, setOpened] = useState<{ recipe: string; snapshot: string } | null>(null);
   const [restart, setRestart] = useState(0);
   const worker = useRef<Worker | null>(null);
@@ -106,10 +108,12 @@ export function App() {
     if (!result || pending || error) return;
     save(new Blob([format === 'ansi' ? toAnsi(runs, recipe.colors) : result.text], { type: 'text/plain;charset=utf-8' }), format === 'ansi' ? 'ans' : 'txt');
   }
-  async function exportImage(format: 'png' | 'svg', options: ImageOptions) {
+  async function exportImage(format: 'png' | 'svg', options: ImageOptions, useFrame: boolean) {
     if (!result || pending || error) throw new Error('The artwork is not ready.');
     const size = { columns: result.columns, rows: result.rows };
-    save(format === 'svg' ? new Blob([toSvg(runs, recipe.colors, size, options)], { type: 'image/svg+xml' }) : await toPng(runs, recipe.colors, size, options), format);
+    // The inspected frame comes from the same frame function as the preview and GIF.
+    const frame = useFrame ? frameDataAt(result, recipe.animation, frameTime(recipe.animation, inspected), recipe.colors, font) : { runs, colors: recipe.colors };
+    save(format === 'svg' ? new Blob([toSvg(frame.runs, frame.colors, size, options)], { type: 'image/svg+xml' }) : await toPng(frame.runs, frame.colors, size, options), format);
   }
   async function copySaved(text: string) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -208,7 +212,8 @@ export function App() {
             <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
             <button onClick={() => download('text')} disabled={!ready || !result.text}>Download text</button>
             <button onClick={() => download('ansi')} disabled={!ready || !result.text}>Download ANSI</button>
-            <ImageExport columns={result?.columns || 0} rows={result?.rows || 0} blocks={recipe.layout.blocks && font.blocks} disabled={!ready || !result.text} onExport={exportImage} />
+            <ImageExport columns={result?.columns || 0} rows={result?.rows || 0} blocks={recipe.layout.blocks && font.blocks} disabled={!ready || !result.text} onExport={exportImage}
+              frame={recipe.animation.effect === 'none' ? '' : `frame ${inspected + 1}`} />
             <p className="hint">Plain text and code blocks keep every space and line break but no colors or animation. ANSI keeps colors for terminals that support 24-bit color.</p>
           </div>
           {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
@@ -218,7 +223,8 @@ export function App() {
           onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
         <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
           onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
-        <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} colors={recipe.colors}
+        <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} colors={recipe.colors} blocks={recipe.layout.blocks && font.blocks}
+          fileName={exportName(`${font.name} ${recipe.input}`, 'gif')} onInspect={setInspected}
           onChange={animation => setRecipe(previous => ({ ...previous, animation }))} />
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
