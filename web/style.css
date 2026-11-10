@@ -90,3 +90,14 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 }
 @media(max-width:420px){header{align-items:start;}.header-actions{flex:1;justify-content:flex-end;}h1 img{width:112px;}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important;}button:active:not(:disabled){transform:none;}}
+.favorite{min-width:44px;padding:0;font-size:22px;line-height:1;background:var(--aski-panel);}
+.favorite[aria-pressed=true]{background:var(--aski-accent);}
+.favorites{display:grid;gap:8px;min-width:0;}
+.favorites h2{font-size:22px;}
+.hint{margin:0;font-size:13px;color:var(--aski-muted);}
+.favorite-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
+.favorite-list li{display:flex;gap:6px;min-width:0;}
+.favorite-list li>button:first-child{flex:1;min-width:0;text-align:left;overflow-wrap:anywhere;}
+.favorite-list button[aria-pressed=true]{background:var(--aski-secondary);}
+.favorite-list .remove{min-width:44px;padding:0;font-size:20px;}
+.family-heading h3{margin-right:auto;}
