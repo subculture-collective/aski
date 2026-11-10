@@ -2,7 +2,7 @@
 
 A text-art studio for browsing font families, editing palettes, saving work, and exporting still images and animated GIFs.
 
-The current application renders one licensed font from multiline input and copies whitespace-safe text. Catalog browsing, palettes, saving, animation and image exports follow the roadmap.
+The current application renders 19 reviewed fonts from multiline input and copies whitespace-safe text. Catalog browsing, palettes, saving, animation and image exports follow the roadmap.
 
 - [Approved product scope](docs/product-scope.md)
 - [Implementation plan and acceptance checks](docs/implementation-plan.md)
@@ -23,7 +23,7 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor remains on the main thread. The current input limit is 2,000 UTF-16 code units. Unsupported code points are reported and the original input remains editable. The one-font shell uses neutral styling; selected brand integration is a separate roadmap step.
+Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor remains on the main thread. The current input limit is 2,000 UTF-16 code units. Unsupported code points are reported and the original input remains editable. The native Style selector keeps confirmed variants together. The shell uses neutral styling until the brand integration step.
 
 ```sh
 make check
@@ -39,6 +39,8 @@ TypeScript 6.0.3 is pinned because the selected typescript-eslint 8.72.2 support
 
 ## Source boundaries and license
 
-`shared/recipe.ts` defines the supported version-1 recipe subset and stable IDs; `shared/render.ts` owns text generation. `web/render.worker.ts` adapts that boundary to a browser worker, and the React component owns only current input, rendering status and copy UI. Recipes bind the exact font SHA-256 and engine version; mismatches fail explicitly. Requests carry increasing job IDs so stale results cannot replace the newest input. Copy feedback is tied to the input snapshot that initiated it. Accounts and persistence are not initialized by this skeleton.
+`shared/recipe.ts` defines the supported version-1 recipe subset and stable IDs; `shared/render.ts` owns text generation. `web/render.worker.ts` adapts that boundary to a browser worker, and the React component owns only current input, rendering status and copy UI. Recipes bind the exact font SHA-256 and engine version; mismatches fail explicitly. Requests carry increasing job IDs so stale results cannot replace the newest input. Copy feedback is tied to the input snapshot that initiated it. Accounts and persistence follow separate roadmap steps.
 
 ANSI Compact is by Loic Cressot; its included font header explicitly states MIT terms. See `public/font-notice.txt`. The FIGlet engine's separate license is in `public/figlet-license.txt`; it does not clear the rest of the font catalog. [The stack decision](docs/research/stack-browser-decision.md) and [catalog audit](docs/research/taag-parity.md) retain the research boundaries.
+
+See [catalog provenance and import](docs/catalog.md). Run `make test-render` for catalog and glyph-coverage checks.
