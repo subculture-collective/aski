@@ -1,66 +1,137 @@
 # aski
 
-A text-art studio for browsing font families, editing palettes, saving work, and exporting still images and animated GIFs.
+aski is a text-art studio that runs in the browser. Type once, browse font
+families side by side, pick colors, then copy the result as text or export it
+as an image or an animated GIF. It is in development and not yet hosted
+publicly; editing and exports work locally without an account.
 
-The current application renders 19 reviewed fonts from multiline input, shows them as a gallery of 16 families with live previews, and copies whitespace-safe text. Palettes, collections, animation and image exports follow the roadmap.
+It builds on the controls of [TAAG](https://patorjk.com/software/taag/) and
+adds grouped font variants, uninterrupted editing, palette slots, saved work
+and animation.
 
-- [Approved product scope](docs/product-scope.md)
-- [Implementation plan and acceptance checks](docs/implementation-plan.md)
-- [First public release roadmap](https://github.com/subculture-collective/aski/issues/23): epics, PR-sized work, and native blocking dependencies in execution order.
+## Features
 
-The reference product is [TAAG](https://patorjk.com/software/taag/). Existing TAAG controls belong in the baseline feature set. The improvements center on grouped variants, uninterrupted editing, palette slots, saved work, and animation.
+- **Fonts:** 19 FIGlet fonts in 16 families, each shipped only after its
+  redistribution notice was reviewed. Multiline input up to 2,000 characters;
+  unsupported characters are reported and the input stays editable.
+- **Gallery:** one card per family with a live preview and variant buttons.
+  Search and filter by look, size and character support. Pin cards to a Compare
+  tray to see several results follow the same text. **Details** shows a font's
+  line height, character coverage and license.
+- **Colors:** foreground and background for every font, plus extra slots where a
+  font supports them (for example a shadow). Swatches, custom `#RRGGBB` values,
+  presets and saved palettes.
+- **Layout:** letter spacing (font default, full width, fitted or smushed), an
+  optional maximum width that wraps between words, and left, center or right
+  alignment.
+- **Gap-free blocks:** fonts made only of block characters are drawn as solid
+  rectangles, without the thin gaps between cells. Copied text is unchanged.
+- **Export:** copy as text or a Markdown code block; download plain text, 24-bit
+  ANSI, PNG or self-contained SVG; share a design through a link that carries it
+  in the URL fragment.
+- **Animation:** typewriter, reveal, palette cycle, shimmer and glitch effects
+  with duration, frame rate, loop and hold controls, previewed on a fixed-size
+  canvas. **Create GIF** encodes the same frames in a worker, with progress and
+  cancel.
+- **Local library:** favorites, saved text, saved designs and named collections,
+  stored in the browser (IndexedDB). Drafts are saved locally, with undo and
+  redo.
+- Works on desktop, tablet and phone. Rendering runs in web workers so the
+  editor stays responsive.
 
-Research decisions:
+Optional accounts are being built. The repository has a service that sends
+sign-in links; signing in and syncing between devices are not finished.
 
-- [TAAG parity and font provenance](docs/research/taag-parity.md), including a reproducible audit of the pinned font candidate source.
+## Quick start
 
-## Run locally
-
-Use Node.js 24 LTS.
+You need Node.js 24.
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
-npm run dev
+npm run dev        # http://127.0.0.1:5173
 ```
 
-Open `http://127.0.0.1:5173`. Rendering runs in a dedicated worker; the editor remains on the main thread. The current input limit is 2,000 UTF-16 code units. Unsupported code points are reported and the original input remains editable. The native Style selector keeps confirmed variants together.
+Copying to the clipboard needs HTTPS or localhost; otherwise **Copy text** opens
+a dialog you can copy from by hand.
 
-The Styles gallery shows one card per confirmed family. Variant buttons change a card's preview; on the family in use they also change the design, which joins undo history. **Use style** selects a family with its chosen variant, and **Details** lists its line height, character coverage and license. Previews render in a second worker, one at a time, from the first 160 characters, so the selected design is never queued behind them. While text changes, the card you last touched (or the first card in view) keeps its screen position, even when previews or the design above it change height. On phones the text editor stays pinned to the top. Search, look, size and character-support filters narrow the gallery; see [Looks and filters](docs/catalog.md#looks-and-filters). **Pin** adds a card's current variant to a Compare tray above the cards; every pinned result follows the live text with its own variant, pinning never changes the selected design, and the card you are using keeps its place. Pins last for the page session.
-
-**Colors** assigns a swatch, a custom `#RRGGBB` value or a native color pick to each slot the selected font supports: foreground and background for every font, plus reviewed extra slots (currently a shadow for Linguaholic Shadow 3D). Invalid values leave the last valid color in place. Presets, reset and saved palettes apply every slot at once. Colors are part of the recipe, so they join undo history, the local draft and saved designs. See [Colors](docs/colors.md).
-
-**Layout** sets letter spacing (font default, full width, fitted, or smushed where the font defines smushing rules), an optional maximum width that wraps between words, and left, center or right alignment. See [Layout](docs/layout.md).
-
-The **Export** group copies a Markdown code block, downloads exact plain text or 24-bit ANSI with per-line resets, downloads PNG or self-contained SVG at a chosen scale, padding and background, and creates [share links](docs/share-links.md) that carry the design in the URL fragment. See [Text and ANSI export](docs/export.md).
-
-**Animation** previews typewriter and directional reveal effects on the selected design, on a canvas fixed to the finished artwork's size. See [Animation](docs/animation.md). **Create GIF** encodes the same frames in a worker with progress and cancellation; see [GIF export](docs/gif.md).
-
-**Seamless blocks** draws block-element fonts as gap-free shapes. See [Seamless blocks](docs/seamless-blocks.md).
-
-The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. **Saved work** keeps reusable text and exact designs (style, recipe provenance and output text) as separate items. **Collections** group favorite styles and saved designs; an item can be in several. Favorites, saved work and collections live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
+Checks:
 
 ```sh
-make check
-PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright install chromium firefox webkit
-make test-ui
+make check         # typecheck, lint, unit and renderer tests, account service tests, brand check, build
+npx playwright install --with-deps chromium firefox webkit
+make test-ui       # browser tests in Chromium, Firefox and WebKit, plus phone and tablet viewports
 ```
 
-`make check` runs TypeScript, ESLint, renderer regression tests and a production build. `make test-ui` starts the built preview on `127.0.0.1:4179`, then exercises real worker rendering, multiline text, clipboard or permission fallback, errors, gallery anchoring, variant state, keyboard and touch use, and responsive layout across three browser engines plus phone and tablet viewports. Linux needs Playwright's system dependencies (`npx playwright install --with-deps chromium firefox webkit`). A custom `ASKI_TEST_URL` targets an already running preview; the harness does not stop that server.
+`make test-account` and `make test-account-ui` need Docker; they start their own
+temporary PostgreSQL 17 database and capture mail locally. Smaller targets:
+`make test-render`, `make test-export`, `make test-animation`,
+`make test-storage`.
 
-TypeScript 6.0.3 is pinned because the selected typescript-eslint 8.72.2 supports versions below 6.1; the registry's TypeScript 7 release is not a compatible dependency set. No peer-dependency overrides are used.
+To run the sign-in request service next to the editor, set the variables below,
+then:
 
-`npm run build` writes `dist/`; `npm run preview` serves that build locally. HTTPS or localhost is needed for clipboard access. If it is unavailable or denied, Copy text opens a selectable manual-copy dialog. Output is copied exactly, including leading spaces and line breaks.
+```sh
+npm run migrate:account
+npm run dev:api    # API on 127.0.0.1:4181; Vite proxies /api to it
+```
 
-## Source boundaries and license
+## Configuration
 
-`shared/recipe.ts` defines the supported version-1 recipe subset and stable IDs; `shared/render.ts` owns text generation. `web/render.worker.ts` adapts that boundary to a browser worker, and the React component owns only current input, rendering status and copy UI. Recipes bind the exact font SHA-256 and engine version; mismatches fail explicitly. Requests carry increasing job IDs so stale results cannot replace the newest input. Copy feedback is tied to the input snapshot that initiated it. The anonymous draft and recipe history are saved locally. A separate sign-in request service sends links; session redemption and account libraries follow later roadmap steps.
+The editor needs no configuration. The sign-in request service in `server/`
+reads:
 
-ANSI Compact is by Loic Cressot; its included font header explicitly states MIT terms. See `public/font-notice.txt`. The FIGlet engine's separate license is in `public/figlet-license.txt`; it does not clear the rest of the font catalog. [The stack decision](docs/research/stack-browser-decision.md) and [catalog audit](docs/research/taag-parity.md) retain the research boundaries.
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `BETTER_AUTH_SECRET` | Secret of at least 32 characters |
+| `PUBLIC_ORIGIN` | The site's public origin; sign-in links are built from it |
+| `BREVO_API_KEY`, `MAIL_FROM_EMAIL` | Transactional email through Brevo |
+| `TRUSTED_PROXY_CIDRS` | Optional proxies allowed to set `X-Real-IP` |
+| `ASKI_API_PORT` | API port (default 4181) |
 
-See [catalog provenance and import](docs/catalog.md). Run `make test-render` for catalog and glyph-coverage checks.
+Without mail configuration the API reports itself unavailable; editing and
+exports are not affected.
 
-[Draft recovery and undo/redo](docs/drafts.md): `make test-storage` checks the versioned draft and library records. Browser tests cover reload, text/style history, corrupted drafts and quota failures.
+## Deploy
 
-[Sign-in request service](docs/sign-in-requests.md): `make test-account` needs Docker and creates its own temporary PostgreSQL 17 database. `make test-account-ui` exercises the real form against a separate capture inbox. No production mail credentials are needed for these checks. `make check` now includes the account service tests.
+`npm run build` writes a static site to `dist/`; `npm run preview` serves it
+locally. Any static host works for the editor. The sign-in service is a Node 24
+process (`node server/main.ts`) that needs PostgreSQL; run
+`npm run migrate:account` yourself, since migrations never run on start.
+`ops/compose.release.yml` sketches a production layout with separate web, API
+and PostgreSQL containers; you supply the images.
 
-[Studio brand handoff](docs/brand-integration.md): `make check-brand` verifies 15 selected source-bound assets. `make check` also inspects the built public file list and copied hashes. The full private Studio pack is not included.
+## Project layout
+
+```text
+web/       React editor, gallery, panels and workers
+shared/    rendering, recipes, layout, colors, animation, GIF and export code
+server/    sign-in request service (Hono, Better Auth, PostgreSQL)
+catalog/   font candidates, rights decisions and color mappings
+public/    static files, font notices and the FIGlet license
+tests/     Playwright browser tests
+scripts/   catalog import, brand import, build and account test helpers
+research/  font audit and browser probe projects
+docs/      feature notes and design decisions
+```
+
+The feature notes in `docs/` go into detail: [catalog and rights](docs/catalog.md),
+[colors](docs/colors.md), [layout](docs/layout.md), [export](docs/export.md),
+[share links](docs/share-links.md), [animation](docs/animation.md),
+[GIF export](docs/gif.md), [local library](docs/library.md) and
+[drafts](docs/drafts.md).
+
+## Contributing
+
+- Bugs and feature requests: [GitHub issues](https://github.com/subculture-collective/aski/issues).
+  The first public release roadmap is [issue #23](https://github.com/subculture-collective/aski/issues/23).
+- Questions and ideas: [GitHub Discussions](https://github.com/subculture-collective/aski/discussions).
+- Code: open a pull request on GitHub against `main`. CI runs `make check`, the
+  browser tests and the account tests, plus the font audit and browser probe
+  projects under `research/`.
+
+## License
+
+No license file is included, so default copyright applies. Each shipped font
+keeps its own MIT or WTFPL notice next to it in `public/fonts/`, and the FIGlet
+engine's license is in `public/figlet-license.txt`.
