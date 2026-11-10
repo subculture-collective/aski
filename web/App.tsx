@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MAX_INPUT } from '../shared/recipe.ts';
 import { variants, getVariant } from '../shared/catalog.ts';
 import { useDraft } from './useDraft.ts';
+import { SignIn } from './SignIn.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -66,7 +67,7 @@ export function App() {
       e.preventDefault(); if (e.shiftKey ? canRedo : canUndo) moveHistory(e.shiftKey ? 'redo' : 'undo');
     }
   }}>
-    <header><h1>aski</h1><button onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></header>
+    <header><h1>aski</h1><div className="header-actions"><SignIn /><button onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
     <div className="studio">
       <section aria-labelledby="input-title">
         <label id="input-title" htmlFor="input">Text</label>

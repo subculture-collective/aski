@@ -18,3 +18,4 @@ jobs:
       - run: make check
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: make test-ui
+      - run: make test-account-ui
