@@ -24,7 +24,8 @@ and animation.
 - **Layout:** letter spacing (font default, full width, fitted or smushed), an
   optional maximum width that wraps between words, and left, center or right
   alignment.
-- **Seamless blocks:** block-element fonts drawn as gap-free shapes.
+- **Gap-free blocks:** fonts made only of block characters are drawn as solid
+  rectangles, without the thin gaps between cells. Copied text is unchanged.
 - **Export:** copy as text or a Markdown code block; download plain text, 24-bit
   ANSI, PNG or self-contained SVG; share a design through a link that carries it
   in the URL fragment.
