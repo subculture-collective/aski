@@ -1,0 +1,114 @@
+{
+  "repository": "https://git.subcult.tv/subculture-collective/subcult-tv",
+  "commit": "9a463b2fe6861e6e991f45fa5f92cdd1c47b848a",
+  "pack": "studio/brands/aski",
+  "manifestSha256": "6f28ca35e17244fd3fe520c0d4ff60f153f542e7ed81d4ae5fa733e703d5cf0a",
+  "approval": "Owner selected Lilac and approved Fraunces headings/wordmark with Atkinson Hyperlegible Next controls: Use this pairing.",
+  "files": [
+    {
+      "source": "tokens.css",
+      "destination": "web/brand-tokens.css",
+      "usage": "semantic UI tokens",
+      "license": "brand rules",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "logos/lockup-primary-outlined.svg",
+      "destination": "public/brand/lockup.svg",
+      "usage": "header wordmark",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "logos/mark-primary.svg",
+      "destination": "public/brand/mark.svg",
+      "usage": "standalone pixel mark",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/favicon.svg",
+      "destination": "public/favicon.svg",
+      "usage": "browser icon",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "fonts/AtkinsonHyperlegibleNext-Regular.otf",
+      "destination": "public/brand/fonts/AtkinsonHyperlegibleNext-Regular.otf",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "fonts/AtkinsonHyperlegibleNext-Bold.otf",
+      "destination": "public/brand/fonts/AtkinsonHyperlegibleNext-Bold.otf",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "fonts/Fraunces-1.ttf",
+      "destination": "public/brand/fonts/Fraunces-1.ttf",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "fonts/atkinsonhyperlegiblenext-OFL.txt",
+      "destination": "public/brand/fonts/atkinsonhyperlegiblenext-OFL.txt",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "fonts/fraunces-OFL.txt",
+      "destination": "public/brand/fonts/fraunces-OFL.txt",
+      "usage": "interface typography or license",
+      "license": "OFL-1.1",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/icon-32.png",
+      "destination": "public/brand/icon-32.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/icon-180.png",
+      "destination": "public/brand/icon-180.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/icon-192.png",
+      "destination": "public/brand/icon-192.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/icon-512.png",
+      "destination": "public/brand/icon-512.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/maskable.png",
+      "destination": "public/brand/maskable.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "web/open-graph.png",
+      "destination": "public/brand/open-graph.png",
+      "usage": "app/share metadata",
+      "license": "brand artwork",
+      "transform": "unchanged copy"
+    }
+  ]
+}

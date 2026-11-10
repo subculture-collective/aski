@@ -17,6 +17,7 @@ export function App() {
   const latestJob = useRef(0);
   const dialog = useRef<HTMLDialogElement>(null);
   const manualText = useRef<HTMLTextAreaElement>(null);
+  const copyButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const current = new Worker(new URL('./render.worker.ts', import.meta.url), { type: 'module' });
@@ -67,9 +68,9 @@ export function App() {
       e.preventDefault(); if (e.shiftKey ? canRedo : canUndo) moveHistory(e.shiftKey ? 'redo' : 'undo');
     }
   }}>
-    <header><h1>aski</h1><div className="header-actions"><SignIn /><button onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
+    <header><h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1><div className="header-actions"><SignIn /><button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
     <div className="studio">
-      <section aria-labelledby="input-title">
+      <section className="editor" aria-labelledby="input-title">
         <label id="input-title" htmlFor="input">Text</label>
         <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { latestJob.current += 1; setPending(!!worker.current); setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
         <small id="input-limit">Up to {MAX_INPUT} characters</small>
@@ -88,7 +89,7 @@ export function App() {
           </optgroup>)}
         </select>
       </section>
-      <section aria-labelledby="output-title" aria-busy={pending}>
+      <section className="artwork" aria-labelledby="output-title" aria-busy={pending}>
         <div className="output-heading"><h2 id="output-title">{font.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
         <pre tabIndex={0} aria-label="Rendered text art" data-testid="output">{result?.text || ''}</pre>
         <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
@@ -96,8 +97,8 @@ export function App() {
         {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
       </section>
     </div>
-    <footer><a href={font.noticePath}>{font.name} · {font.license} notice</a></footer>
-    <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => setManual(false)}>
+    <footer><a href={font.noticePath}>{font.name} · {font.license} notice</a><span>Type: <a href="/brand/fonts/fraunces-OFL.txt">Fraunces</a> · <a href="/brand/fonts/atkinsonhyperlegiblenext-OFL.txt">Atkinson</a></span></footer>
+    <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => { setManual(false); copyButton.current?.focus(); }}>
       <h2 id="copy-title">Copy text</h2><p>Select and copy the text.</p>
       <textarea ref={manualText} aria-label="Text to copy" value={result?.text || ''} readOnly />
       <button onClick={() => dialog.current?.close()}>Done</button>
