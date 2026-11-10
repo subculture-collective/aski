@@ -16,7 +16,14 @@ export interface MembershipPayload { collectionId: string; itemType: typeof MEMB
 // A design keeps the editable recipe and the exact text it produced when saved. The snapshot is never
 // re-rendered, so a later font or renderer change cannot alter it.
 export interface PalettePayload { name: string; slots: Colors }
-export interface DesignPayload { name: string; recipe: StoredRecipe; snapshot: { text: string; columns: number; rows: number } }
+export interface DesignPayload { name: string; recipe: StoredRecipe; snapshot: { text: string; columns: number; rows: number }; artifacts?: string[] }
+// Immutable exported bytes kept with a saved design. They are never regenerated; the hash proves it.
+export const ARTIFACT_TYPES = ['image/png', 'image/svg+xml', 'image/gif'] as const;
+export interface ArtifactMeta {
+  namespace: string; id: string; sha256: string; mime: typeof ARTIFACT_TYPES[number]; byteLength: number; width: number; height: number;
+  provenance: { variantId: string; fontSha256: string; rendererVersion: string }; createdAt: string;
+}
+export interface Artifact extends ArtifactMeta { bytes: Uint8Array }
 export interface LibraryRecord<T = unknown> {
   namespace: string; id: string; type: RecordType; schemaVersion: 1; payload: T;
   revision: number; deletedAt: string | null; createdAt: string; updatedAt: string;
@@ -74,7 +81,9 @@ export function parseDesign(value: unknown): DesignPayload {
   if (!recipe || !RECIPE_VERSIONS.includes(recipe.schemaVersion!) || typeof recipe.input !== 'string' || typeof recipe.familyId !== 'string'
     || typeof recipe.variantId !== 'string' || typeof recipe.fontSha256 !== 'string' || typeof recipe.rendererVersion !== 'string') throw new Error('Invalid saved design.');
   if (!snapshot || typeof snapshot.text !== 'string' || !Number.isInteger(snapshot.columns) || !Number.isInteger(snapshot.rows)) throw new Error('Invalid saved design.');
-  return { name: parseName(p!.name), recipe: recipe as StoredRecipe, snapshot: { text: snapshot.text, columns: snapshot.columns, rows: snapshot.rows } };
+  if (p!.artifacts !== undefined && (!Array.isArray(p!.artifacts) || p!.artifacts.some(id => typeof id !== 'string' || !UUID.test(id)))) throw new Error('Invalid saved design.');
+  return { name: parseName(p!.name), recipe: recipe as StoredRecipe, snapshot: { text: snapshot.text, columns: snapshot.columns, rows: snapshot.rows },
+    ...(p!.artifacts ? { artifacts: [...p!.artifacts] } : {}) };
 }
 // Default names come from the first line of text, shortened to fit a list.
 export function defaultName(text: string, prefix = '') {
@@ -111,4 +120,19 @@ export function parsePalette(value: unknown): PalettePayload {
   const p = value as Partial<PalettePayload> | null;
   if (!p) throw new Error('Invalid palette.');
   return { name: parseName(p.name), slots: parseColors(p.slots) };
+}
+export function parseArtifact(value: unknown): Artifact {
+  const a = value as Partial<Artifact> | null;
+  if (!a || typeof a.id !== 'string' || !UUID.test(a.id) || typeof a.sha256 !== 'string' || !/^[\da-f]{64}$/.test(a.sha256)
+    || !ARTIFACT_TYPES.includes(a.mime as Artifact['mime']) || !(a.bytes instanceof Uint8Array) || a.bytes.length !== a.byteLength) throw new Error('Invalid saved file.');
+  return a as Artifact;
+}
+// Artifacts that no remaining design references, for deletion together with a design.
+export function orphanedArtifacts(records: LibraryRecord[], removed: LibraryRecord) {
+  const used = new Set(records.filter(record => record.id !== removed.id && record.type === 'design' && !record.deletedAt)
+    .flatMap(record => (record.payload as DesignPayload).artifacts || []));
+  return ((removed.payload as DesignPayload).artifacts || []).filter(id => !used.has(id));
+}
+export async function sha256(bytes: Uint8Array) {
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as BufferSource))].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }

@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 const saved = (page: Page) => page.getByRole('region', { name: 'Saved work' });
 const item = (page: Page, label: string) => saved(page).getByRole('listitem', { name: label, exact: true });
 const stored = (page: Page) => page.evaluate(() => new Promise<number>(resolve => {
-  const open = indexedDB.open('aski-library', 1);
+  const open = indexedDB.open('aski-library');
   open.onsuccess = () => { const all = open.result.transaction('records').objectStore('records').count(); all.onsuccess = () => { open.result.close(); resolve(all.result); }; };
 }));
 async function ready(page: Page) { await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled(); }
@@ -71,7 +71,7 @@ test('rename and delete persist; an unavailable renderer keeps current work and 
 
   // A design saved by a renderer this build lacks.
   await page.evaluate(() => new Promise<void>(resolve => {
-    const open = indexedDB.open('aski-library', 1);
+    const open = indexedDB.open('aski-library');
     open.onsuccess = () => {
       const transaction = open.result.transaction('records', 'readwrite');
       transaction.objectStore('records').put({ namespace: 'anonymous', id: '00000000-0000-4000-8000-0000000000aa', type: 'design', schemaVersion: 1, revision: 0, deletedAt: null,

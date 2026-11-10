@@ -1,18 +1,20 @@
-import { LIBRARY_NAMESPACE, parseRecord } from '../shared/library.ts';
-import type { LibraryRecord } from '../shared/library.ts';
+import { LIBRARY_NAMESPACE, parseArtifact, parseRecord, sha256 } from '../shared/library.ts';
+import type { Artifact, ArtifactMeta, LibraryRecord } from '../shared/library.ts';
 // IndexedDB keeps the local library; it can later hold artifact bytes, which localStorage cannot.
 const DATABASE = 'aski-library';
 const STORE = 'records';
+const ARTIFACTS = 'artifacts';
 let opening: Promise<IDBDatabase> | null = null;
 function request<T>(value: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => { value.onsuccess = () => resolve(value.result); value.onerror = () => reject(value.error); });
 }
 function open() {
   opening ||= new Promise<IDBDatabase>((resolve, reject) => {
-    const pending = indexedDB.open(DATABASE, 1);
+    // Version 2 adds the artifact byte store; version-1 records are kept as they are.
+    const pending = indexedDB.open(DATABASE, 2);
     pending.onupgradeneeded = () => {
-      const store = pending.result.createObjectStore(STORE, { keyPath: ['namespace', 'id'] });
-      store.createIndex('namespace', 'namespace');
+      for (const name of [STORE, ARTIFACTS]) if (!pending.result.objectStoreNames.contains(name))
+        pending.result.createObjectStore(name, { keyPath: ['namespace', 'id'] }).createIndex('namespace', 'namespace');
     };
     pending.onsuccess = () => resolve(pending.result);
     pending.onerror = () => reject(pending.error);
@@ -37,9 +39,29 @@ export async function loadLibrary(namespace = LIBRARY_NAMESPACE) {
 }
 export const putRecord = (record: LibraryRecord) => transact('readwrite', store => store.put(parseRecord(record)));
 // Anonymous records have never been synced, so removing one deletes it outright.
-// Deletes in one transaction so a collection and its memberships disappear together.
-export async function deleteRecords(records: LibraryRecord[]) {
-  const transaction = (await open()).transaction(STORE, 'readwrite');
+// Deletes in one transaction so a collection and its memberships, or a design and its unused files,
+// disappear together.
+export async function deleteRecords(records: LibraryRecord[], artifacts: string[] = [], namespace = LIBRARY_NAMESPACE) {
+  const transaction = (await open()).transaction([STORE, ARTIFACTS], 'readwrite');
   for (const record of records) transaction.objectStore(STORE).delete([record.namespace, record.id]);
+  for (const id of artifacts) transaction.objectStore(ARTIFACTS).delete([namespace, id]);
   await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error); });
+}
+export async function putArtifact(artifact: Artifact) {
+  const transaction = (await open()).transaction(ARTIFACTS, 'readwrite');
+  transaction.objectStore(ARTIFACTS).put(parseArtifact(artifact));
+  await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error); });
+}
+// Metadata only; bytes are read when a file is downloaded.
+export async function loadArtifactMeta(namespace = LIBRARY_NAMESPACE): Promise<ArtifactMeta[]> {
+  const transaction = (await open()).transaction(ARTIFACTS, 'readonly');
+  const rows = await request(transaction.objectStore(ARTIFACTS).index('namespace').getAll(namespace));
+  return rows.map(({ bytes: _bytes, ...meta }) => { void _bytes; return meta as ArtifactMeta; });
+}
+// Returns the stored bytes after checking they still match their recorded hash.
+export async function readArtifact(id: string, namespace = LIBRARY_NAMESPACE) {
+  const transaction = (await open()).transaction(ARTIFACTS, 'readonly');
+  const artifact = parseArtifact(await request(transaction.objectStore(ARTIFACTS).get([namespace, id])));
+  if (await sha256(artifact.bytes) !== artifact.sha256) throw new Error('This saved file is damaged.');
+  return artifact;
 }
