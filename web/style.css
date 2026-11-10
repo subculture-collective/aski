@@ -156,3 +156,5 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .palette-strip span{width:14px;height:18px;}
 .slots label[aria-disabled]{color:var(--aski-muted);background:var(--aski-panel);border-style:dashed;cursor:default;}
 .layout h2,.colors h2{font-size:24px;}
+.exports{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 16px;}
+.exports .hint{flex-basis:100%;}
