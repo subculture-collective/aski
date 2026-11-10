@@ -172,3 +172,9 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .seamless svg{display:block;}
 .image-export{flex-basis:100%;display:grid;gap:8px;padding:12px;border:var(--aski-border);border-radius:var(--aski-radius);}
 .image-export .toggle{padding:0;}
+.gif-export{display:grid;gap:8px;padding:12px;border:var(--aski-border);border-radius:var(--aski-radius);}
+.gif-export h3{font-size:19px;}
+.gif-export progress{flex:1;min-width:120px;height:16px;accent-color:var(--aski-focus);}
+.gif-result{display:grid;gap:8px;}
+.gif-result img{max-width:100%;image-rendering:pixelated;border:var(--aski-border);justify-self:start;}
+a.button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;font-weight:700;text-decoration:none;border:var(--aski-border);border-radius:var(--aski-radius);background:var(--aski-accent);justify-self:start;}

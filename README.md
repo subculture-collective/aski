@@ -33,7 +33,7 @@ The Styles gallery shows one card per confirmed family. Variant buttons change a
 
 The **Export** group copies a Markdown code block, downloads exact plain text or 24-bit ANSI with per-line resets, and downloads PNG or self-contained SVG at a chosen scale, padding and background. See [Text and ANSI export](docs/export.md).
 
-**Animation** previews typewriter and directional reveal effects on the selected design, on a canvas fixed to the finished artwork's size. See [Animation](docs/animation.md).
+**Animation** previews typewriter and directional reveal effects on the selected design, on a canvas fixed to the finished artwork's size. See [Animation](docs/animation.md). **Create GIF** encodes the same frames in a worker with progress and cancellation; see [GIF export](docs/gif.md).
 
 **Seamless blocks** draws block-element fonts as gap-free shapes. See [Seamless blocks](docs/seamless-blocks.md).
 

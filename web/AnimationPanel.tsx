@@ -3,10 +3,11 @@ import type { CSSProperties } from 'react';
 import { DIRECTIONS, LIMITS, cycleSlots, frameCount, frameDataAt, frameIndex, frameTime, parseAnimation } from '../shared/animation.ts';
 import type { Animation, FrameModel } from '../shared/animation.ts';
 import type { Colors, Slot } from '../shared/recipe.ts';
+import { GifExport } from './GifExport.tsx';
 import type { FontVariant } from '../shared/catalog.ts';
 const EFFECT_LABELS = { none: 'None', typewriter: 'Typewriter', reveal: 'Reveal', 'palette-cycle': 'Palette cycle', shimmer: 'Shimmer', glitch: 'Glitch' } as const;
 const DIRECTION_LABELS = { down: 'Top to bottom', up: 'Bottom to top', right: 'Left to right', left: 'Right to left' } as const;
-interface AnimationProps { animation: Animation; model: FrameModel | null; font: FontVariant; colors: Colors; onChange: (animation: Animation) => void }
+interface AnimationProps { animation: Animation; model: FrameModel | null; font: FontVariant; colors: Colors; blocks: boolean; fileName: string; onInspect: (index: number) => void; onChange: (animation: Animation) => void }
 const RATES = [6, 8, 10, 12, 15, 20, 24, 30];
 // Seconds in the controls, whole milliseconds in the recipe.
 function SecondsField({ id, label, value, range, onCommit }: { id: string; label: string; value: number; range: readonly [number, number]; onCommit: (ms: number) => string }) {
@@ -27,7 +28,7 @@ function SecondsField({ id, label, value, range, onCommit }: { id: string; label
 }
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Previews the selected design with the shared frame function. Reduced motion starts paused.
-export function AnimationPanel({ animation, model, font, colors, onChange }: AnimationProps) {
+export function AnimationPanel({ animation, model, font, colors, blocks, fileName, onInspect, onChange }: AnimationProps) {
   const [playing, setPlaying] = useState(() => !reducedMotion());
   const [index, setIndex] = useState(0);
   const count = frameCount(animation);
@@ -49,6 +50,7 @@ export function AnimationPanel({ animation, model, font, colors, onChange }: Ani
     // Restart timing only when playback or timing settings change, not on every frame.
   }, [playing, active, animation]);
   const current = Math.min(index, last);
+  useEffect(() => { onInspect(current); }, [current, onInspect]);
   // Validates a timing change through the recipe rules; returns a message instead of applying bad values.
   const update = (change: Partial<Animation>) => {
     try { onChange(parseAnimation({ ...animation, ...change })); return ''; } catch (error) { return (error as Error).message; }
@@ -106,6 +108,7 @@ export function AnimationPanel({ animation, model, font, colors, onChange }: Ani
         <label><input type="radio" name="loop" checked={!animation.loop} onChange={() => update({ loop: false })} />Play once</label>
       </fieldset>
       {!model && <p className="hint">The preview starts when the artwork has rendered.</p>}
+      <GifExport model={model} animation={animation} colors={colors} variantId={font.variantId} blocks={blocks} fileName={fileName} />
     </>}
   </section>;
 }
