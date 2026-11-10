@@ -31,6 +31,8 @@ The Styles gallery shows one card per confirmed family. Variant buttons change a
 
 **Layout** sets letter spacing (font default, full width, fitted, or smushed where the font defines smushing rules), an optional maximum width that wraps between words, and left, center or right alignment. See [Layout](docs/layout.md).
 
+The **Export** group copies a Markdown code block and downloads exact plain text or 24-bit ANSI with per-line resets. See [Text and ANSI export](docs/export.md).
+
 The star on a card saves that family and variant as a favorite in this browser, with no account. Selecting a favorite applies its style to the current text; it stores no text or output. **Saved work** keeps reusable text and exact designs (style, recipe provenance and output text) as separate items. **Collections** group favorite styles and saved designs; an item can be in several. Favorites, saved work and collections live in the IndexedDB library described in [Local library](docs/library.md). The shell uses the approved Lilac identity, with Fraunces headings and Atkinson Hyperlegible Next controls.
 
 ```sh

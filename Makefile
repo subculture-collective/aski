@@ -5,7 +5,7 @@ test-account:
 test-account-ui:
 	npm run test:account-ui
 test-export:
-	node --test shared/color.test.ts
+	node --test shared/color.test.ts shared/export.test.ts
 test-storage:
 	node --test shared/draft.test.ts shared/library.test.ts
 test-render:
