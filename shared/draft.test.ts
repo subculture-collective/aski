@@ -4,7 +4,7 @@ import { DEFAULT_COLORS, DEFAULT_LAYOUT, FONT } from './recipe.ts';
 import { DEFAULT_ANIMATION } from './animation.ts';
 import { DRAFT_KEY, recoverDraft, saveDraft, historyReducer } from './draft.ts';
 import type { Recipe } from './recipe.ts';
-const recipe: Recipe = { schemaVersion: 4, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS, foreground: '#00FF66' }, layout: { spacing: 'full', width: 40, align: 'center' }, animation: { ...DEFAULT_ANIMATION, effect: 'reveal', direction: 'left' } };
+const recipe: Recipe = { schemaVersion: 4, id: '00000000-0000-4000-8000-000000000001', input: 'RECOVER\n ME', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS, foreground: '#00FF66' }, layout: { spacing: 'full', width: 40, align: 'center', blocks: true }, animation: { ...DEFAULT_ANIMATION, effect: 'reveal', direction: 'left' } };
 function storage(initial: string | null = null) {
   let value = initial;
   return { getItem: (key: string) => key === DRAFT_KEY ? value : null,

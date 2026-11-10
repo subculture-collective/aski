@@ -18,6 +18,7 @@ import { SavedWork } from './SavedWork.tsx';
 import { Colors } from './Colors.tsx';
 import { LayoutControls } from './LayoutControls.tsx';
 import { AnimationPanel } from './AnimationPanel.tsx';
+import { Seamless } from './Seamless.tsx';
 import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
@@ -65,7 +66,7 @@ export function App() {
   }, [restart]);
 
   // Only text and font change the rendered text; colors are applied to the existing result.
-  const renderKey = JSON.stringify([recipe.input, recipe.variantId, recipe.layout, recipe.animation.effect === 'typewriter']);
+  const renderKey = JSON.stringify([recipe.input, recipe.variantId, recipe.layout.spacing, recipe.layout.width, recipe.layout.align, recipe.animation.effect === 'typewriter']);
   // A layout effect marks the result pending in the same commit as the edit, so a stale result never looks current.
   useLayoutEffect(() => {
     setCopied(false);
@@ -185,6 +186,10 @@ export function App() {
           <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={artColors}>
             {runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
           </pre>
+          {font.blocks && <label className="toggle"><input type="checkbox" checked={recipe.layout.blocks}
+            onChange={event => setRecipe(previous => ({ ...previous, layout: { ...previous.layout, blocks: event.target.checked } }))} />
+            Seamless blocks <small>Draws block characters as solid shapes. Copied and downloaded text is unchanged.</small></label>}
+          {font.blocks && recipe.layout.blocks && ready && <Seamless runs={runs} colors={recipe.colors} columns={result.columns} rows={result.rows} />}
           <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
           {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
           {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}

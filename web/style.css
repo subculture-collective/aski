@@ -164,3 +164,8 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 .timing{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
 .field{display:grid;gap:6px;align-content:start;}
 .animation>label{font-weight:700;font-size:15px;}
+.toggle{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:44px;padding:8px 20px;font-weight:700;cursor:pointer;}
+.toggle input{width:22px;height:22px;min-height:0;margin:0;accent-color:var(--aski-focus);}
+.toggle small{flex-basis:100%;font-weight:400;}
+.seamless{overflow:auto;max-height:60vh;padding:16px 24px;border-top:2px solid var(--aski-paper);}
+.seamless svg{display:block;}

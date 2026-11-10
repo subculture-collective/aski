@@ -23,8 +23,10 @@ export const ALIGNMENTS = ['left', 'center', 'right'] as const;
 export const MIN_WIDTH = 20;
 export const MAX_WIDTH = 1000;
 // Version 3 adds layout: horizontal spacing mode, an optional maximum width in columns and block alignment.
-export interface Layout { spacing: Spacing; width: number | null; align: typeof ALIGNMENTS[number] }
-export const DEFAULT_LAYOUT: Layout = { spacing: 'default', width: null, align: 'left' };
+// `blocks` draws block characters as solid shapes where the font supports it; text output is unchanged.
+// It was added within version 3 before any release; records without it take false.
+export interface Layout { spacing: Spacing; width: number | null; align: typeof ALIGNMENTS[number]; blocks: boolean }
+export const DEFAULT_LAYOUT: Layout = { spacing: 'default', width: null, align: 'left', blocks: false };
 export interface RecipeV2 extends Omit<RecipeV1, 'schemaVersion'> { schemaVersion: 2; colors: Colors }
 export interface RecipeV3 extends Omit<RecipeV2, 'schemaVersion'> { schemaVersion: 3; layout: Layout }
 // Version 4 adds animation settings (effect, direction and timing).
@@ -44,7 +46,8 @@ export function parseLayout(value: unknown, font: { spacing: { smush: boolean } 
   if (!SPACINGS.includes(l.spacing as Spacing)) throw new Error('Unknown spacing mode.');
   if (l.spacing === 'smush' && !font.spacing.smush) throw new Error('This font does not define smushing rules.');
   if (!ALIGNMENTS.includes(l.align as Layout['align'])) throw new Error('Unknown alignment.');
-  return { spacing: l.spacing!, width: parseWidth(l.width), align: l.align! };
+  if (l.blocks !== undefined && typeof l.blocks !== 'boolean') throw new Error('Invalid block setting.');
+  return { spacing: l.spacing!, width: parseWidth(l.width), align: l.align!, blocks: l.blocks ?? false };
 }
 export function parseColor(value: unknown): string {
   const match = typeof value === 'string' && /^#?([\da-f]{6})$/i.exec(value.trim());
