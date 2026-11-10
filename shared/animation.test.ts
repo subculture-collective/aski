@@ -77,3 +77,60 @@ test('seeking, end hold and play-once resolve through the same frame function', 
   assert.equal(frameAt(model, animation, 60_000), final);
   assert.equal(frameAt(model, { ...animation, loop: true }, 1500), frameAt(model, animation, 0));
 });
+import { cycleSlots, frameDataAt } from './animation.ts';
+const PRESETS = ['palette-cycle', 'shimmer', 'glitch'] as const;
+test('every preset gives the same cells and colors for the same recipe, seed and timestamp', () => {
+  for (const effect of PRESETS) for (const variantId of ['figlet/linguaholic-shadow-3d', 'figlet/letter']) {
+    const animation: Animation = { ...DEFAULT_ANIMATION, effect, seed: 42, direction: 'right' };
+    const model = render(variantId, 'GLITCH ME\nTWO', animation);
+    const font = getVariant(variantId);
+    for (let index = 0; index < frameCount(animation); index++) {
+      const time = index * 1000 / animation.fps;
+      const a = frameDataAt(model, animation, time, DEFAULT_COLORS, font), b = frameDataAt(model, animation, time, DEFAULT_COLORS, font);
+      assert.deepEqual(a, b, `${effect} ${index}`);
+      shape(a.text, model.columns, model.rows);
+      assert.equal(a.runs.map(run => run.text).join(''), a.text);
+    }
+  }
+});
+test('glitch stays inside the canvas, depends on the seed and restores the original', () => {
+  const animation: Animation = { ...DEFAULT_ANIMATION, effect: 'glitch', intensity: 5, seed: 7 };
+  const model = render('figlet/letter', 'NOISE', animation);
+  const final = toCanvas(model.text, model.columns, model.rows).join('\n');
+  const glyphs = new Set(final);
+  let changed = 0;
+  for (let index = 0; index < frameCount(animation); index++) {
+    const frame = frameAt(model, animation, index * 1000 / animation.fps);
+    shape(frame, model.columns, model.rows);
+    for (const cell of frame) assert(glyphs.has(cell) || cell === ' ', 'only characters from the artwork');
+    if (frame !== final) changed++;
+  }
+  assert(changed > 0);
+  for (let time = 2000; time < 3000; time += 100) assert.equal(frameAt(model, animation, time), final);
+  const other = { ...animation, seed: 8 };
+  assert.notDeepEqual(Array.from({ length: 24 }, (_, i) => frameAt(model, animation, i * 1000 / 12)), Array.from({ length: 24 }, (_, i) => frameAt(model, other, i * 1000 / 12)));
+});
+test('palette cycle rotates supported slots and states how single-slot fonts cycle', () => {
+  assert.deepEqual(cycleSlots(['foreground', 'background', 'shadow']), ['foreground', 'shadow']);
+  assert.deepEqual(cycleSlots(['foreground', 'background']), ['foreground', 'shadow', 'highlight']);
+  const animation: Animation = { ...DEFAULT_ANIMATION, effect: 'palette-cycle' };
+  const font = getVariant('figlet/linguaholic-shadow-3d');
+  const model = render(font.variantId, 'A', animation);
+  const colors = { ...DEFAULT_COLORS, foreground: '#111111', shadow: '#222222' };
+  const half = frameDataAt(model, animation, 1000, colors, font).colors;
+  assert.deepEqual([half.foreground, half.shadow, half.background], ['#222222', '#111111', colors.background]);
+  assert.deepEqual(frameDataAt(model, animation, 2000, colors, font).colors, colors);
+  // The text never changes for color-only presets.
+  assert.equal(frameDataAt(model, animation, 1000, colors, font).text, toCanvas(model.text, model.columns, model.rows).join('\n'));
+});
+test('shimmer moves a highlight band across visible cells only, then clears it', () => {
+  const animation: Animation = { ...DEFAULT_ANIMATION, effect: 'shimmer', direction: 'right', intensity: 1 };
+  const font = getVariant('figlet/letter');
+  const model = render(font.variantId, 'SHINE', animation);
+  const highlighted = (time: number) => frameDataAt(model, animation, time, DEFAULT_COLORS, font).runs.filter(run => run.slot === 'highlight');
+  const early = highlighted(250), late = highlighted(1500);
+  assert(early.length && late.length);
+  for (const run of [...early, ...late]) assert(!/\s/.test(run.text));
+  assert.equal(highlighted(2000).length, 0);
+  assert.deepEqual(parseAnimation({ effect: 'glitch', direction: 'down', durationMs: 2000, fps: 12, loop: true, holdMs: 0 }).seed, DEFAULT_ANIMATION.seed);
+});

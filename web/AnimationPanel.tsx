@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { DIRECTIONS, LIMITS, frameAt, frameCount, frameIndex, frameTime, parseAnimation } from '../shared/animation.ts';
+import { DIRECTIONS, LIMITS, cycleSlots, frameCount, frameDataAt, frameIndex, frameTime, parseAnimation } from '../shared/animation.ts';
 import type { Animation, FrameModel } from '../shared/animation.ts';
-import { colorize } from '../shared/color.ts';
+import type { Colors, Slot } from '../shared/recipe.ts';
 import type { FontVariant } from '../shared/catalog.ts';
-const EFFECT_LABELS = { none: 'None', typewriter: 'Typewriter', reveal: 'Reveal' } as const;
+const EFFECT_LABELS = { none: 'None', typewriter: 'Typewriter', reveal: 'Reveal', 'palette-cycle': 'Palette cycle', shimmer: 'Shimmer', glitch: 'Glitch' } as const;
 const DIRECTION_LABELS = { down: 'Top to bottom', up: 'Bottom to top', right: 'Left to right', left: 'Right to left' } as const;
-interface AnimationProps { animation: Animation; model: FrameModel | null; font: FontVariant; style: CSSProperties; onChange: (animation: Animation) => void }
+interface AnimationProps { animation: Animation; model: FrameModel | null; font: FontVariant; colors: Colors; onChange: (animation: Animation) => void }
 const RATES = [6, 8, 10, 12, 15, 20, 24, 30];
 // Seconds in the controls, whole milliseconds in the recipe.
 function SecondsField({ id, label, value, range, onCommit }: { id: string; label: string; value: number; range: readonly [number, number]; onCommit: (ms: number) => string }) {
@@ -27,7 +27,7 @@ function SecondsField({ id, label, value, range, onCommit }: { id: string; label
 }
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Previews the selected design with the shared frame function. Reduced motion starts paused.
-export function AnimationPanel({ animation, model, font, style, onChange }: AnimationProps) {
+export function AnimationPanel({ animation, model, font, colors, onChange }: AnimationProps) {
   const [playing, setPlaying] = useState(() => !reducedMotion());
   const [index, setIndex] = useState(0);
   const count = frameCount(animation);
@@ -53,8 +53,9 @@ export function AnimationPanel({ animation, model, font, style, onChange }: Anim
   const update = (change: Partial<Animation>) => {
     try { onChange(parseAnimation({ ...animation, ...change })); return ''; } catch (error) { return (error as Error).message; }
   };
-  const text = useMemo(() => active ? frameAt(model!, animation, frameTime(animation, current)) : '', [active, model, animation, current]);
-  const runs = useMemo(() => colorize(text, font), [text, font]);
+  const frame = useMemo(() => active ? frameDataAt(model!, animation, frameTime(animation, current), colors, font) : null, [active, model, animation, current, colors, font]);
+  const style = Object.fromEntries(Object.entries(frame?.colors || colors).map(([slot, color]) => [`--slot-${slot}`, color])) as CSSProperties;
+  const ownSlots = font.slots.filter(slot => slot !== 'background');
   return <section className="animation" aria-labelledby="animation-title">
     <h2 id="animation-title">Animation</h2>
     <fieldset className="slots"><legend>Effect</legend>
@@ -62,14 +63,26 @@ export function AnimationPanel({ animation, model, font, style, onChange }: Anim
         <input type="radio" name="effect" value={effect} checked={animation.effect === effect} onChange={() => { setIndex(0); onChange({ ...animation, effect }); }} />{EFFECT_LABELS[effect]}
       </label>)}
     </fieldset>
-    {animation.effect === 'reveal' && <fieldset className="slots"><legend>Direction</legend>
+    {(animation.effect === 'reveal' || animation.effect === 'shimmer') && <fieldset className="slots"><legend>Direction</legend>
       {DIRECTIONS.map(direction => <label key={direction}>
         <input type="radio" name="direction" value={direction} checked={animation.direction === direction} onChange={() => { setIndex(0); onChange({ ...animation, direction }); }} />{DIRECTION_LABELS[direction]}
       </label>)}
     </fieldset>}
+    {(animation.effect === 'shimmer' || animation.effect === 'glitch') && <div className="field">
+      <label htmlFor="intensity">Intensity</label>
+      <input id="intensity" className="scrubber" type="range" min={LIMITS.intensity[0]} max={LIMITS.intensity[1]} value={animation.intensity}
+        onChange={event => update({ intensity: Number(event.target.value) })} />
+    </div>}
+    {animation.effect === 'glitch' && <div className="item-actions">
+      <button onClick={() => update({ seed: (animation.seed * 48271 + 1) % LIMITS.seed[1] })}>New glitch pattern</button>
+      <span className="hint">Pattern {animation.seed}. The same pattern always produces the same frames.</span>
+    </div>}
+    {animation.effect === 'palette-cycle' && <p className="hint" data-testid="cycle-note">{ownSlots.length > 1
+      ? `Rotates the ${ownSlots.join(' and ')} colors.`
+      : `${font.name} has one color slot, so the foreground moves through your ${cycleSlots(font.slots as Slot[]).join(', ')} colors.`} The background stays fixed.</p>}
     {animation.effect !== 'none' && <>
       <pre className="art animation-preview" data-testid="animation-preview" aria-label="Animation preview" style={style}>
-        {runs.map((run, key) => run.slot && run.slot !== 'foreground' ? <span key={key} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
+        {(frame?.runs || []).map((run, key) => run.slot && run.slot !== 'foreground' ? <span key={key} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
       </pre>
       <div className="item-actions">
         <button aria-pressed={playing} onClick={() => setPlaying(value => !value)} disabled={!model}>{playing ? 'Pause' : 'Play'}</button>
