@@ -24,7 +24,7 @@ test('coverage reports a code point once while preserving original input', () =>
   assert.deepEqual(renderRecipe(value).unsupported, ['🙂']); assert.equal(value.input, 'A🙂🙂');
 });
 test('unknown versions, IDs, fonts and oversized input fail explicitly', () => {
-  assert.throws(() => parseRecipe({ ...recipe, schemaVersion: 3 }), /version/);
+  assert.throws(() => parseRecipe({ ...recipe, schemaVersion: 99 }), /version/);
   assert.throws(() => parseRecipe({ ...recipe, id: 'bad' }), /ID/);
   assert.throws(() => parseRecipe({ ...recipe, variantId: 'unknown' }), /font/);
   assert.throws(() => parseRecipe({ ...recipe, fontSha256: 'wrong' }), /font version/);

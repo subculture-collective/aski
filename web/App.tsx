@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { colorize } from '../shared/color.ts';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
@@ -15,6 +15,7 @@ import { useLibrary } from './useLibrary.ts';
 import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
 import { Colors } from './Colors.tsx';
+import { LayoutControls } from './LayoutControls.tsx';
 import { CollectionPicker, Collections } from './Collections.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
@@ -45,7 +46,8 @@ export function App() {
   }, []);
   useScrollAnchor(studio, inset);
 
-  useEffect(() => {
+  // Created in a layout effect so it exists before the first render request below.
+  useLayoutEffect(() => {
     const current = new Worker(new URL('./render.worker.ts', import.meta.url), { type: 'module' });
     worker.current = current;
     current.onmessage = (event: MessageEvent<RenderReply>) => {
@@ -61,8 +63,9 @@ export function App() {
   }, [restart]);
 
   // Only text and font change the rendered text; colors are applied to the existing result.
-  const renderKey = JSON.stringify([recipe.input, recipe.variantId]);
-  useEffect(() => {
+  const renderKey = JSON.stringify([recipe.input, recipe.variantId, recipe.layout]);
+  // A layout effect marks the result pending in the same commit as the edit, so a stale result never looks current.
+  useLayoutEffect(() => {
     setCopied(false);
     if (!worker.current) return;
     setPending(true); setError('');
@@ -119,7 +122,9 @@ export function App() {
     : chosenVariants[family.familyId] || family.defaultVariantId;
   function chooseVariant(variantId: string) {
     const next = getVariant(variantId);
-    setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256 }));
+    // Keep the layout unless the new font cannot smush.
+    setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256,
+      layout: previous.layout.spacing === 'smush' && !next.spacing.smush ? { ...previous.layout, spacing: 'default' } : previous.layout }));
   }
   function moveHistory(direction: 'undo' | 'redo') {
     if (direction === 'undo') undo(); else redo();
@@ -176,6 +181,8 @@ export function App() {
         <Colors slots={font.slots as Slot[]} colors={recipe.colors} palettes={library.palettes}
           onChange={colors => setRecipe(previous => ({ ...previous, colors }))}
           onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
+        <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
+          onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
         <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
           onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
           onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}

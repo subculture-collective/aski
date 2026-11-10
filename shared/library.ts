@@ -1,5 +1,5 @@
 import { getFamily, getVariant } from './catalog.ts';
-import { parseColors } from './recipe.ts';
+import { RECIPE_VERSIONS, parseColors } from './recipe.ts';
 import type { Colors, StoredRecipe } from './recipe.ts';
 // Local library records follow the account contract's envelope (docs/account-sync-contract.md):
 // UUID, type, schemaVersion, payload and revision. Anonymous records stay in the "anonymous" namespace;
@@ -71,7 +71,7 @@ export function parseDesign(value: unknown): DesignPayload {
   const p = value as Partial<DesignPayload> | null;
   const recipe = p?.recipe as Partial<StoredRecipe> | undefined;
   const snapshot = p?.snapshot;
-  if (!recipe || (recipe.schemaVersion !== 1 && recipe.schemaVersion !== 2) || typeof recipe.input !== 'string' || typeof recipe.familyId !== 'string'
+  if (!recipe || !RECIPE_VERSIONS.includes(recipe.schemaVersion!) || typeof recipe.input !== 'string' || typeof recipe.familyId !== 'string'
     || typeof recipe.variantId !== 'string' || typeof recipe.fontSha256 !== 'string' || typeof recipe.rendererVersion !== 'string') throw new Error('Invalid saved design.');
   if (!snapshot || typeof snapshot.text !== 'string' || !Number.isInteger(snapshot.columns) || !Number.isInteger(snapshot.rows)) throw new Error('Invalid saved design.');
   return { name: parseName(p!.name), recipe: recipe as StoredRecipe, snapshot: { text: snapshot.text, columns: snapshot.columns, rows: snapshot.rows } };

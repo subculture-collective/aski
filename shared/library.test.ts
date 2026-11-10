@@ -41,6 +41,10 @@ test('saved text and designs are separate record types with validated names', ()
   const input = createRecord('input', { text: 'A', name: 'A' }, NOW);
   const design = createRecord('design', { name: 'D', recipe, snapshot: { text: 'out', columns: 3, rows: 1 } }, NOW);
   assert.equal(parseRecord(input).type, 'input'); assert.equal(parseRecord(design).type, 'design');
+  // Designs saved by the current build use the latest recipe version.
+  const latest = parseRecipe(recipe);
+  assert.equal(parseRecord(createRecord('design', { name: 'L', recipe: latest, snapshot: { text: '', columns: 0, rows: 0 } }, NOW)).type, 'design');
+  assert.throws(() => parseRecord(createRecord('design', { name: 'F', recipe: { ...latest, schemaVersion: 99 }, snapshot: { text: '', columns: 0, rows: 0 } }, NOW)), /design/);
   assert.throws(() => parseRecord({ ...design, payload: { ...design.payload, snapshot: { text: 1 } } }), /design/);
   assert.equal(defaultName('\n  \nFirst line here\nsecond'), 'First line here');
   assert.equal(defaultName('', 'Circle'), 'Circle: Untitled');
