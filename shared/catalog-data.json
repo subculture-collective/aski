@@ -373,7 +373,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "fitted",
+      "smush": false
+    }
   },
   {
     "name": "Circle",
@@ -531,7 +535,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Classy",
@@ -853,7 +861,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "fitted",
+      "smush": false
+    }
   },
   {
     "name": "Coder Mini",
@@ -1175,7 +1187,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "fitted",
+      "smush": false
+    }
   },
   {
     "name": "Emboss 2",
@@ -1299,7 +1315,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Emboss",
@@ -1423,7 +1443,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Future Smooth",
@@ -1579,7 +1603,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Future Thin",
@@ -1735,7 +1763,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Future",
@@ -1891,7 +1923,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Letter",
@@ -2045,7 +2081,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Linguaholic Mini Block",
@@ -2169,7 +2209,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Linguaholic Neon",
@@ -2293,7 +2337,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Linguaholic Rounded",
@@ -2417,7 +2465,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Linguaholic Shadow 3D",
@@ -2551,7 +2603,11 @@
       "foreground",
       "background",
       "shadow"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Pagga",
@@ -2727,7 +2783,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "fitted",
+      "smush": false
+    }
   },
   {
     "name": "Small Block",
@@ -3005,7 +3065,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "fitted",
+      "smush": false
+    }
   },
   {
     "name": "Small Braille",
@@ -3129,7 +3193,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "Upside Down Text",
@@ -3253,7 +3321,11 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   },
   {
     "name": "WideTerm",
@@ -3384,6 +3456,10 @@
     "slots": [
       "foreground",
       "background"
-    ]
+    ],
+    "spacing": {
+      "default": "full",
+      "smush": false
+    }
   }
 ]
