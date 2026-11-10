@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { colorize } from '../shared/color.ts';
 import { exportName, toAnsi, toCodeBlock } from '../shared/export.ts';
 import { frameDataAt, frameTime } from '../shared/animation.ts';
+import { decodeShare, encodeShare } from '../shared/share.ts';
 import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
 import type { Slot } from '../shared/recipe.ts';
 import { defaultName, findMembership, parseName } from '../shared/library.ts';
@@ -36,6 +37,9 @@ export function App() {
   const [manual, setManual] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [inspected, setInspected] = useState(0);
+  const [shareNotice, setShareNotice] = useState('');
+  const [shareLink, setShareLink] = useState('');
+  const [sharedSize, setSharedSize] = useState<{ columns: number; rows: number } | null>(null);
   const [opened, setOpened] = useState<{ recipe: string; snapshot: string } | null>(null);
   const [restart, setRestart] = useState(0);
   const worker = useRef<Worker | null>(null);
@@ -143,6 +147,39 @@ export function App() {
   // A reopened design re-renders with this build; say so if that no longer matches its saved text.
   const openedDiffers = ready && opened?.recipe === JSON.stringify(recipe) && opened.snapshot !== result.text;
   const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
+  // Opening a share link applies its design as one undoable edit, then removes the fragment so a reload
+  // does not apply it again. Invalid links leave the draft unchanged.
+  useEffect(() => {
+    const open = () => {
+      const fragment = location.hash;
+      if (!fragment.startsWith('#share=')) return;
+      history.replaceState(null, '', location.pathname + location.search);
+      decodeShare(fragment, crypto.randomUUID()).then(({ recipe: shared, size }) => {
+        setRecipe(() => shared); setSharedSize(size);
+        setShareNotice('Opened a shared design. Undo returns to your previous draft.');
+      }, error => setShareNotice(`${(error as Error).message} Your draft is unchanged.`));
+    };
+    open();
+    addEventListener('hashchange', open);
+    return () => removeEventListener('hashchange', open);
+    // setRecipe always applies to the latest draft.
+  }, []);
+  // Compare the first render of a shared design with the size recorded in the link, once.
+  useEffect(() => {
+    if (!sharedSize || !ready) return;
+    if (sharedSize.columns !== result.columns || sharedSize.rows !== result.rows)
+      setShareNotice(`Opened a shared design. This version renders it at ${result.columns} × ${result.rows} instead of ${sharedSize.columns} × ${sharedSize.rows}. Undo returns to your previous draft.`);
+    setSharedSize(null);
+  }, [sharedSize, ready, result]);
+  async function share() {
+    if (!result || pending || error) return;
+    try {
+      const link = location.origin + location.pathname + await encodeShare(recipe, { columns: result.columns, rows: result.rows });
+      setShareLink(link);
+      try { await navigator.clipboard.writeText(link); setShareNotice('Share link copied.'); }
+      catch { setShareNotice('Select the link below and copy it.'); }
+    } catch (failure) { setShareLink(''); setShareNotice((failure as Error).message); }
+  }
   // Remember the active family's variant so switching to another family and back keeps it.
   useEffect(() => setChosenVariants(previous => previous[recipe.familyId] === recipe.variantId ? previous
     : { ...previous, [recipe.familyId]: recipe.variantId }), [recipe.familyId, recipe.variantId]);
@@ -212,10 +249,15 @@ export function App() {
             <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
             <button onClick={() => download('text')} disabled={!ready || !result.text}>Download text</button>
             <button onClick={() => download('ansi')} disabled={!ready || !result.text}>Download ANSI</button>
+            <button onClick={() => void share()} disabled={!ready || !result.text}>Share link</button>
+            {shareLink && <div className="share-link"><label htmlFor="share-link">Share link ({shareLink.length} characters)</label>
+              <input id="share-link" readOnly value={shareLink} onFocus={event => event.target.select()} />
+              <small>Anyone with this link sees this design’s text and settings. The design travels inside the link; nothing is stored on a server.</small></div>}
             <ImageExport columns={result?.columns || 0} rows={result?.rows || 0} blocks={recipe.layout.blocks && font.blocks} disabled={!ready || !result.text} onExport={exportImage}
               frame={recipe.animation.effect === 'none' ? '' : `frame ${inspected + 1}`} />
             <p className="hint">Plain text and code blocks keep every space and line break but no colors or animation. ANSI keeps colors for terminals that support 24-bit color.</p>
           </div>
+          {shareNotice && <p className="warning" data-testid="share-notice">{shareNotice}</p>}
           {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
         </section>
         <Colors slots={font.slots as Slot[]} colors={recipe.colors} palettes={library.palettes}
