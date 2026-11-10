@@ -12,15 +12,16 @@ test('trace what moves the Pause button', async ({ page }) => {
   await page.waitForTimeout(500);
   await panel.getByRole('radio', { name: 'Reveal' }).check();
   await panel.getByRole('radio', { name: 'Right to left' }).check();
+  await panel.getByRole('button', { name: 'Restart' }).dispatchEvent('click');
   const samples = await page.evaluate(() => new Promise<unknown[]>(resolve => {
     const out: unknown[] = []; const start = performance.now(); (window as any).__scrolls = [];
     const pause = [...document.querySelectorAll('button')].find(b => b.textContent === 'Pause')!;
     const pre = document.querySelector('[data-testid="animation-preview"]')!;
     const tick = () => {
-      const b = pause.getBoundingClientRect(), p = pre.getBoundingClientRect();
-      out.push({ t: Math.round(performance.now() - start), by: b.y, py: p.y, ph: p.height, sy: scrollY, dh: document.documentElement.scrollHeight, ih: innerHeight,
+      const b = pause.getBoundingClientRect(), p = pre.getBoundingClientRect(); const sec = document.querySelector('[data-anchor="animation"]')!.getBoundingClientRect();
+      out.push({ t: Math.round(performance.now() - start), by: b.y, bx: b.x, bw: b.width, txt: pause.textContent, secy: sec.y, py: p.y, pw: p.width, ph: p.height, sy: scrollY, dh: document.documentElement.scrollHeight, ih: innerHeight,
         frame: document.querySelector('[data-testid="frame-label"]')?.textContent });
-      if (performance.now() - start < 2500) requestAnimationFrame(tick); else resolve(out);
+      if (performance.now() - start < 4000) requestAnimationFrame(tick); else resolve(out);
     };
     requestAnimationFrame(tick);
   }));
