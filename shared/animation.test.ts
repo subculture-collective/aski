@@ -66,3 +66,14 @@ test('animation settings are validated and older recipes gain the default', () =
   const v3 = { schemaVersion: 3, id: '00000000-0000-4000-8000-000000000001', input: 'A', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: DEFAULT_COLORS, layout: DEFAULT_LAYOUT };
   assert.deepEqual(parseRecipe(v3).animation, DEFAULT_ANIMATION);
 });
+test('seeking, end hold and play-once resolve through the same frame function', () => {
+  const animation: Animation = { ...DEFAULT_ANIMATION, effect: 'reveal', durationMs: 1000, holdMs: 500, fps: 10, loop: false };
+  const model = render('figlet/letter', 'HOLD', animation);
+  const final = toCanvas(model.text, model.columns, model.rows).join('\n');
+  assert.equal(frameCount(animation), 15);
+  // Every frame in the hold shows the finished artwork; seeking to a frame equals playing to it.
+  for (let index = 10; index < 15; index++) assert.equal(frameAt(model, animation, index * 100), final);
+  assert.notEqual(frameAt(model, animation, 500), final);
+  assert.equal(frameAt(model, animation, 60_000), final);
+  assert.equal(frameAt(model, { ...animation, loop: true }, 1500), frameAt(model, animation, 0));
+});
