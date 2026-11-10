@@ -4,12 +4,12 @@ test('a font change preserves multiline input and reports actual coverage', asyn
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('A\t🙂\nB');
   await page.getByLabel('Style', { exact: true }).selectOption('figlet/circle');
-  await expect(page.getByRole('heading', { name: 'Circle', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Circle', exact: true })).toBeVisible();
   await expect(page.getByText('Unsupported: U+9, U+1F642')).toBeVisible();
   await expect(input).toHaveValue('A\t🙂\nB');
   const before = await page.getByTestId('output').textContent();
   await page.getByLabel('Style', { exact: true }).selectOption('figlet/future-thin');
-  await expect(page.getByRole('heading', { name: 'Future Thin', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Future Thin', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
   await expect(page.getByTestId('output')).not.toHaveText(before!);
   await expect(input).toHaveValue('A\t🙂\nB');

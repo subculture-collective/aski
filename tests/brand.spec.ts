@@ -5,7 +5,7 @@ test('Lilac typography and controls stay usable with keyboard, touch and wide ar
   await page.goto('/');
   await page.evaluate(async () => { await document.fonts.load('700 28px Fraunces'); await document.fonts.load('400 16px "Atkinson Hyperlegible Next"'); await document.fonts.ready; });
   expect(await page.evaluate(() => document.fonts.check('700 28px Fraunces') && document.fonts.check('400 16px "Atkinson Hyperlegible Next"'))).toBe(true);
-  await expect(page.getByRole('heading', { name: 'ANSI Compact', exact: true })).toHaveCSS('font-family', /Fraunces/);
+  await expect(page.getByRole('heading', { level: 2, name: 'ANSI Compact', exact: true })).toHaveCSS('font-family', /Fraunces/);
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.focus(); await expect(input).toHaveCSS('outline-width','3px');
   for (const control of await page.locator('button:visible,select:visible').all()) expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
