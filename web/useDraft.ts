@@ -1,10 +1,11 @@
 import { useEffect, useReducer, useState } from 'react';
 import { recoverDraft, saveDraft, historyReducer } from '../shared/draft.ts';
 import { DEFAULT_COLORS, DEFAULT_LAYOUT, FONT } from '../shared/recipe.ts';
+import { DEFAULT_ANIMATION } from '../shared/animation.ts';
 import type { Recipe } from '../shared/recipe.ts';
 export function useDraft() {
   const [initial] = useState(() => {
-    const fallback: Recipe = { schemaVersion: 3, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS }, layout: { ...DEFAULT_LAYOUT } };
+    const fallback: Recipe = { schemaVersion: 4, id: crypto.randomUUID(), input: 'ASKI', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: { ...DEFAULT_COLORS }, layout: { ...DEFAULT_LAYOUT }, animation: { ...DEFAULT_ANIMATION } };
     try { return { fallback, ...recoverDraft(localStorage) }; }
     catch { return { fallback, recipe: undefined, writable: false, warning: 'Browser storage is unavailable. Keep a copy of your text.' }; }
   });

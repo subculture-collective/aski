@@ -377,7 +377,11 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true,
+    "looks": [
+      "block"
+    ]
   },
   {
     "name": "Circle",
@@ -539,7 +543,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "enclosed"
+    ]
   },
   {
     "name": "Classy",
@@ -865,7 +873,11 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true,
+    "looks": [
+      "block"
+    ]
   },
   {
     "name": "Coder Mini",
@@ -1191,7 +1203,11 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true,
+    "looks": [
+      "block"
+    ]
   },
   {
     "name": "Emboss 2",
@@ -1319,7 +1335,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Emboss",
@@ -1447,7 +1467,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Future Smooth",
@@ -1607,7 +1631,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Future Thin",
@@ -1767,7 +1795,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Future",
@@ -1927,7 +1959,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Letter",
@@ -2085,7 +2121,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "letter"
+    ]
   },
   {
     "name": "Linguaholic Mini Block",
@@ -2213,7 +2253,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": true,
+    "looks": [
+      "block"
+    ]
   },
   {
     "name": "Linguaholic Neon",
@@ -2341,7 +2385,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Linguaholic Rounded",
@@ -2469,7 +2517,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "line"
+    ]
   },
   {
     "name": "Linguaholic Shadow 3D",
@@ -2607,7 +2659,12 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "block",
+      "line"
+    ]
   },
   {
     "name": "Pagga",
@@ -2787,7 +2844,13 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "block",
+      "shaded",
+      "symbol"
+    ]
   },
   {
     "name": "Small Block",
@@ -3069,7 +3132,11 @@
     "spacing": {
       "default": "fitted",
       "smush": false
-    }
+    },
+    "blocks": true,
+    "looks": [
+      "block"
+    ]
   },
   {
     "name": "Small Braille",
@@ -3197,7 +3264,11 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "braille"
+    ]
   },
   {
     "name": "Upside Down Text",
@@ -3325,7 +3396,12 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "letter",
+      "symbol"
+    ]
   },
   {
     "name": "WideTerm",
@@ -3460,6 +3536,10 @@
     "spacing": {
       "default": "full",
       "smush": false
-    }
+    },
+    "blocks": false,
+    "looks": [
+      "wide"
+    ]
   }
 ]

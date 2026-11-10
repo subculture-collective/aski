@@ -87,8 +87,24 @@ test.describe('touch', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Future Smooth', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
     await expect(input).toBeInViewport();
-    await input.fill('TAP\nAGAIN');
-    await expect(future).toBeInViewport();
+    await settled(page);
+    const top = await topOf(page, 'Future');
+    await input.fill('TAP\nAGAIN\nTHREE');
+    await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
+    await settled(page);
+    expect(Math.abs(await topOf(page, 'Future') - top)).toBeLessThan(4);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
+});
+
+test('content growing between the view and the cards does not push the panel in use off screen', async ({ page }) => {
+  await page.goto('/');
+  const layout = page.getByRole('region', { name: 'Layout' });
+  await layout.evaluate(element => element.scrollIntoView({ block: 'start' }));
+  const top = (await layout.boundingBox())!.y;
+  await layout.getByLabel('Maximum width').fill('5');
+  await layout.getByRole('button', { name: 'Set width' }).click();
+  await expect(layout.getByRole('alert')).toBeVisible();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve))));
+  expect(Math.abs((await layout.boundingBox())!.y - top)).toBeLessThan(4);
 });

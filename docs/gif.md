@@ -1,0 +1,15 @@
+# GIF export
+
+**Create GIF** in the Animation panel encodes the current animation in a dedicated worker with `gifenc@1.0.3` (MIT), as chosen in the [stack decision](research/stack-browser-decision.md). Every frame comes from `frameDataAt` and is drawn by the same code as PNG export (`web/draw.ts`), so the GIF matches the preview, including seamless blocks and preset colors.
+
+- **Size and timing.** The GIF uses the chosen GIF scale (1–4×) with 8 pixels of padding. Frame *i* is sampled at *i* / fps. GIF delays are whole centiseconds, so each delay is the difference of rounded cumulative times, the last frame runs to the end of the cycle, and the total length is exact (for example 12 fps gives 8 and 9 cs frames that sum to the duration plus hold). Identical neighbouring frames, such as the end hold, are stored once with a longer delay.
+- **Loop.** Looping writes the NETSCAPE2.0 extension with an infinite count; play-once omits it.
+- **Background.** Solid frames use disposal 1 (each frame replaces the last). Transparent frames use disposal 2 (clear before the next frame) so moving parts leave no trails. GIF transparency is on/off: pixels below 50% alpha become the transparent index.
+- **Colors.** Each frame is quantized to at most 256 colors. After encoding, the panel shows the encoded GIF itself, its byte size and stored frame count, and explains that soft edges may look harder than the preview.
+- **Budgets.** Before any canvas is created the panel checks a 2,048-pixel side, 600 frames and 120 million pixel-frames, and explains which setting to lower. The worker checks again.
+- **Progress and cancellation.** Progress is reported per frame. Cancel terminates the worker; the next job starts a fresh one. Errors leave the design unchanged.
+- **Saving.** **Save design with this GIF** saves the design (with its full animation recipe: effect, direction, timing, loop, intensity and seed) and stores the encoded GIF bytes as an original file, as described in [Local library](library.md). After a reload or a font or renderer change, **Download original** returns those exact bytes.
+- **Sharing.** Share links carry the same animation settings. A shared animation opens paused when the device asks for reduced motion, and never includes library data.
+- **Still frames.** The Image export settings can export the frame selected with the animation scrubber as PNG or SVG.
+
+`make test-animation` and `make test-export` decode GIFs made from known frames with `gifuct-js@2.1.2` (a test-only dependency) and check frame merging, centisecond totals, delays, NETSCAPE looping, disposal 1 and 2, binary transparency and the budgets. The browser suite downloads real GIFs and decodes them the same way, checks dimensions, total time, loop and disposal for solid and transparent output, cancels a held job and restarts, checks the over-budget message, exports an inspected frame, saves a design with its GIF and gets identical bytes back after a reload, and opens an animated share in a fresh reduced-motion session. Playing GIFs in other viewers and device budgets are part of #42.

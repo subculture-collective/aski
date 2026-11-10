@@ -4,7 +4,7 @@ const region = (page: Page, name: string) => page.getByRole('region', { name });
 const card = (page: Page, name: string) => page.locator('article.family-card').filter({ has: page.getByRole('heading', { name, exact: true, level: 3 }) });
 const collection = (page: Page, name: string) => region(page, 'Collections').getByRole('listitem', { name: `Collection ${name}`, exact: true });
 const stored = (page: Page) => page.evaluate(() => new Promise<number>(resolve => {
-  const open = indexedDB.open('aski-library', 1);
+  const open = indexedDB.open('aski-library');
   open.onsuccess = () => { const all = open.result.transaction('records').objectStore('records').count(); all.onsuccess = () => { open.result.close(); resolve(all.result); }; };
 }));
 async function setup(page: Page) {
