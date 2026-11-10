@@ -180,3 +180,11 @@ dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
 a.button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;font-weight:700;text-decoration:none;border:var(--aski-border);border-radius:var(--aski-radius);background:var(--aski-accent);justify-self:start;}
 .share-link{flex-basis:100%;display:grid;gap:6px;}
 .share-link input{font-family:ui-monospace,monospace;font-size:13px;}
+.filters{display:grid;gap:12px;padding:16px;background:var(--aski-panel);border:var(--aski-border);border-radius:var(--aski-radius);}
+.filters fieldset{margin:0;padding:0;border:0;min-width:0;}
+.filters legend{font-weight:700;font-size:15px;margin-bottom:6px;padding:0;}
+.filters .toggle{padding:0;}
+.card-meta{margin:0;font-size:13px;color:var(--aski-muted);}
+.empty{display:grid;gap:8px;justify-items:start;padding:16px;border:2px dashed var(--aski-ink);border-radius:var(--aski-radius);}
+.empty p{margin:0;}
+.clear-filters{justify-self:start;}

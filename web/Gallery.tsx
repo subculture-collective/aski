@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { families, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { PREVIEW_LIMIT, usePreviews } from './usePreviews.ts';
 const slug = (id: string) => id.replace(/[^a-z\d]+/gi, '-');
+export const LOOK_LABELS: Record<string, string> = { block: 'Blocks', shaded: 'Shaded', line: 'Lines', braille: 'Braille', letter: 'Letters', enclosed: 'Enclosed', wide: 'Wide', symbol: 'Symbols' };
+interface Filters { query: string; looks: string[]; supportsText: boolean; maxColumns: string; maxRows: string }
+const NO_FILTERS: Filters = { query: '', looks: [], supportsText: false, maxColumns: '', maxRows: '' };
 interface GalleryProps {
   input: string; activeFamilyId: string; variantFor: (family: FontFamily) => string;
   expanded: ReadonlySet<string>; onVariant: (family: FontFamily, variantId: string) => void;
@@ -11,11 +15,44 @@ interface GalleryProps {
 export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant, onUse, onToggle, isFavorite, onFavorite }: GalleryProps) {
   const selected = families.map(variantFor);
   const { previews, text, truncated } = usePreviews(input, selected);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const set = (change: Partial<Filters>) => setFilters(previous => ({ ...previous, ...change }));
+  const characters = [...new Set(Array.from(input.replace(/\r\n?/g, '\n')).filter(character => character !== '\n'))];
+  const limit = (value: string) => /^\d+$/.test(value.trim()) ? Number(value) : null;
+  // Uncategorized families (no recorded look) stay visible, marked, when a look filter is on.
+  const shown = families.map((family, index) => {
+    const variant = getVariant(selected[index]);
+    const query = filters.query.trim().toLowerCase();
+    if (query && ![family.name, ...family.variants.map(item => item.name)].some(name => name.toLowerCase().includes(query))) return null;
+    const uncategorized = !variant.looks.length;
+    if (filters.looks.length && !uncategorized && !filters.looks.some(look => variant.looks.includes(look))) return null;
+    if (filters.supportsText) { const coverage = new Set(variant.coverage); if (characters.some(character => !coverage.has(character.codePointAt(0)!))) return null; }
+    const size = previews[variant.variantId]?.input === text ? previews[variant.variantId]?.result : undefined;
+    const columns = limit(filters.maxColumns), rows = limit(filters.maxRows);
+    if (size && ((columns !== null && size.columns > columns) || (rows !== null && size.rows > rows))) return null;
+    return { family, index, uncategorized: uncategorized && filters.looks.length > 0 };
+  }).filter(item => item !== null);
+  const filtered = JSON.stringify(filters) !== JSON.stringify(NO_FILTERS);
   return <section className="gallery" aria-labelledby="gallery-title">
     <div className="gallery-heading"><h2 id="gallery-title">Styles</h2><span>{families.length} families · live previews</span></div>
+    <div className="filters" role="search" aria-label="Find styles">
+      <div className="field"><label htmlFor="style-search">Search styles</label>
+        <input id="style-search" type="search" value={filters.query} placeholder="Family or variant name" onChange={event => set({ query: event.target.value })} /></div>
+      <fieldset className="slots"><legend>Look</legend>
+        {Object.entries(LOOK_LABELS).map(([look, label]) => <label key={look}>
+          <input type="checkbox" checked={filters.looks.includes(look)} onChange={event => set({ looks: event.target.checked ? [...filters.looks, look] : filters.looks.filter(item => item !== look) })} />{label}
+        </label>)}
+      </fieldset>
+      <div className="timing">
+        <div className="field"><label htmlFor="max-columns">Max columns</label><input id="max-columns" inputMode="numeric" value={filters.maxColumns} placeholder="Any" onChange={event => set({ maxColumns: event.target.value })} /></div>
+        <div className="field"><label htmlFor="max-rows">Max rows</label><input id="max-rows" inputMode="numeric" value={filters.maxRows} placeholder="Any" onChange={event => set({ maxRows: event.target.value })} /></div>
+      </div>
+      <label className="toggle"><input type="checkbox" checked={filters.supportsText} onChange={event => set({ supportsText: event.target.checked })} />Supports every character in my text</label>
+      <p className="hint" data-testid="filter-count">Showing {shown.length} of {families.length} families. Sizes are columns × rows for your text{truncated ? ` (first ${PREVIEW_LIMIT} characters)` : ''}. Looks come from the characters each font draws; reviewed style tags are not recorded yet.</p>
+    </div>
     {truncated && <p className="gallery-note">Previews show the first {PREVIEW_LIMIT} characters. The selected style renders all of your text.</p>}
     <div className="family-grid">
-      {families.map((family, index) => {
+      {shown.map(({ family, index, uncategorized }) => {
         const id = slug(family.familyId);
         const variant = getVariant(selected[index]);
         const preview = previews[variant.variantId];
@@ -31,6 +68,10 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
                 <span>{item.name}</span>
               </label>)}
             </fieldset>}
+          <p className="card-meta" data-testid={`meta-${id}`}>
+            {preview?.input === text && preview.result ? `${preview.result.columns} × ${preview.result.rows}` : 'Measuring…'}
+            {' · '}{variant.looks.length ? variant.looks.map(look => LOOK_LABELS[look]).join(', ') : 'Look not recorded'}{uncategorized ? ' (shown because its look is unknown)' : ''}
+          </p>
           <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}>
             {preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}
           </pre>
@@ -47,5 +88,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         </article>;
       })}
     </div>
+    {!shown.length && <div className="empty" data-testid="no-results"><p>No styles match these filters.</p><button onClick={() => setFilters(NO_FILTERS)}>Clear filters</button></div>}
+    {filtered && shown.length > 0 && <button className="clear-filters" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>}
   </section>;
 }
