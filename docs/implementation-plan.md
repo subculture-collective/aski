@@ -2,7 +2,7 @@
 
 This plan implements the [approved scope](product-scope.md). Each phase has a commit checkpoint and behavior that must pass before the next phase depends on it.
 
-The [first public release roadmap](https://git.subcult.tv/subculture-collective/aski/issues/1) tracks the PR-sized work, research spikes, epics, and native blocking dependencies. Use its execution waves and current frontier when selecting work. This document retains the broader acceptance checks.
+The [first public release roadmap](https://github.com/subculture-collective/aski/issues/23) tracks the PR-sized work, research spikes, epics, and native blocking dependencies. Use its execution waves and current frontier when selecting work. This document retains the broader acceptance checks.
 
 The [stack and browser feasibility decision](research/stack-browser-decision.md) records the selected implementation approach, versioned data boundaries, reproducible probe commands, and the distinction between automated engine evidence and actual-device qualification.
 
