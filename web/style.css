@@ -202,3 +202,9 @@ a.button{display:inline-flex;align-items:center;justify-content:center;min-heigh
 .artifacts{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px;}
 .artifacts li{display:grid;gap:4px;}
 .family-details[hidden]{display:none;}
+.account{max-width:min(320px,48vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;}
+.account-notice{flex-basis:100%;font-size:14px;color:var(--aski-muted);text-align:right;}
+.account-notice:empty{display:none;}
+.confirm{max-width:640px;display:grid;gap:16px;justify-items:start;}
+.confirm header{width:100%;margin-bottom:0;}
+.confirm p{margin:0;}

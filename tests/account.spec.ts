@@ -29,3 +29,48 @@ test('mail outage and rate limiting preserve anonymous editing', async ({ page }
   await expect(input).toHaveValue('KEEP CREATING'); await input.fill('STILL EDITING');
   await expect(page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
 });
+test('a captured link signs in through the confirm page, and signing out keeps local work', async ({ page, context }, testInfo) => {
+  const email=`${testInfo.project.name}-session@example.test`;
+  const favorites=page.getByRole('region',{name:'Favorites'}); const collections=page.getByRole('region',{name:'Collections'});
+  const records=()=>page.evaluate(()=>new Promise<number>(resolve=>{const open=indexedDB.open('aski-library');open.onsuccess=()=>{const all=open.result.transaction('records').objectStore('records').count();all.onsuccess=()=>{open.result.close();resolve(all.result);};};}));
+  await page.goto('/');
+  await page.locator('article.family-card').filter({has:page.getByRole('heading',{name:'Pagga',exact:true,level:3})}).getByRole('button',{name:'Favorite Pagga'}).click();
+  await collections.getByLabel('New collection').fill('Keep'); await collections.getByLabel('New collection').press('Enter');
+  await expect(favorites.getByRole('listitem')).toHaveCount(1); await expect.poll(records).toBe(2);
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await page.getByLabel('Email',{exact:true}).fill(email);
+  await page.getByRole('button',{name:'Email a link',exact:true}).click();
+  await expect(page.getByRole('dialog').getByRole('status')).toHaveText('Check your inbox for a sign-in link.');
+  const { path }=await (await fetch(process.env.ASKI_API_URL+'/__test/inbox/link?email='+encodeURIComponent(email))).json();
+  expect(path).toMatch(/^\/auth\/confirm#token=/);
+  // Opening the link captures the token, clears it from the address bar and contacts only this origin.
+  const requested: string[]=[]; page.on('request',r=>requested.push(new URL(r.url()).origin));
+  await page.goto(path);
+  await expect(page.getByRole('heading',{name:'Sign in to aski'})).toBeVisible();
+  expect(new URL(page.url()).hash).toBe(''); expect(new URL(page.url()).pathname).toBe('/auth/confirm');
+  await expect(page.locator('meta[name=referrer]')).toHaveAttribute('content','no-referrer');
+  expect(await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}).includes('token'))).toBe(false);
+  expect((await context.cookies()).some(c=>c.name.includes('session_token'))).toBe(false);
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.waitForURL('/');
+  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  expect(requested.every(origin=>origin===new URL(page.url()).origin)).toBe(true);
+  const cookie=(await context.cookies()).find(c=>c.name==='__Secure-better-auth.session_token')!;
+  expect(cookie).toMatchObject({httpOnly:true,secure:true,sameSite:'Lax',path:'/',domain:'127.0.0.1'});
+  expect(await page.evaluate(()=>document.cookie)).toBe('');
+  // The same link cannot be used again; the page offers a way back to request a new one.
+  await page.goto(path); await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Request a new link from the studio.');
+  await expect(page.getByRole('button',{name:'Continue',exact:true})).toHaveCount(0);
+  await page.getByRole('link',{name:'Return to the studio'}).click();
+  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await expect(page.getByRole('status').filter({hasText:'Signed out.'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
+  expect((await context.cookies()).some(c=>c.name.includes('session_token'))).toBe(false);
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
+  await expect(favorites.getByRole('listitem')).toHaveCount(1);
+  await expect(collections.getByRole('listitem',{name:'Collection Keep',exact:true})).toBeVisible();
+  expect(await records()).toBe(2);
+});
