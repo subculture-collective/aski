@@ -1,6 +1,6 @@
 # TAAG parity and font provenance
 
-Decision record for [#9](https://git.subcult.tv/subculture-collective/aski/issues/9), observed November 9, 2026. The Options panel and representative outputs were inspected in the actual [TAAG UI](https://patorjk.com/software/taag/). The browser reported 1,386 font choices. This is the site's count, not the size of aski's catalog.
+Decision record for [#31](https://github.com/subculture-collective/aski/issues/31), observed November 9, 2026. The Options panel and representative outputs were inspected in the actual [TAAG UI](https://patorjk.com/software/taag/). The browser reported 1,386 font choices. This is the site's count, not the size of aski's catalog.
 
 ## Existing controls form the baseline
 
