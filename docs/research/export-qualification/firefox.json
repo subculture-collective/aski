@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-11-13T23:25:36.081Z",
+  "project": "firefox",
+  "browser": "firefox",
+  "version": "159.0",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+    "cores": 24,
+    "memoryGiB": 60
+  },
+  "typing:ansi-compact.regular": {
+    "keystrokes": 39,
+    "p50Ms": 19,
+    "p95Ms": 24,
+    "maxMs": 25
+  },
+  "typing:figlet/linguaholic-shadow-3d": {
+    "keystrokes": 39,
+    "p50Ms": 31,
+    "p95Ms": 44,
+    "maxMs": 44
+  },
+  "fidelity": {
+    "text": {
+      "file": "aski-ansi-compact-a-b-cd.txt",
+      "matchesScreen": true,
+      "leadingSpacesKept": true
+    },
+    "ansi": {
+      "file": "aski-ansi-compact-a-b-cd.ans",
+      "truecolor": true,
+      "visibleTextMatches": true
+    },
+    "png": {
+      "file": "aski-ansi-compact-a-b-cd.png",
+      "width": 352,
+      "height": 416
+    },
+    "svg": {
+      "file": "aski-ansi-compact-a-b-cd.svg",
+      "width": 352,
+      "height": 416,
+      "matchesPng": true,
+      "noScriptsOrExternalReferences": true
+    }
+  },
+  "gif": {
+    "typical": {
+      "settings": "296 × 112 pixels, 36 frames, 3.0 s, looping",
+      "encodeMs": 433,
+      "frames": 4,
+      "totalMs": 3000,
+      "loops": true,
+      "disposal": [
+        1
+      ],
+      "width": 296,
+      "height": 112
+    },
+    "typicalTransparent": {
+      "encodeMs": 432,
+      "frames": 4,
+      "totalMs": 3000,
+      "loops": true,
+      "disposal": [
+        2
+      ],
+      "width": 296,
+      "height": 112
+    },
+    "atBudget": {
+      "settings": "1040 × 208 pixels, 540 frames, 18.0 s, looping",
+      "encodeMs": 6710,
+      "result": "1912.4 KB, 494 stored frames (identical neighbours merged). GIF keeps up to 256 colors per frame and on/off transparency"
+    },
+    "overBudgetMessage": "This GIF is too large to encode on most devices (1040 × 208 × 600 frames). Lower the scale, frame rate or duration.",
+    "cancellation": {
+      "idleAfterCancelMs": 16,
+      "nextSmallJobMs": 286
+    }
+  }
+}
