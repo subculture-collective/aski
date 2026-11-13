@@ -137,3 +137,66 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   await expect(saved(one.page).getByRole('listitem',{name:'Text LOCAL ONLY'})).toBeVisible();
   for (const session of [one, two, other]) await session.context.close();
 });
+// Puts a collection holding a favorite style and an exact design into this browser's library.
+const seedLocal = (page: Page) => page.evaluate(() => new Promise<void>((resolve, reject) => {
+  const now = '2026-11-01T00:00:00.000Z';
+  const id = (n: number) => `00000000-0000-4000-8000-0000000001${String(n).padStart(2, '0')}`;
+  const record = (n: number, type: string, payload: unknown) => ({ namespace: 'anonymous', id: id(n), type, schemaVersion: 1, payload, revision: 0, deletedAt: null, createdAt: now.replace('00.000', `0${n}.000`), updatedAt: now });
+  const records = [
+    record(1, 'favorite', { familyId: 'figlet/future' }),
+    record(2, 'design', { name: 'Imported design', snapshot: { text: 'IMPORTED', columns: 8, rows: 1 }, recipe: { schemaVersion: 1, id: id(9), input: 'IMPORTED',
+      familyId: 'ansi-compact', variantId: 'ansi-compact.regular', fontSha256: '7725d789f12f20f854a2d0fb6f23df3080fefd0753e94055f2078b3853afe30f', rendererVersion: 'figlet@1.12.0' } }),
+    record(3, 'collection', { name: 'Keep' }),
+    record(4, 'membership', { collectionId: id(3), itemType: 'favorite', itemId: id(1) }),
+    record(5, 'membership', { collectionId: id(3), itemType: 'design', itemId: id(2) }),
+  ];
+  const open = indexedDB.open('aski-library');
+  open.onsuccess = () => {
+    const transaction = open.result.transaction('records', 'readwrite');
+    for (const item of records) transaction.objectStore('records').put(item);
+    transaction.oncomplete = () => { open.result.close(); resolve(); }; transaction.onerror = () => reject(transaction.error);
+  };
+}));
+test('signing in offers an explicit import that survives a lost reply and reaches another session', async ({ browser }, testInfo) => {
+  const project = testInfo.project.name; const owner = `${project}-import@example.test`;
+  const collections = (page: Page) => page.getByRole('region',{name:'Collections'});
+  const live = async (page: Page) => ((await (await page.request.get('/api/library')).json()).changes as { type: string; deletedAt: string | null }[]).filter(r => !r.deletedAt).map(r => r.type).sort();
+  const one = await visitor(browser, project);
+  await one.page.goto('/'); await expect(one.page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
+  await seedLocal(one.page); await one.page.reload();
+  await expect(collections(one.page).getByRole('listitem',{name:'Collection Keep'})).toBeVisible();
+  await signIn(one.page, owner);
+  const panel = one.page.getByRole('region',{name:'Import from this browser'});
+  await expect(panel).toContainText('This browser has 1 favorite, 1 design, 1 collection, 2 collection entries that are not in your account.');
+  await panel.getByRole('button',{name:'Review import'}).click();
+  await expect(panel.getByRole('list',{name:'Items to import'}).getByRole('listitem')).toHaveCount(4);
+  // Nothing is written before the visitor confirms.
+  expect(await live(one.page)).toEqual([]);
+  // The account commits the import, but the reply never reaches the page.
+  await one.page.route('**/api/library/mutations', async route => { await route.fetch(); await route.abort(); }, { times: 1 });
+  await panel.getByRole('button',{name:'Import into account'}).click();
+  await expect(panel.getByRole('status')).toContainText('The import stopped');
+  await panel.getByRole('button',{name:'Review import'}).click();
+  await panel.getByRole('button',{name:'Import into account'}).click();
+  await expect(panel.getByRole('status')).toContainText('already in your account');
+  expect(await live(one.page)).toEqual(['collection', 'design', 'favorite', 'membership', 'membership']);
+  // The browser copies are kept.
+  await one.page.getByRole('radio',{name:'This browser'}).check();
+  await expect(collections(one.page).getByRole('list',{name:'Items in Keep'}).getByRole('listitem')).toHaveCount(2);
+  // Another signed-in session reads the collection and reopens the style and the exact design.
+  const two = await visitor(browser, project);
+  await signIn(two.page, owner);
+  await expect(two.page.getByRole('region',{name:'Import from this browser'})).toHaveCount(0);
+  const keep = collections(two.page).getByRole('listitem',{name:'Collection Keep'});
+  await expect(keep.getByRole('list',{name:'Items in Keep'}).getByRole('listitem')).toHaveCount(2);
+  await keep.getByRole('button',{name:'Imported design',exact:true}).click();
+  await expect(two.page.getByRole('textbox',{name:'Text',exact:true})).toHaveValue('IMPORTED');
+  await keep.getByRole('button',{name:'Future',exact:true}).click();
+  await expect(two.page.getByLabel('Style',{exact:true})).toHaveValue('figlet/future');
+  await expect(two.page.getByRole('textbox',{name:'Text',exact:true})).toHaveValue('IMPORTED');
+  // A fresh import from the first browser finds nothing left to add.
+  await one.page.getByRole('radio',{name:'Account'}).check(); await one.page.reload();
+  await expect(one.page.getByText(`Signed in as ${owner}`)).toBeVisible();
+  await expect(one.page.getByRole('region',{name:'Import from this browser'})).toHaveCount(0);
+  for (const session of [one, two]) await session.context.close();
+});

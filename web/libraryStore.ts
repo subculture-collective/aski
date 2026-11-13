@@ -4,17 +4,19 @@ import type { Artifact, ArtifactMeta, LibraryRecord } from '../shared/library.ts
 const DATABASE = 'aski-library';
 const STORE = 'records';
 const ARTIFACTS = 'artifacts';
+const IMPORTS = 'imports';
 let opening: Promise<IDBDatabase> | null = null;
 function request<T>(value: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => { value.onsuccess = () => resolve(value.result); value.onerror = () => reject(value.error); });
 }
 function open() {
   opening ||= new Promise<IDBDatabase>((resolve, reject) => {
-    // Version 2 adds the artifact byte store; version-1 records are kept as they are.
-    const pending = indexedDB.open(DATABASE, 2);
+    // Version 2 adds the artifact byte store and version 3 the import maps; existing records are kept as they are.
+    const pending = indexedDB.open(DATABASE, 3);
     pending.onupgradeneeded = () => {
       for (const name of [STORE, ARTIFACTS]) if (!pending.result.objectStoreNames.contains(name))
         pending.result.createObjectStore(name, { keyPath: ['namespace', 'id'] }).createIndex('namespace', 'namespace');
+      if (!pending.result.objectStoreNames.contains(IMPORTS)) pending.result.createObjectStore(IMPORTS, { keyPath: 'subject' });
     };
     pending.onsuccess = () => {
       // Let another tab running a newer build upgrade the database; this tab reopens on its next use.
@@ -78,4 +80,15 @@ export async function readArtifact(id: string, namespace = LIBRARY_NAMESPACE) {
   const artifact = parseArtifact(await request(transaction.objectStore(ARTIFACTS).get([namespace, id])));
   if (await sha256(artifact.bytes) !== artifact.sha256) throw new Error('This saved file is damaged.');
   return artifact;
+}
+// One map per account from browser record UUIDs to account UUIDs. It holds IDs only, never content or tokens.
+export async function loadImportMap(subject: string): Promise<Record<string, string>> {
+  const transaction = (await open()).transaction(IMPORTS, 'readonly');
+  const row = await request(transaction.objectStore(IMPORTS).get(subject));
+  return row?.map && typeof row.map === 'object' ? row.map : {};
+}
+export async function saveImportMap(subject: string, map: Record<string, string>) {
+  const transaction = (await open()).transaction(IMPORTS, 'readwrite');
+  transaction.objectStore(IMPORTS).put({ subject, map });
+  await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = transaction.onabort = () => reject(transaction.error); });
 }

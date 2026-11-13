@@ -17,6 +17,7 @@ import { useScrollAnchor } from './useScrollAnchor.ts';
 import { useLibrary } from './useLibrary.ts';
 import { useAccount } from './useAccount.ts';
 import { useAccountLibrary } from './useAccountLibrary.ts';
+import { Import } from './Import.tsx';
 import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
 import { Colors } from './Colors.tsx';
@@ -277,6 +278,8 @@ export function App() {
           <small role="status">{inAccount ? (accountLibrary.loading ? 'Loading your account library…' : 'Saved to your account and available wherever you sign in. Work saved in this browser stays here and is not uploaded.')
             : 'Saved in this browser only. Nothing here is uploaded to your account.'}</small>
         </fieldset>}
+        {account.status === 'signed-in' && inAccount && <Import subject={account.subject} local={browserLibrary.records} remote={accountLibrary.records}
+          loading={accountLibrary.loading} send={accountLibrary.send} reload={accountLibrary.reload} />}
         <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
           onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
           onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}
