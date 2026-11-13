@@ -11,6 +11,7 @@ import type { Mailer } from './mail.ts';
 export interface AccountOptions { pool: Pool; origin: string; secret: string; mailer: Mailer | null; trustedProxyCIDRs?: string[] }
 export type AccountEnv = { Bindings: { peerIP: string } };
 const LIFETIME = 7 * 86400;
+const REFRESH = 86400;
 const normalizeIP = (ip: string) => ip.startsWith('::ffff:') ? ip.slice(7) : ip;
 export function createAccountService(options: AccountOptions) {
   const { pool, origin, secret, mailer } = options;
@@ -26,7 +27,7 @@ export function createAccountService(options: AccountOptions) {
   const auth = betterAuth({
     database: pool, baseURL: origin, secret, trustedOrigins: [origin],
     logger: { disabled: true }, verification: { storeIdentifier: 'plain' },
-    session: { expiresIn: LIFETIME, updateAge: 86400 },
+    session: { expiresIn: LIFETIME, updateAge: REFRESH },
     advanced: { useSecureCookies: true },
     // Public Better Auth routes are not mounted. The request wrapper enforces
     // atomic PostgreSQL limits before calling the server API, which bypasses
@@ -120,16 +121,22 @@ export function createAccountService(options: AccountOptions) {
     forwardCookies(c, response.headers);
     return c.json({ message: 'You are signed in.' });
   });
-  // Better Auth refreshes an active session once per 24 hours by sliding its expiry forward. The
-  // contract sets a 7-day absolute lifetime, so a refresh is clamped to the session's creation time
-  // plus 7 days, and an older session is revoked.
+  // Better Auth refreshes an active session by sliding its expiry forward. The contract sets a 7-day
+  // absolute lifetime, so a refresh is clamped to the session's creation time plus 7 days, and an
+  // older session is revoked. Better Auth decides when to refresh from the expiry, which the clamp
+  // pins, so the session is read without refresh and refreshed only when updatedAt is 24 hours old.
   app.get('/api/session', async c => {
-    const { headers, response } = await auth.api.getSession({ headers: c.req.raw.headers, returnHeaders: true });
+    const read = (disableRefresh: boolean) => auth.api.getSession({ headers: c.req.raw.headers, query: { disableRefresh }, returnHeaders: true });
+    let { headers, response } = await read(true);
     if (!response) { forwardCookies(c, headers); return c.json({ signedIn: false }); }
     const end = response.session.createdAt.getTime() + LIFETIME * 1000;
     if (end <= Date.now()) {
       forwardCookies(c, (await auth.api.signOut({ headers: c.req.raw.headers, asResponse: true })).headers);
       return c.json({ signedIn: false });
+    }
+    if (response.session.updatedAt.getTime() + REFRESH * 1000 <= Date.now()) {
+      ({ headers, response } = await read(false));
+      if (!response) { forwardCookies(c, headers); return c.json({ signedIn: false }); }
     }
     if (response.session.expiresAt.getTime() > end) await pool.query('UPDATE session SET "expiresAt" = $2 WHERE id = $1', [response.session.id, new Date(end)]);
     const remaining = String(Math.floor((end - Date.now()) / 1000));

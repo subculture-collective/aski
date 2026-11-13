@@ -189,6 +189,12 @@ test('refresh happens after 24 hours but never extends the 7-day absolute lifeti
   const row = (await pool.query('SELECT "createdAt", "updatedAt", "expiresAt" FROM session')).rows[0];
   assert.equal(row.expiresAt.getTime(), row.createdAt.getTime() + 7 * 86400_000);
   assert(Date.now() - row.updatedAt.getTime() < 60_000);
+  for (let i = 0; i < 2; i++) assert.equal((await session(cookie)).headers.getSetCookie().length, 0);
+  assert.equal((await pool.query('SELECT "updatedAt" FROM session')).rows[0].updatedAt.getTime(), row.updatedAt.getTime());
+  await pool.query(`UPDATE session SET "createdAt" = "createdAt" - INTERVAL '1 day', "updatedAt" = "updatedAt" - INTERVAL '1 day', "expiresAt" = "expiresAt" - INTERVAL '1 day'`);
+  const again = await session(cookie);
+  const againAge = Number(/max-age=(\d+)/i.exec(sessionCookie(again))![1]);
+  assert(againAge <= 4 * 86400 && againAge > 4 * 86400 - 60, String(againAge));
   await pool.query(`UPDATE session SET "createdAt" = "createdAt" - INTERVAL '5 days 1 minute', "updatedAt" = "updatedAt" - INTERVAL '2 days'`);
   const expired = await session(cookie);
   assert.deepEqual(await expired.json(), { signedIn: false });
