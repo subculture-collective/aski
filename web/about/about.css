@@ -1,5 +1,6 @@
 @import '../brand-tokens.css';
 @import '../brand-fonts.css';
+@import '../art-font.css';
 /* About page: a specimen book in the Lilac identity. Paper is the page, ink frames the masthead artwork,
    lime marks the studio link, violet marks the chosen filter. */
 *{box-sizing:border-box;}
@@ -17,7 +18,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:2px;}
 .btn.primary:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--aski-ink);}
 .btn[aria-pressed="true"]{background:var(--aski-secondary);outline:2px solid var(--aski-ink);outline-offset:-6px;}
 .btn[aria-pressed="true"]:focus-visible{outline:3px solid var(--aski-focus);outline-offset:2px;}
-.art{font-family:ui-monospace,'Cascadia Mono','Liberation Mono',monospace;white-space:pre;line-height:1;margin:0;overflow-x:auto;padding:16px;}
+.art{font-family:'aski Art Mono',ui-monospace,'Cascadia Mono','Liberation Mono',monospace;white-space:pre;line-height:1;margin:0;overflow-x:auto;padding:16px;}
 .art.pending{font-family:var(--aski-body);white-space:normal;color:var(--aski-muted);font-size:14px;}
 .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px clamp(16px,4vw,40px);}
 .top nav{display:flex;align-items:center;gap:20px;flex-wrap:wrap;font-weight:700;font-size:15px;}

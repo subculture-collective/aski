@@ -8,6 +8,9 @@ test('about page shows every family as a live specimen with a working look filte
   await expect(rows).toHaveCount(families.length);
   for (const family of families) await expect(page.getByRole('img', { name: `“hello” in ${family.name} lettering`, exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: '“aski” in Classy lettering', exact: true })).toBeVisible();
+  // The bundled lettering face loads, so families such as Circle draw the same on every device.
+  await expect(page.getByRole('img', { name: '“hello” in Circle lettering', exact: true })).toHaveCSS('font-family', /^"?aski Art Mono"?,/);
+  await expect.poll(() => page.evaluate(() => [...document.fonts].some(face => face.family.replace(/"/g, '') === 'aski Art Mono' && face.status === 'loaded'))).toBe(true);
 
   await page.getByLabel('Sample text', { exact: true }).fill('zine é');
   await expect(page.getByRole('img', { name: '“zine é” in Pagga lettering', exact: true })).toBeVisible();

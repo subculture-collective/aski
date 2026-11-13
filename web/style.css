@@ -1,5 +1,6 @@
 @import './brand-tokens.css';
 @import './brand-fonts.css';
+@import './art-font.css';
 *{box-sizing:border-box;}
 html{overflow-anchor:none;background:var(--aski-paper);color:var(--aski-ink);font-family:var(--aski-body);font-synthesis:none;}
 body{overflow-anchor:none;margin:0;font-size:16px;line-height:1.4;}
@@ -38,7 +39,7 @@ small{font-size:13px;color:var(--aski-muted);}
 .output-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px;border-bottom:var(--aski-border);min-height:84px;flex-wrap:wrap;}
 .output-heading h2{font-size:26px;}
 .output-heading span{font-family:var(--aski-body);font-size:13px;color:var(--aski-muted);}
-pre{margin:0;padding:32px 24px;min-height:300px;max-height:60vh;overflow:auto;white-space:pre;font-family:ui-monospace,'Cascadia Mono','Liberation Mono',monospace;font-size:18px;line-height:1.15;tab-size:4;}
+pre{margin:0;padding:32px 24px;min-height:300px;max-height:60vh;overflow:auto;white-space:pre;font-family:'aski Art Mono',ui-monospace,'Cascadia Mono','Liberation Mono',monospace;font-size:18px;line-height:1.15;tab-size:4;}
 .status{min-height:48px;padding:12px 20px;font-size:14px;border-top:2px solid var(--aski-paper);color:var(--aski-muted);}
 .artwork>button{margin:0 20px 16px;}
 .warning{font-size:14px;margin:0;padding:12px;background:var(--aski-paper);border-left:3px solid var(--aski-focus);overflow-wrap:anywhere;}
@@ -75,7 +76,7 @@ dialog h2{margin-bottom:20px;}
 dialog form{display:grid;gap:12px;}
 dialog form button{background:var(--aski-accent);}
 dialog p{margin:16px 0;}
-dialog textarea{min-height:220px;font-family:ui-monospace,monospace;}
+dialog textarea{min-height:220px;font-family:'aski Art Mono',ui-monospace,monospace;}
 @media(max-width:760px){
   main{padding:16px 16px 24px;} header{gap:12px;margin-bottom:20px;padding-bottom:16px;flex-wrap:wrap;}
   h1 img{width:128px;height:44px;} .header-actions{gap:8px;} button{padding:8px 12px;}
