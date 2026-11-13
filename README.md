@@ -69,7 +69,8 @@ make test-ui       # browser tests in Chromium, Firefox and WebKit, plus phone a
 `make test-account` and `make test-account-ui` need Docker; they start their own
 temporary PostgreSQL 17 database and capture mail locally. Smaller targets:
 `make test-render`, `make test-export`, `make test-animation`,
-`make test-storage`.
+`make test-storage`. `make qualify-export` records export and GIF timings in
+every browser project ([export qualification](docs/export-qualification.md)).
 
 To run the sign-in request service next to the editor, set the variables below,
 then:

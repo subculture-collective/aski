@@ -1,4 +1,4 @@
-.PHONY: check typecheck lint test build test-ui dev test-export test-animation
+.PHONY: check typecheck lint test build test-ui dev test-export test-animation qualify-export
 check: typecheck lint test test-render test-account check-brand build
 test-account:
 	npm run test:account
@@ -28,3 +28,6 @@ dev:
 
 check-brand:
 	node scripts/import-brand.mjs
+qualify-export:
+	npm run build
+	ASKI_QUALIFY=1 npx playwright test tests/qualify.spec.ts
