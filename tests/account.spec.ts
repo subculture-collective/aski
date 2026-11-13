@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Browser, Page } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 test.skip(process.env.ASKI_ACCOUNT_TEST !== '1', 'Run make test-account-ui for an isolated database and capture transport.');
 // The capture server trusts the preview proxy's forwarded address; each context acts as its own visitor.
 const projects = ['chromium', 'firefox', 'phone'];
@@ -106,7 +108,6 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   await signIn(one.page, owner);
   await expect(one.page.getByRole('radio',{name:'Account'})).toBeChecked();
   await expect(saved(one.page).getByText('No saved text yet.')).toBeVisible();
-  await expect(saved(one.page).getByRole('group',{name:'With a saved design, also keep'})).toHaveCount(0);
   await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('ACCOUNT ART');
   await expect(one.page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
   await saved(one.page).getByRole('button',{name:'Save design',exact:true}).click();
@@ -284,4 +285,45 @@ test('unsent changes stay bound to their account after the session ends and can 
   await expect(waiting.getByRole('status')).toHaveText('Copied 1 item into this browser’s library.');
   await expect(savedText(one.page).getByRole('listitem',{name:'Text NOT YET SENT'})).toBeVisible();
   await one.context.close();
+});
+test('a saved animated design and its GIF reach another session byte for byte, and its file stays private to the account', async ({ browser }, testInfo) => {
+  const project = testInfo.project.name; const owner = `${project}-files@example.test`;
+  const animation = (page: Page) => page.getByRole('region',{name:'Animation'}); const gif = (page: Page) => page.getByRole('group',{name:'GIF export'});
+  const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
+  const one = await visitor(browser, project);
+  await one.page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(one.page, owner);
+  await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('MOVE');
+  await animation(one.page).getByRole('radio',{name:'Glitch'}).check();
+  await animation(one.page).getByLabel('Frame rate').selectOption('10');
+  await animation(one.page).getByLabel('Duration (seconds)').fill('1'); await animation(one.page).getByLabel('Duration (seconds)').press('Enter');
+  await gif(one.page).getByRole('button',{name:'Create GIF'}).click();
+  await expect(one.page.getByTestId('gif-result')).toBeVisible({ timeout: 20_000 });
+  const [made] = await Promise.all([one.page.waitForEvent('download'), gif(one.page).getByRole('link',{name:'Download GIF'}).click()]);
+  const original = readFileSync((await made.path())!);
+  await gif(one.page).getByRole('button',{name:'Save design with this GIF'}).click();
+  await expect(one.page.getByTestId('gif-save-note')).toHaveText('Saved with this GIF in Saved work.');
+  await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved', { timeout: 15_000 });
+  const [file] = (await (await one.page.request.get('/api/artifacts')).json()).artifacts;
+  expect(file).toMatchObject({ mime: 'image/gif', sha256: sha(original), byteLength: original.length });
+  // Another session for the account reopens the design and downloads the identical GIF.
+  const two = await visitor(browser, project);
+  await signIn(two.page, owner);
+  const design = two.page.getByRole('region',{name:'Saved work'}).getByRole('listitem',{name:'Design ANSI Compact: MOVE',exact:true});
+  await expect(design.getByText(/^Original GIF/)).toBeVisible();
+  await design.getByRole('button',{name:'ANSI Compact: MOVE',exact:true}).click();
+  await expect(animation(two.page).getByRole('radio',{name:'Glitch'})).toBeChecked();
+  const [download] = await Promise.all([two.page.waitForEvent('download'), design.getByRole('button',{name:'Download original'}).click()]);
+  expect(download.suggestedFilename()).toMatch(/\.gif$/);
+  expect(sha(readFileSync((await download.path())!))).toBe(sha(original));
+  // Another account gets the same answer as for a file that does not exist.
+  const other = await visitor(browser, project);
+  await signIn(other.page, `${project}-not-the-owner@example.test`);
+  const [guessed, unknown] = [await other.page.request.get(`/api/artifacts/${file.id}`), await other.page.request.get('/api/artifacts/00000000-0000-4000-8000-000000000000')];
+  expect(guessed.status()).toBe(404); expect(await guessed.json()).toEqual(await unknown.json());
+  // Deleting the design removes its file from the account once no design uses it.
+  await design.getByRole('button',{name:'Delete'}).click(); await design.getByRole('button',{name:'Confirm delete'}).click();
+  await expect(two.page.getByTestId('sync-status')).toContainText('All changes are saved', { timeout: 15_000 });
+  expect((await (await two.page.request.get('/api/artifacts')).json()).artifacts).toEqual([]);
+  for (const session of [one, two, other]) await session.context.close();
 });

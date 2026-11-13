@@ -1,5 +1,5 @@
 import { LIBRARY_NAMESPACE, createRecord, findFavorite, parseArtifact, parseRecord, sha256 } from '../shared/library.ts';
-import type { Artifact, ArtifactMeta, FavoritePayload, LibraryRecord, MembershipPayload, RecordType } from '../shared/library.ts';
+import type { Artifact, ArtifactMeta, DesignPayload, FavoritePayload, LibraryRecord, MembershipPayload, RecordType } from '../shared/library.ts';
 import type { OutboxEntry } from '../shared/outbox.ts';
 // IndexedDB keeps the local library; it can later hold artifact bytes, which localStorage cannot.
 const DATABASE = 'aski-library';
@@ -117,13 +117,32 @@ export async function saveAccountCache(state: SyncState, changes: LibraryRecord[
   function write() { for (const record of changes) store.put(record); transaction.objectStore(SYNC).put(state); }
   await done(transaction);
 }
-// On sign-out the cached account records are removed. Unsent changes stay, bound to their account.
+// Image file bytes kept for an account: files waiting to upload, and downloaded copies.
+export async function putArtifacts(artifacts: Artifact[]) {
+  const transaction = (await open()).transaction(ARTIFACTS, 'readwrite');
+  for (const artifact of artifacts) transaction.objectStore(ARTIFACTS).put(parseArtifact(artifact));
+  await done(transaction);
+}
+export async function deleteArtifactBytes(namespace: string, ids: string[]) {
+  const transaction = (await open()).transaction(ARTIFACTS, 'readwrite');
+  for (const id of ids) transaction.objectStore(ARTIFACTS).delete([namespace, id]);
+  await done(transaction);
+}
+// File IDs that unsent changes still need: files waiting to upload and files listed by queued designs.
+const queuedFiles = (state: SyncState | undefined) => new Set((state?.outbox ?? []).flatMap(entry => [
+  ...(entry.upload ? [entry.upload] : []),
+  ...entry.mutations.flatMap(m => 'delete' in m || m.type !== 'design' ? [] : (m.payload as DesignPayload).artifacts ?? [])]));
+// On sign-out the cached account records and downloaded files are removed. Unsent changes, and the files
+// they need, stay, bound to their account.
 export async function forgetAccountCache(subject: string) {
-  const transaction = (await open()).transaction([STORE, SYNC], 'readwrite');
-  const keys = transaction.objectStore(STORE).index('namespace').getAllKeys('account:' + subject);
-  keys.onsuccess = () => { for (const key of keys.result) transaction.objectStore(STORE).delete(key); };
-  const state = transaction.objectStore(SYNC).get(subject);
-  state.onsuccess = () => { if (state.result) transaction.objectStore(SYNC).put({ ...state.result, cursor: '' }); };
+  const namespace = 'account:' + subject;
+  const transaction = (await open()).transaction([STORE, ARTIFACTS, SYNC], 'readwrite');
+  const state = await request(transaction.objectStore(SYNC).get(subject)) as SyncState | undefined;
+  const needed = queuedFiles(state);
+  for (const key of await request(transaction.objectStore(STORE).index('namespace').getAllKeys(namespace))) transaction.objectStore(STORE).delete(key);
+  for (const key of await request(transaction.objectStore(ARTIFACTS).index('namespace').getAllKeys(namespace)))
+    if (!needed.has((key as string[])[1])) transaction.objectStore(ARTIFACTS).delete(key);
+  if (state) transaction.objectStore(SYNC).put({ ...state, cursor: '' });
   await done(transaction);
 }
 export async function waitingChanges(): Promise<SyncState[]> {
@@ -133,7 +152,7 @@ export async function waitingChanges(): Promise<SyncState[]> {
 // Copies an account's unsent changes into this browser's library as new items, then clears them, in one
 // transaction. Deletions are not copied. Collection entries are kept when both ends were copied.
 export async function copyWaitingToBrowser(subject: string) {
-  const transaction = (await open()).transaction([STORE, SYNC], 'readwrite');
+  const transaction = (await open()).transaction([STORE, ARTIFACTS, SYNC], 'readwrite');
   const state = await request(transaction.objectStore(SYNC).get(subject)) as SyncState | undefined;
   const latest = new Map<string, { type: RecordType; payload: unknown }>();
   for (const entry of state?.outbox ?? []) for (const m of entry.mutations) {
@@ -150,7 +169,20 @@ export async function copyWaitingToBrowser(subject: string) {
     if (type === 'membership') continue;
     // This browser keeps one favorite per style; an equal one already here is used instead.
     const existing = type === 'favorite' ? findFavorite(local, payload as FavoritePayload) : undefined;
-    if (existing) ids.set(id, existing.id); else put(type, payload, ids.get(id)!);
+    if (existing) { ids.set(id, existing.id); continue; }
+    let value = payload;
+    if (type === 'design' && (payload as DesignPayload).artifacts?.length) {
+      // The design's files are copied into this browser's library under new IDs; a file that is not here is left out.
+      const files: string[] = [];
+      for (const fileId of (payload as DesignPayload).artifacts!) {
+        const file = await request(transaction.objectStore(ARTIFACTS).get(['account:' + subject, fileId]));
+        if (!file) continue;
+        const copy = { ...file, namespace: LIBRARY_NAMESPACE, id: crypto.randomUUID() };
+        transaction.objectStore(ARTIFACTS).put(copy); files.push(copy.id);
+      }
+      value = { ...(payload as DesignPayload), artifacts: files };
+    }
+    put(type, value, ids.get(id)!);
   }
   for (const [, { type, payload }] of latest) {
     if (type !== 'membership') continue;

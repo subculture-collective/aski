@@ -1,14 +1,16 @@
 import { MAX_NAME } from './library.ts';
-import type { LibraryRecord, MembershipPayload, RecordType } from './library.ts';
+import type { DesignPayload, LibraryRecord, MembershipPayload, RecordType } from './library.ts';
 // The signed-in library's queue of changes not yet acknowledged by the account service
 // (docs/account-sync-contract.md). Entries are sent in order, one batch at a time. An entry keeps the exact
 // request bytes once sent, so a retry repeats them; an entry is rewritten only after the server refused it,
 // which rolls the whole batch back.
 export type Mutation = { requestId: string; entityId: string; baseRevision: number }
   & ({ delete: true } | { type: RecordType; schemaVersion: 1; payload: unknown });
-export interface OutboxEntry { id: string; at: string; mutations: Mutation[]; body?: string }
+// An entry is a batch of record changes, the upload of one image file (whose bytes wait in IndexedDB), or the
+// removal of one image file no design uses any more. File entries carry no record changes.
+export interface OutboxEntry { id: string; at: string; mutations: Mutation[]; body?: string; upload?: string; removeArtifact?: string }
 // A refused batch: the status, the record the refusal is about, and the server's current copy of it.
-export interface Rejection { status: number; message: string; entityId?: string; record?: Omit<LibraryRecord, 'namespace'>; duplicate?: boolean }
+export interface Rejection { status: number; message: string; entityId?: string; record?: Omit<LibraryRecord, 'namespace'>; duplicate?: boolean; code?: 'artifact' }
 const isDelete = (m: Mutation): m is Mutation & { delete: true } => 'delete' in m;
 // The server adds exactly one revision per accepted change, so a queued change's base is the last known
 // revision plus the changes already queued for the same record.
@@ -59,7 +61,12 @@ export function resolveRejection(outbox: OutboxEntry[], rejection: Rejection, ne
   let replacement: Mutation[] = [], notice = '';
   // Later changes to m's record move to `to`; their base revision is recomputed from the old one.
   let remap: { from: string; to: string; base: (old: number) => number } | null = null;
-  if (rejection.status === 409 && rejection.duplicate && server) {
+  if (rejection.code === 'artifact' && !isDelete(m) && m.type === 'design') {
+    // A design is never lost for a missing file: it is saved without the files the account does not have.
+    const { artifacts: _artifacts, ...design } = m.payload as DesignPayload; void _artifacts;
+    replacement = [{ ...m, requestId: newId(), payload: design }];
+    notice = `${label(m)} was saved to your account without its image files, which the account does not have. They are still kept in this browser.`;
+  } else if (rejection.status === 409 && rejection.duplicate && server) {
     remap = { from: m.entityId, to: server.id, base: old => server.revision + old - m.baseRevision - 1 };
   } else if ((rejection.status === 409 && server) || rejection.status === 404) {
     if (isDelete(m)) notice = server && !server.deletedAt ? 'An item you deleted was changed in another session, so the changed version was kept.' : '';
@@ -85,6 +92,23 @@ export function resolveRejection(outbox: OutboxEntry[], rejection: Rejection, ne
   };
   // Nothing after the refused batch has been sent, and the refused batch was rolled back, so both may change.
   const mutations = [...head.mutations.slice(0, index), ...replacement, ...head.mutations.slice(index + 1).map(move)];
-  const later = rest.map(entry => ({ id: entry.id, at: entry.at, mutations: entry.mutations.map(move) }));
-  return { outbox: mutations.length ? [{ id: head.id, at: head.at, mutations }, ...later] : later, notice };
+  const later = rest.map(entry => reset(entry, entry.mutations.map(move)));
+  return { outbox: mutations.length ? [reset(head, mutations), ...later] : later, notice };
+}
+// A changed entry has never been accepted, so it loses its stored bytes and is serialized again.
+function reset(entry: OutboxEntry, mutations: Mutation[]): OutboxEntry {
+  const { body: _body, ...rest } = entry; void _body;
+  return { ...rest, mutations };
+}
+// Removes a file upload the account refused, and that file from every later queued design. The designs
+// themselves are kept.
+export function dropUpload(outbox: OutboxEntry[], artifactId: string): OutboxEntry[] {
+  return outbox.filter(entry => entry.upload !== artifactId).map(entry => {
+    if (!entry.mutations.some(m => !isDelete(m) && m.type === 'design' && (m.payload as DesignPayload).artifacts?.includes(artifactId))) return entry;
+    return reset(entry, entry.mutations.map(m => {
+      if (isDelete(m) || m.type !== 'design' || !(m.payload as DesignPayload).artifacts?.includes(artifactId)) return m;
+      const payload = m.payload as DesignPayload;
+      return { ...m, payload: { ...payload, artifacts: payload.artifacts!.filter(id => id !== artifactId) } };
+    }));
+  });
 }
