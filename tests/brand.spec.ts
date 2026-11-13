@@ -28,11 +28,12 @@ test('Lilac typography and controls stay usable with keyboard, touch and wide ar
   await page.emulateMedia({reducedMotion:'reduce'});
   await expect(page.getByRole('button',{name:'Copy text',exact:true})).toHaveCSS('transition-duration','0s');
 });
-test('the confirmation route clears its fragment without requesting redemption', async ({ page }) => {
+test('the confirmation route clears its fragment and waits for Continue before redeeming', async ({ page }) => {
   const requests: string[]=[]; page.on('request',request=>requests.push(request.url()));
-  await page.goto('/auth/confirm#token=synthetic-test-value');
-  await expect(page.getByText('Sign-in confirmation is unavailable.')).toBeVisible();
+  await page.goto('/auth/confirm#token=SyntheticTestValue0123456789abcdef');
+  await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeVisible();
   expect(new URL(page.url()).hash).toBe('');
-  expect(requests.some(url=>url.includes('/magic-link/verify'))).toBe(false);
-  expect(await page.evaluate(()=>JSON.stringify(localStorage).includes('synthetic-test-value'))).toBe(false);
+  // Opening the link, as a mail scanner would, must not send the token anywhere.
+  expect(requests.some(url=>new URL(url).pathname.startsWith('/api/') || url.includes('SyntheticTestValue'))).toBe(false);
+  expect(await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}).includes('SyntheticTestValue'))).toBe(false);
 });
