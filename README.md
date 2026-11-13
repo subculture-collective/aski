@@ -51,6 +51,9 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run dev        # http://127.0.0.1:5173
 ```
 
+The studio is at `/`. The about page at `/about/` is a specimen of every font
+family, drawn with the studio's renderer.
+
 Copying to the clipboard needs HTTPS or localhost; otherwise **Copy text** opens
 a dialog you can copy from by hand.
 

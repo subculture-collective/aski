@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 const root = new URL('../', import.meta.url);
 const selection = JSON.parse(await readFile(new URL('brand/handoff.json',root)));
 const fonts = JSON.parse(await readFile(new URL('shared/catalog-data.json',root)));
-const allowed = new Set(['index.html','site.webmanifest','font-notice.txt','figlet-license.txt',
+const allowed = new Set(['index.html','about/index.html','site.webmanifest','font-notice.txt','figlet-license.txt',
   ...selection.files.filter(row=>row.destination.startsWith('public/')).map(row=>row.destination.slice(7)),
   ...fonts.flatMap(font=>[font.path.slice(1),font.noticePath.slice(1)])]);
 async function walk(path='') {

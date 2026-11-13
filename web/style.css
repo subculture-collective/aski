@@ -1,7 +1,5 @@
 @import './brand-tokens.css';
-@font-face{font-family:Fraunces;src:url('/brand/fonts/Fraunces-1.ttf') format('truetype');font-weight:700;font-display:swap;}
-@font-face{font-family:'Atkinson Hyperlegible Next';src:url('/brand/fonts/AtkinsonHyperlegibleNext-Regular.otf') format('opentype');font-weight:400;font-display:swap;}
-@font-face{font-family:'Atkinson Hyperlegible Next';src:url('/brand/fonts/AtkinsonHyperlegibleNext-Bold.otf') format('opentype');font-weight:700;font-display:swap;}
+@import './brand-fonts.css';
 *{box-sizing:border-box;}
 html{overflow-anchor:none;background:var(--aski-paper);color:var(--aski-ink);font-family:var(--aski-body);font-synthesis:none;}
 body{overflow-anchor:none;margin:0;font-size:16px;line-height:1.4;}
