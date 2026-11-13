@@ -1,6 +1,6 @@
 # Account library
 
-Issue [#51](https://github.com/subculture-collective/aski/issues/51) adds a library stored in the visitor's account, using the record types of the [local library](library.md) and the wire protocol in the [account contract](account-sync-contract.md). Sign-in and sessions are described in [sessions.md](sessions.md). Issue [#55](https://github.com/subculture-collective/aski/issues/55) adds the explicit import of the browser library. Offline changes, conflict copies and image files are later work (#59, #63).
+Issue [#51](https://github.com/subculture-collective/aski/issues/51) adds a library stored in the visitor's account, using the record types of the [local library](library.md) and the wire protocol in the [account contract](account-sync-contract.md). Sign-in and sessions are described in [sessions.md](sessions.md). Issue [#55](https://github.com/subculture-collective/aski/issues/55) adds the explicit import of the browser library. Issue [#59](https://github.com/subculture-collective/aski/issues/59) adds the offline copy, the queue of unsent changes and conflict handling. Image files are later work (#63).
 
 ## In the studio
 
@@ -8,7 +8,39 @@ When a visitor is signed in, a **Library** choice appears above Saved work: **Ac
 
 In the account library, Save text, Save design, rename, delete, favorites, collections and palettes work as they do locally. A design is saved with its recipe and exact text; image files are not stored in accounts yet, so the PNG/SVG options are hidden and **Save design with this GIF** saves the design without the GIF and says so. Another signed-in session for the same account sees the changes when it loads or comes back into view.
 
-The page keeps no offline copy of the account library. A change that cannot be sent (offline, rate-limited, session ended) is reported and not retried; the draft is never affected. If an item changed in another session, the change is refused, the latest version is shown and the visitor can apply the change again.
+## Offline copy and unsent changes
+
+This browser keeps a copy of the signed-in account's records and a queue of its unsent changes, both under that account's user ID. A change shows at once, is written to the queue in IndexedDB, and only then is sent. The queue is sent in order, one batch at a time. The status line under **Library** says whether everything is saved, how many changes are being sent, or that the account cannot be reached and how many changes are kept in this browser.
+
+- **Retries.** A batch keeps the exact bytes it was first sent with until the server acknowledges it, so a retry after a lost reply returns the original result instead of writing twice. Network failures and server errors retry after 2, 5, 15, 30 and then every 60 seconds, and at once when the browser comes back online or the page comes back into view. A rate limit waits for its `Retry-After`.
+- **Revisions.** The server adds exactly one revision per accepted change, so a queued change's base revision is the last acknowledged revision plus the changes already queued for that record. Several offline edits to one item therefore apply in order.
+- **Offline reload.** The last signed-in account's user ID and address are kept in localStorage (`aski:account`; never a token). If the session check fails because the service cannot be reached, the studio shows that account as "(offline)" with its copy and queue, keeps queueing changes, and checks again every 30 seconds and when the browser comes back online. A signed-out answer, a different account or sign-out removes that entry.
+- **Session ends.** If the server answers `401`, the page signs out. The account's copy is removed from this browser; its unsent changes stay, bound to that account.
+- **Resync.** When the server asks for a full resync, the copy is rebuilt from the start and the queue is kept and checked against the fresh copy when it is sent.
+
+Drafts, the browser library and exports never depend on any of this.
+
+## Conflicts and deletions
+
+When the server refuses a batch it keeps nothing from it and names the refused change (`entityId`, plus the current `record` for `409`). The page rewrites only that change, following `shared/outbox.ts`, and sends the batch again:
+
+| Situation | Result |
+| --- | --- |
+| The item was edited in another session | The other session's version stays. The local edit is saved as a new item named "… (conflicting copy)". |
+| The item was deleted in another session, or the account does not have it | The deletion stays. The local edit is saved as a new item named "… (recovered)". A deleted UUID is never reused. |
+| A local delete of an item edited elsewhere | The edited version is kept and the visitor is told. A delete is never turned into a create. |
+| A local delete of an item already deleted | Nothing more to do. |
+| A new favorite or collection entry the account already has | The account's existing one is used. |
+| Any other refusal (for example, an invalid name) | That change is dropped and the message is shown. |
+
+Queued changes that come later and refer to the same item, including collection entries, follow it to its new UUID with matching revisions. Nothing behind the refused batch has been sent yet, so rewriting them is safe.
+
+The contract asks for a conflict copy to carry `conflictOf`. Record payloads have no such field and the server refuses unknown fields, so the copy is marked by its name instead. Adding the field means a new payload schema version; that is left for review.
+
+## Unsent changes for another account
+
+While a different account, or none, is signed in, an **Unsent account changes** panel lists each other account's queue with its address. Those changes are sent when that account signs in here again and never to a different account. **Copy to this browser** turns them into new items in the browser library (deletions are not copied; favorites already here are reused; collection entries are kept when both ends were copied) and clears the queue in the same transaction. **Discard** asks for confirmation, then clears it.
+
 
 ## Import from this browser
 
@@ -50,6 +82,8 @@ The response is `{ results, changes }`: one `{ requestId, entityId, revision }` 
 - `aski_library_owner` holds each owner's latest sequence number. A write locks that row until it commits, so writes for one owner are serialized and a reader never sees a later change without the earlier ones.
 - `aski_library_request` records each accepted mutation's hash and result for retries.
 
+A refusal names the change it is about with `entityId`. A new favorite or collection entry equal to a live one returns `409` with `duplicate: true` and the existing record.
+
 Tombstone expiry, request-record expiry and account deletion are not implemented yet.
 
 
@@ -59,6 +93,8 @@ Tombstone expiry, request-record expiry and account deletion are not implemented
 
 `make test-account-ui` adds a browser case in Chromium, Firefox and the phone viewport. It saves text in the browser library, signs in, and checks that the account library is shown and the local text was not uploaded. It saves and renames a design in the account, signs in again in a second browser context and reopens it there, signs in as another account and finds nothing through the interface or the API, deletes the design from the second context, and checks that the first context no longer lists it and that its local text is still there under **This browser**. A second case seeds the browser library with a collection holding a favorite style and an exact design, signs in, and checks the import scope and that nothing is written before confirmation. It lets the account commit the import while the page never gets the reply, imports again and checks the account holds exactly five records, checks the browser copies are still there, then reopens the style and the design from the collection in a second signed-in session and checks that a later import offers nothing.
 
-`make test-storage` runs `shared/sync.test.ts`: reference order and mapping, dropped image files, a repeated import that sends nothing, an interrupted import resuming with the same UUIDs, reuse of the account's equal favorites and entries, equally named collections kept apart, records deleted in the account not coming back, and deleted browser records not imported.
+`make test-storage` runs `shared/outbox.test.ts`: chained revisions and the pending view, a queued delete hiding collection entries, a concurrent edit becoming a named copy with later edits and entries following it, edits of deleted or unknown items recovered as new items, deletes never replayed as creates, duplicate favorites reusing the account's, and refusals with and without a named change. It also runs `shared/sync.test.ts`: reference order and mapping, dropped image files, a repeated import that sends nothing, an interrupted import resuming with the same UUIDs, reuse of the account's equal favorites and entries, equally named collections kept apart, records deleted in the account not coming back, and deleted browser records not imported.
+
+Three more cases cover #59. With every account request failing, a saved text waits, survives a reload that shows the account as offline, drafting still works, and the change is sent once the service returns. Two sessions of one account edit while the second cannot send: the first renames one text and deletes another, the second renames both; afterwards both sessions and the API show the first session's name, the second's as a conflicting copy and its other edit as a recovered item. A session that ends with a change waiting signs out, lists the change under its address, does not send it after another account signs in, and copies it into the browser library.
 
 Each browser context sends its own test address through the preview proxy, which the capture server trusts, so the per-IP sign-in limits apply per context.

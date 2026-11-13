@@ -18,6 +18,7 @@ import { useLibrary } from './useLibrary.ts';
 import { useAccount } from './useAccount.ts';
 import { useAccountLibrary } from './useAccountLibrary.ts';
 import { Import } from './Import.tsx';
+import { WaitingChanges } from './WaitingChanges.tsx';
 import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
 import { Colors } from './Colors.tsx';
@@ -59,11 +60,18 @@ export function App() {
   const [chosenVariants, setChosenVariants] = useState<Record<string, string>>({});
   const { account, signedOut } = useAccount();
   const browserLibrary = useLibrary();
-  const accountLibrary = useAccountLibrary(account.status === 'signed-in' ? account.subject : null, signedOut);
+  // Offline, the account's copy in this browser stays usable and its changes wait to be sent.
+  const hasAccount = account.status === 'signed-in' || account.status === 'offline';
+  const accountLibrary = useAccountLibrary(hasAccount ? account.subject : null, account.email, account.status === 'signed-in', signedOut);
   // Signed in, the account library is shown unless the visitor picks this browser's library. Neither
   // is copied into the other.
   const [browserOnly, setBrowserOnly] = useState(false);
-  const library = account.status === 'signed-in' && !browserOnly ? accountLibrary : browserLibrary;
+  const library = hasAccount && !browserOnly ? accountLibrary : browserLibrary;
+  const waiting = accountLibrary.waiting === 1 ? '1 change' : `${accountLibrary.waiting} changes`;
+  const syncText = accountLibrary.loading ? 'Loading your account library…'
+    : accountLibrary.status === 'offline' ? (accountLibrary.waiting ? `Offline. ${waiting} kept in this browser and sent when your account can be reached.` : 'Offline. Showing the copy of your account library kept in this browser; changes are sent when your account can be reached.')
+      : accountLibrary.waiting ? `Sending ${waiting} to your account. ${accountLibrary.waiting === 1 ? 'It is' : 'They are'} kept in this browser until then.`
+        : 'All changes are saved to your account and available wherever you sign in. Work saved in this browser stays here and is not uploaded.';
   const inAccount = library.kind === 'account';
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   // On phones the editor sticks to the top, so content behind it is not in view.
@@ -271,15 +279,15 @@ export function App() {
             </optgroup>)}
           </select>
         </div>
-        {account.status === 'signed-in' && <fieldset className="library-source">
+        {hasAccount && <fieldset className="library-source">
           <legend>Library</legend>
           <label><input type="radio" name="library-source" checked={!browserOnly} onChange={() => setBrowserOnly(false)} />Account</label>
           <label><input type="radio" name="library-source" checked={browserOnly} onChange={() => setBrowserOnly(true)} />This browser</label>
-          <small role="status">{inAccount ? (accountLibrary.loading ? 'Loading your account library…' : 'Saved to your account and available wherever you sign in. Work saved in this browser stays here and is not uploaded.')
-            : 'Saved in this browser only. Nothing here is uploaded to your account.'}</small>
+          <small role="status" data-testid="sync-status">{inAccount ? syncText : 'Saved in this browser only. Nothing here is uploaded to your account.'}</small>
         </fieldset>}
         {account.status === 'signed-in' && inAccount && <Import subject={account.subject} local={browserLibrary.records} remote={accountLibrary.records}
           loading={accountLibrary.loading} send={accountLibrary.send} reload={accountLibrary.reload} />}
+        {account.status !== 'checking' && <WaitingChanges current={hasAccount ? account.subject : ''} onCopied={browserLibrary.reread} />}
         <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
           onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
           onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}

@@ -200,3 +200,88 @@ test('signing in offers an explicit import that survives a lost reply and reache
   await expect(one.page.getByRole('region',{name:'Import from this browser'})).toHaveCount(0);
   for (const session of [one, two]) await session.context.close();
 });
+const savedText = (page: Page) => page.getByRole('region',{name:'Saved work'}).getByRole('list',{name:'Saved text'});
+const liveRecords = async (page: Page) => ((await (await page.request.get('/api/library')).json()).changes as { type: string; deletedAt: string | null; payload: { name?: string } }[]).filter(r => !r.deletedAt);
+async function saveText(page: Page, text: string) {
+  await page.getByRole('textbox',{name:'Text',exact:true}).fill(text);
+  await page.getByRole('region',{name:'Saved work'}).getByRole('button',{name:'Save text',exact:true}).click();
+}
+async function renameText(page: Page, from: string, to: string) {
+  const item = savedText(page).getByRole('listitem',{name:`Text ${from}`});
+  await item.getByRole('button',{name:'Rename'}).click(); await item.getByLabel('Name',{exact:true}).fill(to); await item.getByRole('button',{name:'Save name'}).click();
+}
+test('changes made while the account service is down survive a reload and are sent when it returns', async ({ browser }, testInfo) => {
+  const project = testInfo.project.name; const owner = `${project}-outage@example.test`;
+  const one = await visitor(browser, project);
+  await signIn(one.page, owner);
+  await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved');
+  await one.page.route('**/api/**', route => route.abort());
+  await saveText(one.page, 'WHILE DOWN');
+  await expect(one.page.getByTestId('sync-status')).toContainText('Offline. 1 change kept in this browser');
+  // A reload while the service is down shows the account's copy and the waiting change.
+  await one.page.reload();
+  await expect(one.page.getByText(`Signed in as ${owner} (offline)`)).toBeVisible();
+  await expect(savedText(one.page).getByRole('listitem',{name:'Text WHILE DOWN'})).toBeVisible();
+  await expect(one.page.getByTestId('sync-status')).toContainText('1 change kept in this browser');
+  // Local drafting keeps working.
+  await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('STILL DRAFTING');
+  await expect(one.page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
+  await one.page.unroute('**/api/**');
+  await one.page.evaluate(() => dispatchEvent(new Event('online')));
+  await expect(one.page.getByText(`Signed in as ${owner} (offline)`)).toHaveCount(0);
+  await expect(one.page.getByText(`Signed in as ${owner}`)).toBeVisible();
+  await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved');
+  expect((await liveRecords(one.page)).map(r => r.payload.name)).toEqual(['WHILE DOWN']);
+  await one.context.close();
+});
+test('edits made in two sessions are both kept, and an edit to an item deleted elsewhere comes back as a new item', async ({ browser }, testInfo) => {
+  const project = testInfo.project.name; const owner = `${project}-conflict@example.test`;
+  const one = await visitor(browser, project); const two = await visitor(browser, project);
+  await signIn(one.page, owner);
+  await saveText(one.page, 'SHARED'); await saveText(one.page, 'DOOMED');
+  await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved');
+  await signIn(two.page, owner);
+  await expect(savedText(two.page).getByRole('listitem')).toHaveCount(2);
+  // The second session cannot reach the account while it edits.
+  await two.page.route('**/api/library/mutations', route => route.abort());
+  await renameText(two.page, 'SHARED', 'From two'); await renameText(two.page, 'DOOMED', 'Saved by two');
+  await expect(two.page.getByTestId('sync-status')).toContainText('2 changes kept in this browser');
+  // Meanwhile the first session renames one and deletes the other.
+  await renameText(one.page, 'SHARED', 'From one');
+  const doomed = savedText(one.page).getByRole('listitem',{name:'Text DOOMED'});
+  await doomed.getByRole('button',{name:'Delete'}).click(); await doomed.getByRole('button',{name:'Confirm delete'}).click();
+  await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved');
+  await two.page.unroute('**/api/library/mutations');
+  await two.page.evaluate(() => dispatchEvent(new Event('online')));
+  await expect(two.page.getByTestId('sync-status')).toContainText('All changes are saved', { timeout: 15_000 });
+  await expect(savedText(two.page).getByRole('listitem')).toHaveCount(3);
+  for (const name of ['From one', 'From two (conflicting copy)', 'Saved by two (recovered)']) await expect(savedText(two.page).getByRole('listitem',{name:`Text ${name}`})).toBeVisible();
+  await one.page.reload();
+  await expect(savedText(one.page).getByRole('listitem')).toHaveCount(3);
+  expect((await liveRecords(one.page)).map(r => r.payload.name).sort()).toEqual(['From one', 'From two (conflicting copy)', 'Saved by two (recovered)']);
+  for (const session of [one, two]) await session.context.close();
+});
+test('unsent changes stay bound to their account after the session ends and can be copied into this browser', async ({ browser }, testInfo) => {
+  const project = testInfo.project.name; const owner = `${project}-expired@example.test`;
+  const one = await visitor(browser, project);
+  await signIn(one.page, owner);
+  await one.page.route('**/api/library/mutations', route => route.abort());
+  await saveText(one.page, 'NOT YET SENT');
+  await expect(one.page.getByTestId('sync-status')).toContainText('1 change kept in this browser');
+  // The session ends elsewhere; the next attempt is refused and the page signs out.
+  expect((await one.page.request.post('/api/sign-out', { headers: { origin: 'http://127.0.0.1:4179', 'content-type': 'application/json' }, data: {} })).status()).toBe(200);
+  await one.page.unroute('**/api/library/mutations');
+  await one.page.evaluate(() => dispatchEvent(new Event('online')));
+  await expect(one.page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible({ timeout: 15_000 });
+  const waiting = one.page.getByRole('region',{name:'Unsent account changes'});
+  await expect(waiting).toContainText(`1 unsent change for ${owner} is kept in this browser.`);
+  // A different account never receives them.
+  await signIn(one.page, `${project}-someone-else@example.test`);
+  await expect(waiting).toBeVisible();
+  expect(await liveRecords(one.page)).toEqual([]);
+  await one.page.getByRole('radio',{name:'This browser'}).check();
+  await waiting.getByRole('button',{name:'Copy to this browser'}).click();
+  await expect(waiting.getByRole('status')).toHaveText('Copied 1 item into this browser’s library.');
+  await expect(savedText(one.page).getByRole('listitem',{name:'Text NOT YET SENT'})).toBeVisible();
+  await one.context.close();
+});
