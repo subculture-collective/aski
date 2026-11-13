@@ -1,11 +1,14 @@
 import { createServer } from 'node:http';
 import type { Hono } from 'hono';
 import type { AccountEnv } from './account.ts';
+import { MAX_JSON } from './library.ts';
 export function accountServer(app: Hono<AccountEnv>, origin: string) {
   return createServer(async (req,res) => {
     try {
+      // Library changes may be up to 2 MiB; every other route takes at most 4 KiB.
+      const max = new URL(req.url || '/', origin).pathname === '/api/library/mutations' ? MAX_JSON : 4096;
       let size = 0; const chunks: Buffer[] = [];
-      for await (const chunk of req) { size += chunk.length; if (size > 4096) { res.writeHead(413, { 'content-type':'application/json', 'cache-control':'no-store' }); res.end('{"message":"Request is too large."}'); return; } chunks.push(chunk); }
+      for await (const chunk of req) { size += chunk.length; if (size > max) { res.writeHead(413, { 'content-type':'application/json', 'cache-control':'no-store' }); res.end('{"message":"Request is too large."}'); return; } chunks.push(chunk); }
       const request = new Request(new URL(req.url || '/', origin), { method: req.method, headers: new Headers(Object.entries(req.headers).flatMap(([key,value]) => value === undefined ? [] : [[key,Array.isArray(value) ? value.join(',') : value]])), body: ['GET','HEAD'].includes(req.method || 'GET') ? undefined : Buffer.concat(chunks) });
       const response = await app.fetch(request, { peerIP: req.socket.remoteAddress || '' });
       // Object.fromEntries keeps only the last Set-Cookie; sign-out clears several cookies.

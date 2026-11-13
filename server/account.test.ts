@@ -117,7 +117,7 @@ test('a valid link mints one secure host-only session and never returns a token'
   assert.equal(rows.length, 1); assert.equal(text.includes(rows[0].token), false); assert.equal(cookie.includes(token), false);
   assert.equal(rows[0].expiresAt.getTime() - rows[0].createdAt.getTime() >= 604_799_000, true);
   assert.equal(await count('verification'), 0);
-  assert.deepEqual(await (await session(cookie)).json(), { signedIn: true, email: 'reader@example.test' });
+  const reply = await (await session(cookie)).json(); assert.equal(reply.signedIn, true); assert.equal(reply.email, 'reader@example.test'); assert.equal(reply.subject, (await pool.query('SELECT id FROM "user"')).rows[0].id);
 });
 test('replayed, expired, malformed and foreign links mint no session', async () => {
   const cookie = await signedIn(); assert(cookie);

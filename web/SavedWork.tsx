@@ -9,11 +9,11 @@ interface SavedWorkProps {
   artifacts: ArtifactMeta[]; onDownloadArtifact: (meta: ArtifactMeta) => Promise<string>;
   onOpen: (record: Item) => string; onRename: (record: Item, name: string) => void;
   onDelete: (record: Item) => void; onCopy: (text: string) => Promise<boolean>;
-  picker: (record: LibraryRecord<DesignPayload>) => ReactNode;
+  picker: (record: LibraryRecord<DesignPayload>) => ReactNode; account: boolean;
 }
 // Saved text is reusable with any style; a saved design reopens its own recipe and keeps the exact text
 // it produced when saved.
-export function SavedWork({ inputs, designs, canSaveDesign, onSaveInput, onSaveDesign, onOpen, onRename, onDelete, onCopy, picker, artifacts, onDownloadArtifact }: SavedWorkProps) {
+export function SavedWork({ account, inputs, designs, canSaveDesign, onSaveInput, onSaveDesign, onOpen, onRename, onDelete, onCopy, picker, artifacts, onDownloadArtifact }: SavedWorkProps) {
   const [renaming, setRenaming] = useState('');
   const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState('');
@@ -57,14 +57,15 @@ export function SavedWork({ inputs, designs, canSaveDesign, onSaveInput, onSaveD
     <h2 id="saved-title">Saved work</h2>
     <div className="item-actions">
       <button onClick={onSaveInput}>Save text</button>
-      <button onClick={() => void onSaveDesign(keep).then(setSaveNote, () => setSaveNote('Could not save this design. Your draft is unchanged.'))} disabled={!canSaveDesign}>Save design</button>
+      <button onClick={() => void onSaveDesign(account ? { png: false, svg: false } : keep).then(setSaveNote, () => setSaveNote('Could not save this design. Your draft is unchanged.'))} disabled={!canSaveDesign}>Save design</button>
     </div>
-    <fieldset className="keep"><legend>With a saved design, also keep</legend>
+    {!account && <fieldset className="keep"><legend>With a saved design, also keep</legend>
       <label><input type="checkbox" checked={keep.png} onChange={event => setKeep({ ...keep, png: event.target.checked })} />PNG</label>
       <label><input type="checkbox" checked={keep.svg} onChange={event => setKeep({ ...keep, svg: event.target.checked })} />SVG</label>
-    </fieldset>
+    </fieldset>}
     {saveNote && <p className="item-note" role="alert">{saveNote}</p>}
-    <p className="hint">Text keeps your words for any style. A design keeps its style and the exact output, plus any image files you choose, exactly as exported. Everything stays in this browser.</p>
+    <p className="hint">{account ? 'Text keeps your words for any style. A design keeps its style and the exact output. Both are saved to your account; image files stay with designs saved in this browser.'
+      : 'Text keeps your words for any style. A design keeps its style and the exact output, plus any image files you choose, exactly as exported. Everything stays in this browser.'}</p>
     <h3>Text</h3>
     {inputs.length ? <ul className="saved-list" aria-label="Saved text">{inputs.map(record => item(record, 'Text'))}</ul> : <p className="hint">No saved text yet.</p>}
     <h3>Designs</h3>

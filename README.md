@@ -123,8 +123,8 @@ docs/      feature notes and design decisions
 The feature notes in `docs/` go into detail: [catalog and rights](docs/catalog.md),
 [colors](docs/colors.md), [layout](docs/layout.md), [export](docs/export.md),
 [share links](docs/share-links.md), [animation](docs/animation.md),
-[GIF export](docs/gif.md), [local library](docs/library.md) and
-[drafts](docs/drafts.md).
+[GIF export](docs/gif.md), [local library](docs/library.md),
+[account library](docs/account-library.md) and [drafts](docs/drafts.md).
 
 ## Contributing
 

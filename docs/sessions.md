@@ -1,6 +1,6 @@
 # Sign-in links and sessions
 
-Issue #47 adds link redemption, the session boundary and sign-out to the request service in [sign-in-requests.md](sign-in-requests.md). The policy comes from [account-sync-contract.md](account-sync-contract.md). Sync, cloud storage, passwords and SSO are not part of this work. Every local workflow works the same whether the visitor is signed in, signed out or the account service is down.
+Issue #47 adds link redemption, the session boundary and sign-out to the request service in [sign-in-requests.md](sign-in-requests.md). The policy comes from [account-sync-contract.md](account-sync-contract.md). Passwords and SSO are not part of this work; the account library is described in [account-library.md](account-library.md). Every local workflow works the same whether the visitor is signed in, signed out or the account service is down.
 
 ## Redemption
 
@@ -20,7 +20,7 @@ The installed Better Auth 1.7.18 source was inspected. `consumeVerificationValue
 
 The session cookie is `__Secure-better-auth.session_token`: signed, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` and host-only (no `Domain`). The signature uses `BETTER_AUTH_SECRET`. Sessions live in the `session` table; the cookie cache is off, so every check reads the database.
 
-`GET /api/session` returns `{"signedIn": false}` or `{"signedIn": true, "email": …}`. The studio header calls it once on load and shows "Signed in as …" with a Sign out button. A failed call leaves the header in its signed-out state.
+`GET /api/session` returns `{"signedIn": false}` or `{"signedIn": true, "email": …, "subject": …}`, where `subject` is the account's user ID. The [account library](account-library.md) uses it to keep one account's records apart from another's in the page. The studio header calls it once on load and shows "Signed in as …" with a Sign out button. A failed call leaves the header in its signed-out state.
 
 Better Auth and the contract disagree on lifetime. Better Auth refreshes a session at most once per `updateAge` (24 hours) by moving its expiry to now plus `expiresIn` (7 days), so an active session never expires. The contract sets a 7-day absolute lifetime with a 24-hour refresh interval. aski keeps Better Auth's 24-hour refresh, which updates `updatedAt` and re-issues the cookie, and then clamps it: the stored expiry becomes the creation time plus 7 days, and the re-issued cookie's `Max-Age` is the remaining lifetime. Better Auth decides when to refresh from the stored expiry, which the clamp pins, so it would refresh on every read after the first day. aski therefore reads the session with refresh disabled and lets Better Auth refresh only when `updatedAt` is at least 24 hours old. A session older than 7 days is revoked and its cookie cleared even if a refresh had moved its expiry. A row past its expiry is deleted by Better Auth.
 
