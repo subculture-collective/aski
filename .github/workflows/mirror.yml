@@ -1,7 +1,8 @@
 name: Mirror
 
 # github.com/subculture-collective/aski is canonical. Every branch and tag is copied to the Gitea
-# repository and to the personal GitHub copy; branches deleted here are deleted there too.
+# repository; branches deleted here are deleted there too. The personal copy (onnwee/aski) is kept
+# current by Kvant's github-canonical-mirror timer, not by this workflow.
 on:
   push:
   delete:
@@ -24,7 +25,6 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GITEA_TOKEN: ${{ secrets.GITEA_MIRROR_TOKEN }}
-      PERSONAL_KEY: ${{ secrets.PERSONAL_MIRROR_SSH_KEY }}
     steps:
       - name: Fetch every branch and tag
         run: |
@@ -38,12 +38,3 @@ jobs:
         run: |
           git -c http.https://git.subcult.tv/.extraheader="AUTHORIZATION: basic $(printf 'github-mirror:%s' "$GITEA_TOKEN" | base64 -w0)" \
             push --prune https://git.subcult.tv/subculture-collective/aski.git '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
-      - name: Push to the personal copy
-        working-directory: repo.git
-        run: |
-          install -m 600 /dev/null "$RUNNER_TEMP/key"
-          printf '%s\n' "$PERSONAL_KEY" > "$RUNNER_TEMP/key"
-          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$RUNNER_TEMP/known_hosts"
-          GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/key -o IdentitiesOnly=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts" \
-            git push --prune git@github.com:onnwee/aski.git '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
-          rm -f "$RUNNER_TEMP/key"
