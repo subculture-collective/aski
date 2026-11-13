@@ -105,8 +105,12 @@ export function useAccountLibrary(subject: string | null, onSessionEnded: () => 
   }
   const ofType = <T,>(type: RecordType) => records.filter(record => record.type === type && !record.deletedAt)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt)) as LibraryRecord<T>[];
+  // For import: send one batch in order with other changes, and read the account back. Both throw on failure.
+  const send = (mutations: Mutation[]) => enqueue(async current => { apply((await sendMutations(mutations)).changes, current); });
+  const reload = () => enqueue(async current => { await pull(current); return [...confirmed.current.values()]; })
+    .then(records => { if (!records) throw new AccountLibraryError(0, 'The account changed.'); return records; });
   return {
-    kind: 'account' as const, loading, records, warning, artifacts: [] as ArtifactMeta[], addDesign,
+    kind: 'account' as const, loading, send, reload, records, warning, artifacts: [] as ArtifactMeta[], addDesign,
     readArtifact: async (_id: string): Promise<Artifact> => { void _id; throw new Error('Image files are not stored in your account yet.'); },
     palettes: ofType<PalettePayload>('palette'), collections: ofType<CollectionPayload>('collection'), favorites: ofType<FavoritePayload>('favorite'),
     inputs: ofType<InputPayload>('input'), designs: ofType<DesignPayload>('design'),
