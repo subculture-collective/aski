@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 // Account state is optional. When the account service is down or signed out, every local workflow
-// still works; signing out only ends the server session and leaves this browser's work alone.
+// still works; signing out only ends the server session and leaves this browser's work alone. A host
+// without the account service answers 503, and then sign-in is not offered at all.
 export function SignIn() {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -9,9 +10,10 @@ export function SignIn() {
   const [message, setMessage] = useState('');
   const [account, setAccount] = useState('');
   const [notice, setNotice] = useState('');
+  const [offered, setOffered] = useState(true);
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/session', { signal: controller.signal }).then(response => response.ok ? response.json() : null)
+    fetch('/api/session', { signal: controller.signal }).then(response => { if (response.status === 503) setOffered(false); return response.ok ? response.json() : null; })
       .then(body => { if (body?.signedIn && typeof body.email === 'string') setAccount(body.email); }, () => {});
     return () => controller.abort();
   }, []);
@@ -30,6 +32,7 @@ export function SignIn() {
     <button onClick={() => void signOut()} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</button>
     <span className="account-notice" role="status">{notice}</span>
   </>;
+  if (!offered) return null;
   return <>
     <button ref={trigger} onClick={() => dialog.current?.showModal()}>Sign in</button>
     {notice && <span className="account-notice" role="status">{notice}</span>}

@@ -2,8 +2,9 @@
 
 aski is a text-art studio that runs in the browser. Type once, browse font
 families side by side, pick colors, then copy the result as text or export it
-as an image or an animated GIF. It is in development and not yet hosted
-publicly; editing and exports work locally without an account.
+as an image or an animated GIF. It runs at https://aski.subcult.tv, with an
+about page at https://aski.subcult.tv/about/; editing and exports work without
+an account.
 
 It builds on the controls of [TAAG](https://patorjk.com/software/taag/) and
 adds grouped font variants, uninterrupted editing, palette slots, saved work

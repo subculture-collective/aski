@@ -2,6 +2,22 @@
 
 Decision for [#34](https://github.com/subculture-collective/aski/issues/34), 2026-11-09. Recommend NUC for the application and private persistence, Almaz for the existing ingress boundary, and Kvant for source/build work. Soyuz remains a client. This record and its rehearsal do not provision or deploy aski.
 
+## Current deployment, 2026-11-13
+
+The static web image is live at https://aski.subcult.tv; the account API and its PostgreSQL database are not provisioned, so this is the anonymous phase of the plan below. The image (`Dockerfile`, `ops/nginx.conf`) serves the studio at `/` and the about page at `/about/`, answers `/healthz`, and answers `/api/*` with 503; the studio hides sign-in when `/api/session` returns 503. nginx runs as UID 101 on a read-only root filesystem with `/tmp` as tmpfs, no capabilities and no-new-privileges, behind a Content-Security-Policy that allows only same-origin resources.
+
+| Piece | Where |
+| --- | --- |
+| Container | NUC `aski-web-1`, Compose project `aski`, bound to `10.0.0.56:3096` (3095 now belongs to cal.diy). |
+| Ingress guard | `aski-ingress-guard.service` adds `ASKI-INGRESS` to DOCKER-USER: only Almaz (`10.0.0.200`) reaches port 3096. |
+| Edge | Almaz `/opt/server/management/config/caddy/sites/aski.Caddyfile`, imported after Byl's in the main Caddyfile (previous copy `Caddyfile.before-aski-20261113`). |
+| Deployer | fleet-deploy receiver `ecc088d` as `patrick`, profile and Compose baseline in `/srv/deploy/aski/`, registration in `/srv/apps/projects/aski/registration.json`. |
+| Releases | `.github/workflows/deploy.yml` on every push to `main`, through the GitHub `production` environment (main only) with `HOMELAB_DEPLOY_KEY`, `HOMELAB_KNOWN_HOSTS` and `DEPLOY_TARGET`. The key, `github-actions:aski:20261113-env`, works only from tailnet addresses and only runs the receiver; rotate it by 2027-02-13. |
+
+A release builds and smoke-tests the image, sends it to the receiver, which accepts it only when its revision is Gitea's current `main` (Kvant mirrors GitHub within minutes), activates it, compares the public `/` and `/about/` with the image's own files and checks that `/api/session` answers 503. If any check fails it restores the previous image. Each deployment's receipt and exact rollback command are under `/srv/deploy/aski/state/releases/`.
+
+To withdraw the site, remove the aski import from the Almaz Caddyfile and reload Caddy, then stop `aski-web-1` with the Compose command in a receipt. Adding the API and database later needs the configuration, credentials and backup admission described below, a new Compose baseline and a new runtime guard.
+
 ## Observed inventory
 
 NUC's maintained host briefing identifies the existing application/ingress split and recent off-host backup recovery. Live readback found `/srv/apps/AGENTS.md`, application roots under `/srv/apps/projects/`, Docker Compose 5.7.0, 164 GiB free on `/srv`, and running SUBCULT frontend/API, Node applications and independent PostgreSQL 16/17 containers. The current SUBCULT frontend binds `10.0.0.56:3011`, while the API binds port 3012. Existing container names, images and ports were inspected without reading credentials.

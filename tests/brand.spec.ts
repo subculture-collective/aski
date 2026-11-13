@@ -37,3 +37,9 @@ test('the confirmation route clears its fragment and waits for Continue before r
   expect(requests.some(url=>new URL(url).pathname.startsWith('/api/') || url.includes('SyntheticTestValue'))).toBe(false);
   expect(await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}).includes('SyntheticTestValue'))).toBe(false);
 });
+test('sign-in is not offered when the host has no account service', async ({ page }) => {
+  await page.route('**/api/session', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"Accounts are not available yet."}' }));
+  await page.goto('/');
+  await expect(page.getByRole('textbox', { name: 'Text', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toHaveCount(0);
+});
