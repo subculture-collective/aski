@@ -1,0 +1,2 @@
+/* aski Art Mono draws rendered lettering; see shared/art-font.json and scripts/art-font.py. */
+@font-face{font-family:'aski Art Mono';src:url('/art-font/aski-art-mono.woff2') format('woff2');font-weight:400;font-display:swap;}

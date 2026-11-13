@@ -1,12 +1,15 @@
 import { CELL, blockRects } from './cells.ts';
 import type { ColorRun } from './color.ts';
 import type { Colors } from './recipe.ts';
+import artFont from './art-font.json' with { type: 'json' };
 // Still images share the 8 x 16 cell grid with seamless blocks. Text-mode glyphs are drawn at 80% of the
 // cell height so a monospace advance (about 0.6 em) fits the 8-unit cell width.
 export const IMAGE_LIMITS = { scale: [1, 8], padding: [0, 256], side: 8192, pixels: 16_000_000 } as const;
 export interface ImageOptions { scale: number; padding: number; transparent: boolean; blocks: boolean }
 export const DEFAULT_IMAGE: ImageOptions = { scale: 2, padding: 16, transparent: false, blocks: false };
-export const FONT_STACK = "ui-monospace, 'Cascadia Mono', 'Liberation Mono', Menlo, Consolas, monospace";
+export const ART_FONT = artFont;
+// The bundled face first, so lettering looks the same everywhere; system monospace fonts cover what it lacks.
+export const FONT_STACK = `'${artFont.family}', ui-monospace, 'Cascadia Mono', 'Liberation Mono', Menlo, Consolas, monospace`;
 export function imageSize(columns: number, rows: number, options: Pick<ImageOptions, 'scale' | 'padding'>) {
   const { scale, padding } = options;
   if (!Number.isInteger(scale) || scale < IMAGE_LIMITS.scale[0] || scale > IMAGE_LIMITS.scale[1]) throw new Error(`Scale must be ${IMAGE_LIMITS.scale[0]}–${IMAGE_LIMITS.scale[1]}.`);

@@ -6,11 +6,12 @@ import type { ImageOptions } from '../shared/image.ts';
 import { createGif, gifSchedule, validateGif } from '../shared/gif.ts';
 import type { Colors } from '../shared/recipe.ts';
 import { drawCells } from './draw.ts';
+import { loadArtFont } from './artFont.ts';
 export interface GifJob { jobId: number; model: FrameModel; animation: Animation; colors: Colors; variantId: string; options: ImageOptions }
 export type GifReply = { jobId: number; type: 'progress'; done: number; total: number }
   | { jobId: number; type: 'done'; bytes: Uint8Array; frames: number } | { jobId: number; type: 'error'; message: string };
 // Encodes the preview's frames. Cancellation terminates this worker; a new job uses a fresh one.
-self.onmessage = (event: MessageEvent<GifJob>) => {
+self.onmessage = async (event: MessageEvent<GifJob>) => {
   const { jobId, model, animation, colors, variantId, options } = event.data;
   const post = (reply: GifReply, transfer: Transferable[] = []) => self.postMessage(reply, { transfer });
   try {
@@ -19,6 +20,7 @@ self.onmessage = (event: MessageEvent<GifJob>) => {
     const problem = validateGif(width, height, schedule.length);
     if (problem) throw new Error(problem);
     const font = getVariant(variantId);
+    if (!options.blocks) await loadArtFont();
     const context = new OffscreenCanvas(width, height).getContext('2d', { willReadFrequently: true });
     if (!context) throw new Error('This browser cannot draw GIF frames.');
     const gif = createGif({ width, height, transparent: options.transparent, loop: animation.loop });
