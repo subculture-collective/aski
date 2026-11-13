@@ -1,6 +1,6 @@
 # Optional accounts and local sync
 
-Decision for [#10](https://git.subcult.tv/subculture-collective/aski/issues/10), 2026-11-09. Anonymous editing, collecting and exports remain local and free. This record defines the service contract; it does not implement authentication or provision credentials.
+Decision for [#32](https://github.com/subculture-collective/aski/issues/32), 2026-11-09. Anonymous editing, collecting and exports remain local and free. This record defines the service contract; it does not implement authentication or provision credentials.
 
 ## Authentication boundary
 
@@ -84,6 +84,6 @@ The following design review accepts owner-scoped revisions, atomic batches, expl
 | Invalid SVG, hash mismatch or oversized upload | Reject it and expire temporary bytes; recipe remains local. |
 | Restore includes a deleted account | Apply the deletion journal before opening readiness. |
 
-Implementation PRs must introduce `make test-account` and `make test-storage`, then pass `make check`. Use two isolated test accounts, two independent browser contexts, an isolated database/artifact root and a local capture mailer. Tests must verify token expiry/reuse/races, cookie flags, origin and CSRF failures, the table above, rollback after failed batches, restart/retry, and migration failure without data loss. Browser evidence must cover a real sign-in through captured mail and owner isolation; a mocked session is insufficient. Before production, inspect actual sender verification, delivery, secret ownership, proxy headers and backup retention against [#12](https://git.subcult.tv/subculture-collective/aski/issues/12).
+Implementation PRs must introduce `make test-account` and `make test-storage`, then pass `make check`. Use two isolated test accounts, two independent browser contexts, an isolated database/artifact root and a local capture mailer. Tests must verify token expiry/reuse/races, cookie flags, origin and CSRF failures, the table above, rollback after failed batches, restart/retry, and migration failure without data loss. Browser evidence must cover a real sign-in through captured mail and owner isolation; a mocked session is insufficient. Before production, inspect actual sender verification, delivery, secret ownership, proxy headers and backup retention against [#34](https://github.com/subculture-collective/aski/issues/34).
 
 Primary sources checked: [Better Auth magic links](https://github.com/better-auth/better-auth/blob/main/docs/content/docs/plugins/magic-link.mdx), [magic-link implementation](https://github.com/better-auth/better-auth/blob/main/packages/better-auth/src/plugins/magic-link/index.ts), [rate limits](https://github.com/better-auth/better-auth/blob/main/docs/content/docs/concepts/rate-limit.mdx). Verify these behaviors against the pinned implementation release rather than assuming a future upgrade preserves them.

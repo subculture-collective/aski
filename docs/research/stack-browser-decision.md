@@ -1,6 +1,6 @@
 # Stack and browser feasibility decision
 
-Decision record for [#8](https://git.subcult.tv/subculture-collective/aski/issues/8), November 9, 2026. This selects the implementation approach and records a bounded probe. It does not create the application or provision account services.
+Decision record for [#30](https://github.com/subculture-collective/aski/issues/30), November 9, 2026. This selects the implementation approach and records a bounded probe. It does not create the application or provision account services.
 
 ## Selected stack
 

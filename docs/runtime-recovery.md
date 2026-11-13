@@ -1,6 +1,6 @@
 # Runtime placement and recovery
 
-Decision for [#12](https://git.subcult.tv/subculture-collective/aski/issues/12), 2026-11-09. Recommend NUC for the application and private persistence, Almaz for the existing ingress boundary, and Kvant for source/build work. Soyuz remains a client. This record and its rehearsal do not provision or deploy aski.
+Decision for [#34](https://github.com/subculture-collective/aski/issues/34), 2026-11-09. Recommend NUC for the application and private persistence, Almaz for the existing ingress boundary, and Kvant for source/build work. Soyuz remains a client. This record and its rehearsal do not provision or deploy aski.
 
 ## Observed inventory
 
