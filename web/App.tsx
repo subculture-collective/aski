@@ -15,6 +15,8 @@ import { SignIn } from './SignIn.tsx';
 import { Gallery } from './Gallery.tsx';
 import { useScrollAnchor } from './useScrollAnchor.ts';
 import { useLibrary } from './useLibrary.ts';
+import { useAccount } from './useAccount.ts';
+import { useAccountLibrary } from './useAccountLibrary.ts';
 import { Favorites } from './Favorites.tsx';
 import { SavedWork } from './SavedWork.tsx';
 import { Colors } from './Colors.tsx';
@@ -54,7 +56,14 @@ export function App() {
   const studio = useRef<HTMLDivElement>(null);
   const editor = useRef<HTMLElement>(null);
   const [chosenVariants, setChosenVariants] = useState<Record<string, string>>({});
-  const library = useLibrary();
+  const { account, signedOut } = useAccount();
+  const browserLibrary = useLibrary();
+  const accountLibrary = useAccountLibrary(account.status === 'signed-in' ? account.subject : null, signedOut);
+  // Signed in, the account library is shown unless the visitor picks this browser's library. Neither
+  // is copied into the other.
+  const [browserOnly, setBrowserOnly] = useState(false);
+  const library = account.status === 'signed-in' && !browserOnly ? accountLibrary : browserLibrary;
+  const inAccount = library.kind === 'account';
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   // On phones the editor sticks to the top, so content behind it is not in view.
   const inset = useCallback(() => {
@@ -240,7 +249,7 @@ export function App() {
       e.preventDefault(); if (e.shiftKey ? canRedo : canUndo) moveHistory(e.shiftKey ? 'redo' : 'undo');
     }
   }}>
-    <header><h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1><div className="header-actions"><SignIn /><button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
+    <header><h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1><div className="header-actions"><SignIn account={account} onSignedOut={signedOut} /><button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
     <div className="studio" ref={studio}>
       <div className="controls">
         <section className="editor" ref={editor} aria-labelledby="input-title">
@@ -261,11 +270,18 @@ export function App() {
             </optgroup>)}
           </select>
         </div>
-        <SavedWork inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
+        {account.status === 'signed-in' && <fieldset className="library-source">
+          <legend>Library</legend>
+          <label><input type="radio" name="library-source" checked={!browserOnly} onChange={() => setBrowserOnly(false)} />Account</label>
+          <label><input type="radio" name="library-source" checked={browserOnly} onChange={() => setBrowserOnly(true)} />This browser</label>
+          <small role="status">{inAccount ? (accountLibrary.loading ? 'Loading your account library…' : 'Saved to your account and available wherever you sign in. Work saved in this browser stays here and is not uploaded.')
+            : 'Saved in this browser only. Nothing here is uploaded to your account.'}</small>
+        </fieldset>}
+        <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
           onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
           onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}
           onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
-        <Favorites favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
+        <Favorites account={inAccount} favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
           onApply={applyFavorite} onRemove={library.removeFavorite} picker={picker} />
         <Collections records={library.records} collections={library.collections}
           onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}

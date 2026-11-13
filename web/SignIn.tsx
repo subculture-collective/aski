@@ -1,38 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import type { AccountState } from './useAccount.ts';
 // Account state is optional. When the account service is down or signed out, every local workflow
 // still works; signing out only ends the server session and leaves this browser's work alone. A host
 // without the account service answers 503, and then sign-in is not offered at all.
-export function SignIn() {
+export function SignIn({ account, onSignedOut }: { account: AccountState; onSignedOut: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [email, setEmail] = useState('');
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
-  const [account, setAccount] = useState('');
   const [notice, setNotice] = useState('');
-  const [offered, setOffered] = useState(true);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch('/api/session', { signal: controller.signal }).then(response => { if (response.status === 503) setOffered(false); return response.ok ? response.json() : null; })
-      .then(body => { if (body?.signedIn && typeof body.email === 'string') setAccount(body.email); }, () => {});
-    return () => controller.abort();
-  }, []);
   async function signOut() {
     if (pending) return;
     setPending(true); setNotice('');
     try {
       const response = await fetch('/api/sign-out', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(15_000) });
       if (!response.ok) throw new Error();
-      setAccount(''); setNotice('Signed out. Your work in this browser is unchanged.');
+      onSignedOut(); setNotice('Signed out. Your work in this browser is unchanged.');
     } catch { setNotice('Could not sign out. Try again.'); }
     finally { setPending(false); }
   }
-  if (account) return <>
-    <span className="account" title={account}>Signed in as <strong>{account}</strong></span>
+  if (account.status === 'signed-in') return <>
+    <span className="account" title={account.email}>Signed in as <strong>{account.email}</strong></span>
     <button onClick={() => void signOut()} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</button>
     <span className="account-notice" role="status">{notice}</span>
   </>;
-  if (!offered) return null;
+  if (account.status === 'unavailable') return null;
   return <>
     <button ref={trigger} onClick={() => dialog.current?.showModal()}>Sign in</button>
     {notice && <span className="account-notice" role="status">{notice}</span>}

@@ -31,7 +31,7 @@ try {
     await run('npx',['playwright','test','tests/account.spec.ts','--project=chromium','--project=firefox','--project=phone'],env);
   } else {
     await run(process.execPath,['server/main.ts','--migrate'],{...env,DATABASE_URL:env.ASKI_TEST_DATABASE_URL,PUBLIC_ORIGIN:'http://127.0.0.1:4179',BETTER_AUTH_SECRET:randomBytes(32).toString('hex')});
-    await run(process.execPath,['--test','server/account.test.ts'],env);
+    await run(process.execPath,['--test','--test-concurrency=1','server/account.test.ts','server/library.test.ts'],env);
   }
 } finally {
   if(server && server.exitCode === null) { const stopped = new Promise(r=>server.once('exit',r)); server.kill('SIGTERM'); await stopped; }

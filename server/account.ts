@@ -8,6 +8,7 @@ import { createHash, createHmac } from 'node:crypto';
 import { isIP, BlockList } from 'node:net';
 import type { Pool } from 'pg';
 import type { Mailer } from './mail.ts';
+import { migrateLibrary, mountLibrary } from './library.ts';
 export interface AccountOptions { pool: Pool; origin: string; secret: string; mailer: Mailer | null; trustedProxyCIDRs?: string[] }
 export type AccountEnv = { Bindings: { peerIP: string } };
 const LIFETIME = 7 * 86400;
@@ -142,7 +143,7 @@ export function createAccountService(options: AccountOptions) {
     const remaining = String(Math.floor((end - Date.now()) / 1000));
     const name = (await auth.$context).authCookies.sessionToken.name + '=';
     for (const cookie of headers.getSetCookie()) c.header('Set-Cookie', cookie.startsWith(name) ? cookie.replace(/; Max-Age=[1-9]\d*/i, '; Max-Age=' + remaining) : cookie, { append: true });
-    return c.json({ signedIn: true, email: response.user.email });
+    return c.json({ signedIn: true, email: response.user.email, subject: response.user.id });
   });
   // Revokes the database session and clears the cookie. Local anonymous work is never touched.
   app.post('/api/sign-out', limitBody, async c => {
@@ -152,10 +153,18 @@ export function createAccountService(options: AccountOptions) {
     forwardCookies(c, (await auth.api.signOut({ headers: c.req.raw.headers, asResponse: true })).headers);
     return c.json({ message: 'Signed out.' });
   });
+  // The library derives its owner from the session alone. Reads never refresh the session; /api/session does.
+  async function owner(c: Context<AccountEnv>) {
+    const result = await auth.api.getSession({ headers: c.req.raw.headers, query: { disableRefresh: true } });
+    if (!result || result.session.createdAt.getTime() + LIFETIME * 1000 <= Date.now()) return null;
+    return { userId: result.user.id, sessionId: result.session.id };
+  }
+  mountLibrary(app, { pool, owner, rejectWrite, limit: (kind, value, max, seconds) => reserve([{ kind, value, max }], seconds) });
   return { app, auth };
 }
 export async function migrateAccount(auth: ReturnType<typeof createAccountService>['auth'], pool: Pool) {
   const migration = await getMigrations(auth.options); await migration.runMigrations();
   await pool.query('CREATE TABLE IF NOT EXISTS aski_request_limit (key text PRIMARY KEY, count integer NOT NULL, expires_at timestamptz NOT NULL)');
   await pool.query('CREATE INDEX IF NOT EXISTS aski_request_limit_expiry ON aski_request_limit (expires_at)');
+  await migrateLibrary(pool);
 }

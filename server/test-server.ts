@@ -5,7 +5,10 @@ import { accountServer } from './http.ts';
 if (process.env.ASKI_ACCOUNT_TEST !== '1' || !process.env.ASKI_TEST_DATABASE_URL || !process.send) throw new Error('Isolated account harness required');
 const pool = new Pool({ connectionString: process.env.ASKI_TEST_DATABASE_URL });
 const inbox: { email: string; url: string }[] = [];
-const { app, auth } = createAccountService({ pool, origin: 'http://127.0.0.1:4179', secret: 'isolated-capture-server-test-secret-01234567890123456789', mailer: { send: async mail => { inbox.push(mail); } } });
+const { app, auth } = createAccountService({ pool, origin: 'http://127.0.0.1:4179', secret: 'isolated-capture-server-test-secret-01234567890123456789', mailer: { send: async mail => { inbox.push(mail); } },
+  // The browser suite reaches this server through the preview proxy and gives each browser context its own
+  // test address, so per-IP limits apply per context as they would to separate visitors.
+  trustedProxyCIDRs: ['127.0.0.1/32'] });
 await migrateAccount(auth,pool);
 app.get('/__test/inbox', async c => {
   // Redeemed links leave no row, so only the newest link must still be stored, under its hash.
