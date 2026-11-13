@@ -21,8 +21,8 @@ SOURCE = {
     'archiveSha256': 'be6517295198ec5c92bdbaad42f4f6f8d83f921d80512b79f54fe036add95c0c',
 }
 FAMILY = 'aski Art Mono'
-FONT = pathlib.Path('public/fonts/art/aski-art-mono.woff2')
-LICENSE = pathlib.Path('public/fonts/art/OFL.txt')
+FONT = pathlib.Path('public/art-font/aski-art-mono.woff2')
+LICENSE = pathlib.Path('public/art-font/OFL.txt')
 MANIFEST = pathlib.Path('shared/art-font.json')
 sha = lambda data: hashlib.sha256(data).hexdigest()
 
@@ -43,7 +43,8 @@ def figlet_characters():
 
 
 def build(source: bytes):
-    font = TTFont(io.BytesIO(source))
+    # Keep the source's head timestamps so the output is byte-identical on every run.
+    font = TTFont(io.BytesIO(source), recalcTimestamp=False)
     cmap = font.getBestCmap()
     wanted = figlet_characters()
     covered = sorted((c for c in wanted if ord(c) in cmap), key=ord)

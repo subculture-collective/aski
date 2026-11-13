@@ -1,8 +1,8 @@
 {
   "family": "aski Art Mono",
-  "path": "/fonts/art/aski-art-mono.woff2",
-  "sha256": "291454df25862aa6538f53e4c0ea07d49e707430444f69da6603e87eb83f23a8",
-  "licensePath": "/fonts/art/OFL.txt",
+  "path": "/art-font/aski-art-mono.woff2",
+  "sha256": "fd794fa64050b79f11425865f9ec932d21222c9ccbd9bd1670d28c1ecb68234e",
+  "licensePath": "/art-font/OFL.txt",
   "licenseSha256": "e728cb9e799dd297ad11d9d2154e07d0f75f18c4620a26e7b3ed81ab7f503024",
   "license": "OFL-1.1",
   "source": {
