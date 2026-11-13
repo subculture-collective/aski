@@ -130,7 +130,7 @@ test('payloads, references and envelopes are validated before anything is writte
     [[create('collection', { name: '' })], /name/],
     [[create('collection', { name: 'x'.repeat(121) })], /name/],
     [[create('palette', { name: 'Bad', slots: { foreground: 'red' } })], /#RRGGBB/],
-    [[create('design', { ...design('Files'), artifacts: [randomUUID()] })], /Image files/],
+    [[create('design', { ...design('Files'), artifacts: [randomUUID()] })], /image file/],
     [[{ ...create('collection', { name: 'x' }), schemaVersion: 2 }], /version/],
     [[{ ...create('collection', { name: 'x' }), type: 'artifact' }], /Invalid/],
     [[{ ...create('collection', { name: 'x' }), entityId: 'not-a-uuid' }], /Invalid/],

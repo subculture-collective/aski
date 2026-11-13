@@ -57,14 +57,14 @@ export function SavedWork({ account, inputs, designs, canSaveDesign, onSaveInput
     <h2 id="saved-title">Saved work</h2>
     <div className="item-actions">
       <button onClick={onSaveInput}>Save text</button>
-      <button onClick={() => void onSaveDesign(account ? { png: false, svg: false } : keep).then(setSaveNote, () => setSaveNote('Could not save this design. Your draft is unchanged.'))} disabled={!canSaveDesign}>Save design</button>
+      <button onClick={() => void onSaveDesign(keep).then(setSaveNote, () => setSaveNote('Could not save this design. Your draft is unchanged.'))} disabled={!canSaveDesign}>Save design</button>
     </div>
-    {!account && <fieldset className="keep"><legend>With a saved design, also keep</legend>
+    <fieldset className="keep"><legend>With a saved design, also keep</legend>
       <label><input type="checkbox" checked={keep.png} onChange={event => setKeep({ ...keep, png: event.target.checked })} />PNG</label>
       <label><input type="checkbox" checked={keep.svg} onChange={event => setKeep({ ...keep, svg: event.target.checked })} />SVG</label>
-    </fieldset>}
+    </fieldset>
     {saveNote && <p className="item-note" role="alert">{saveNote}</p>}
-    <p className="hint">{account ? 'Text keeps your words for any style. A design keeps its style and the exact output. Both are saved to your account; image files stay with designs saved in this browser.'
+    <p className="hint">{account ? 'Text keeps your words for any style. A design keeps its style and the exact output, plus any image files you choose, exactly as exported. All of it is saved to your account.'
       : 'Text keeps your words for any style. A design keeps its style and the exact output, plus any image files you choose, exactly as exported. Everything stays in this browser.'}</p>
     <h3>Text</h3>
     {inputs.length ? <ul className="saved-list" aria-label="Saved text">{inputs.map(record => item(record, 'Text'))}</ul> : <p className="hint">No saved text yet.</p>}

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { LibraryRecord } from './library.ts';
-import { nextRevision, pendingView, resolveRejection } from './outbox.ts';
+import { dropUpload, nextRevision, pendingView, resolveRejection } from './outbox.ts';
 import type { Mutation, OutboxEntry } from './outbox.ts';
 let n = 0;
 const id = () => `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`;
@@ -73,4 +73,19 @@ test('a refusal that names no queued record drops only the refused entry and say
   const bad = update(account('input', { text: 'x', name: 'x' }), 1, { text: 'y', name: 'y' }); const good = remove(id(), 1);
   const partial = resolveRejection([entry(bad, good)], { status: 400, message: 'Use a name of 1–120 characters.', entityId: bad.entityId }, id);
   assert.deepEqual(partial.outbox[0].mutations, [good]);
+});
+test('a design refused for a missing file is kept without its files, and a refused upload leaves later designs intact', () => {
+  const file = id(); const other = id();
+  const create: Mutation = { requestId: id(), entityId: id(), baseRevision: 0, type: 'design', schemaVersion: 1, payload: { name: 'Art', artifacts: [file, other] } };
+  const kept = resolveRejection([entry(create)], { status: 400, message: 'missing file', entityId: create.entityId, code: 'artifact' }, id);
+  assert.deepEqual((kept.outbox[0].mutations[0] as Mutation & { payload: object }).payload, { name: 'Art' });
+  assert.equal(kept.outbox[0].mutations[0].entityId, create.entityId); assert.match(kept.notice, /without its image files/);
+  const queued: OutboxEntry[] = [{ id: id(), at: AT, mutations: [], upload: file }, { id: id(), at: AT, mutations: [], upload: other }, { ...entry(create), body: '{}' }];
+  const dropped = dropUpload(queued, file);
+  assert.deepEqual(dropped.map(e => e.upload), [other, undefined]);
+  assert.deepEqual((dropped[1].mutations[0] as Mutation & { payload: { artifacts: string[] } }).payload.artifacts, [other]);
+  assert.equal(dropped[1].body, undefined);
+  // File entries pass through a record refusal unchanged.
+  const rest = resolveRejection([entry(create), { id: id(), at: AT, mutations: [], upload: other }], { status: 400, message: 'bad' }, id).outbox;
+  assert.equal(rest[0].upload, other);
 });

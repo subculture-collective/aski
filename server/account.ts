@@ -9,7 +9,8 @@ import { isIP, BlockList } from 'node:net';
 import type { Pool } from 'pg';
 import type { Mailer } from './mail.ts';
 import { migrateLibrary, mountLibrary } from './library.ts';
-export interface AccountOptions { pool: Pool; origin: string; secret: string; mailer: Mailer | null; trustedProxyCIDRs?: string[] }
+import { migrateArtifacts, mountArtifacts } from './artifacts.ts';
+export interface AccountOptions { pool: Pool; origin: string; secret: string; mailer: Mailer | null; trustedProxyCIDRs?: string[]; artifactRoot?: string | null }
 export type AccountEnv = { Bindings: { peerIP: string } };
 const LIFETIME = 7 * 86400;
 const REFRESH = 86400;
@@ -159,12 +160,15 @@ export function createAccountService(options: AccountOptions) {
     if (!result || result.session.createdAt.getTime() + LIFETIME * 1000 <= Date.now()) return null;
     return { userId: result.user.id, sessionId: result.session.id };
   }
-  mountLibrary(app, { pool, owner, rejectWrite, limit: (kind, value, max, seconds) => reserve([{ kind, value, max }], seconds) });
+  const deps = { pool, owner, rejectWrite, limit: (kind: string, value: string, max: number, seconds: number) => reserve([{ kind, value, max }], seconds) };
+  mountLibrary(app, deps);
+  mountArtifacts(app, deps, origin, options.artifactRoot || null);
   return { app, auth };
 }
 export async function migrateAccount(auth: ReturnType<typeof createAccountService>['auth'], pool: Pool) {
   const migration = await getMigrations(auth.options); await migration.runMigrations();
   await pool.query('CREATE TABLE IF NOT EXISTS aski_request_limit (key text PRIMARY KEY, count integer NOT NULL, expires_at timestamptz NOT NULL)');
   await pool.query('CREATE INDEX IF NOT EXISTS aski_request_limit_expiry ON aski_request_limit (expires_at)');
+  await migrateArtifacts(pool);
   await migrateLibrary(pool);
 }

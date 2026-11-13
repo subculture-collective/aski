@@ -20,8 +20,8 @@ export interface LibraryDeps {
 }
 // A refusal names the record it is about, when known, so a client can resolve that one change.
 class Refusal extends Error {
-  status: 400 | 404 | 409; record?: WireRecord; entityId?: string; duplicate?: true;
-  constructor(status: 400 | 404 | 409, message: string, details: { record?: WireRecord; entityId?: string; duplicate?: true } = {}) {
+  status: 400 | 404 | 409; record?: WireRecord; entityId?: string; duplicate?: true; code?: 'artifact';
+  constructor(status: 400 | 404 | 409, message: string, details: { record?: WireRecord; entityId?: string; duplicate?: true; code?: 'artifact' } = {}) {
     super(message); this.status = status; Object.assign(this, details);
   }
 }
@@ -156,7 +156,7 @@ export function mountLibrary(app: Hono<AccountEnv>, { pool, owner, limit, reject
     } catch (error) {
       await client.query('ROLLBACK');
       if (error instanceof Refusal) return c.json({ message: error.message, ...(error.entityId ? { entityId: error.entityId } : {}),
-        ...(error.record ? { record: error.record } : {}), ...(error.duplicate ? { duplicate: true } : {}) }, error.status);
+        ...(error.record ? { record: error.record } : {}), ...(error.duplicate ? { duplicate: true } : {}), ...(error.code ? { code: error.code } : {}) }, error.status);
       if ((error as { code?: string }).code === '23505') return c.json({ message: 'This item is already in your library.' }, 409);
       throw error;
     } finally { client.release(); }
@@ -171,8 +171,10 @@ async function checkReferences(client: PoolClient, ownerId: string, m: Mutation)
     const link = m.payload as MembershipPayload;
     if (!await owned(link.collectionId, 'collection') || !await owned(link.itemId, link.itemType)) throw new Refusal(400, 'This collection or item is not in your library.', { entityId: m.entityId });
   }
-  // Image files are not stored in accounts yet; a design that lists them is refused rather than saved half-way.
-  if (m.type === 'design' && (m.payload as DesignPayload).artifacts?.length) throw new Refusal(400, 'Image files cannot be saved to an account yet.', { entityId: m.entityId });
+  // A design may list only image files its owner has uploaded and not deleted.
+  for (const id of m.type === 'design' ? (m.payload as DesignPayload).artifacts ?? [] : [])
+    if ((await client.query('SELECT 1 FROM aski_artifact WHERE owner_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE', [ownerId, id])).rowCount !== 1)
+      throw new Refusal(400, 'An image file of this design is not in your library.', { entityId: m.entityId, code: 'artifact' });
 }
 // A new favorite or collection entry equal to a live one is refused with the existing record, so the client
 // can use that one instead. The unique indexes still guard against a race between two batches.

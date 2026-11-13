@@ -1,11 +1,15 @@
 import { Pool } from 'pg';
 import { createHash } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createAccountService, migrateAccount } from './account.ts';
 import { accountServer } from './http.ts';
 if (process.env.ASKI_ACCOUNT_TEST !== '1' || !process.env.ASKI_TEST_DATABASE_URL || !process.send) throw new Error('Isolated account harness required');
 const pool = new Pool({ connectionString: process.env.ASKI_TEST_DATABASE_URL });
 const inbox: { email: string; url: string }[] = [];
-const { app, auth } = createAccountService({ pool, origin: 'http://127.0.0.1:4179', secret: 'isolated-capture-server-test-secret-01234567890123456789', mailer: { send: async mail => { inbox.push(mail); } },
+const artifactRoot = await mkdtemp(join(tmpdir(), 'aski-capture-artifacts-'));
+const { app, auth } = createAccountService({ pool, origin: 'http://127.0.0.1:4179', artifactRoot, secret: 'isolated-capture-server-test-secret-01234567890123456789', mailer: { send: async mail => { inbox.push(mail); } },
   // The browser suite reaches this server through the preview proxy and gives each browser context its own
   // test address, so per-IP limits apply per context as they would to separate visitors.
   trustedProxyCIDRs: ['127.0.0.1/32'] });
@@ -31,4 +35,4 @@ app.get('/__test/inbox/link', c => {
 });
 const server = accountServer(app,'http://127.0.0.1:4179');
 server.listen(0,'127.0.0.1',() => { const address=server.address(); if(address && typeof address !== 'string') process.send!({port:address.port}); });
-process.once('SIGTERM',()=>{server.close(async()=>{await pool.end();process.exit(0);});});
+process.once('SIGTERM',()=>{server.close(async()=>{await pool.end();await rm(artifactRoot,{recursive:true,force:true});process.exit(0);});});
