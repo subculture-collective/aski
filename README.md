@@ -82,8 +82,8 @@ npm run dev:api    # API on 127.0.0.1:4181; Vite proxies /api to it
 
 ## Configuration
 
-The editor needs no configuration. The sign-in request service in `server/`
-reads:
+The editor needs no configuration. The account service in `server/` (sign-in,
+the account library and its image files) reads:
 
 | Variable | Purpose |
 | --- | --- |
@@ -92,6 +92,7 @@ reads:
 | `PUBLIC_ORIGIN` | The site's public origin; sign-in links are built from it |
 | `BREVO_API_KEY`, `MAIL_FROM_EMAIL` | Transactional email through Brevo |
 | `TRUSTED_PROXY_CIDRS` | Optional proxies allowed to set `X-Real-IP` |
+| `ARTIFACT_ROOT` | Optional private directory for account image files; without it, account designs are saved without files |
 | `ASKI_API_PORT` | API port (default 4181) |
 
 Without mail configuration the API reports itself unavailable; editing and

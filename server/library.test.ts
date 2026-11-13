@@ -81,7 +81,10 @@ test('another account cannot read, change, delete or reference records, and miss
   const foreign = { id: collection.entityId, type: 'collection', revision: 1 }; const unknown = { id: randomUUID(), type: 'collection', revision: 1 };
   for (const [one, other] of [[update(foreign, { name: 'Taken' }), update(unknown, { name: 'Taken' })], [remove(foreign), remove(unknown)]]) {
     const [x, y] = [await mutate(b, [one]), await mutate(b, [other])];
-    assert.equal(x.status, 404); assert.equal(y.status, 404); assert.deepEqual(await x.json(), await y.json());
+    assert.equal(x.status, 404); assert.equal(y.status, 404);
+    const [xb, yb] = [await x.json(), await y.json()];
+    assert.equal(xb.entityId, one.entityId); assert.equal(yb.entityId, other.entityId);
+    assert.deepEqual({ ...xb, entityId: '' }, { ...yb, entityId: '' });
   }
   // A batch that references another account's records fails as a whole: B's own collection is not kept.
   const own = create('collection', { name: 'Mine' });
@@ -127,7 +130,7 @@ test('payloads, references and envelopes are validated before anything is writte
     [[create('collection', { name: '' })], /name/],
     [[create('collection', { name: 'x'.repeat(121) })], /name/],
     [[create('palette', { name: 'Bad', slots: { foreground: 'red' } })], /#RRGGBB/],
-    [[create('design', { ...design('Files'), artifacts: [randomUUID()] })], /Image files/],
+    [[create('design', { ...design('Files'), artifacts: [randomUUID()] })], /image file/],
     [[{ ...create('collection', { name: 'x' }), schemaVersion: 2 }], /version/],
     [[{ ...create('collection', { name: 'x' }), type: 'artifact' }], /Invalid/],
     [[{ ...create('collection', { name: 'x' }), entityId: 'not-a-uuid' }], /Invalid/],
@@ -141,8 +144,13 @@ test('payloads, references and envelopes are validated before anything is writte
   assert.equal((await mutate(a, Array.from({ length: 101 }, () => create('collection', { name: 'x' })))).status, 400);
   // Favorites are unique by family and variant within one owner.
   assert.equal((await mutate(a, [create('favorite', { familyId: FONT.familyId })])).status, 200);
-  assert.equal((await mutate(a, [create('favorite', { familyId: FONT.familyId })])).status, 409);
+  const duplicate = create('favorite', { familyId: FONT.familyId });
+  const refused = await mutate(a, [duplicate]); assert.equal(refused.status, 409);
+  const body = await refused.json(); assert.equal(body.duplicate, true); assert.equal(body.entityId, duplicate.entityId); assert.equal(body.record.payload.familyId, FONT.familyId);
   assert.equal(await count(), 1);
+  // Refusals name the change they are about.
+  const bad = create('collection', { name: '' });
+  assert.equal((await (await mutate(a, [create('collection', { name: 'ok' }), bad])).json()).entityId, bad.entityId);
 });
 test('the library requires a session, same-origin JSON writes and bounded bodies', async () => {
   const a = await signIn('a@example.test');

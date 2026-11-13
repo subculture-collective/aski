@@ -20,8 +20,8 @@ export function SignIn({ account, onSignedOut }: { account: AccountState; onSign
     } catch { setNotice('Could not sign out. Try again.'); }
     finally { setPending(false); }
   }
-  if (account.status === 'signed-in') return <>
-    <span className="account" title={account.email}>Signed in as <strong>{account.email}</strong></span>
+  if (account.status === 'signed-in' || account.status === 'offline') return <>
+    <span className="account" title={account.email}>Signed in as <strong>{account.email}</strong>{account.status === 'offline' ? ' (offline)' : ''}</span>
     <button onClick={() => void signOut()} disabled={pending}>{pending ? 'Signing out…' : 'Sign out'}</button>
     <span className="account-notice" role="status">{notice}</span>
   </>;

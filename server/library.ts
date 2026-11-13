@@ -18,9 +18,12 @@ export interface LibraryDeps {
   limit: (kind: string, value: string, max: number, seconds: number) => Promise<number>;
   rejectWrite: (c: Context<AccountEnv>) => Response | null;
 }
+// A refusal names the record it is about, when known, so a client can resolve that one change.
 class Refusal extends Error {
-  status: 400 | 404 | 409; record?: WireRecord;
-  constructor(status: 400 | 404 | 409, message: string, record?: WireRecord) { super(message); this.status = status; this.record = record; }
+  status: 400 | 404 | 409; record?: WireRecord; entityId?: string; duplicate?: true; code?: 'artifact';
+  constructor(status: 400 | 404 | 409, message: string, details: { record?: WireRecord; entityId?: string; duplicate?: true; code?: 'artifact' } = {}) {
+    super(message); this.status = status; Object.assign(this, details);
+  }
 }
 interface Row { id: string; type: RecordType; schema_version: 1; payload: unknown; revision: number; deleted_at: Date | null; created_at: Date; updated_at: Date }
 const wire = (row: Row): WireRecord => ({ id: row.id, type: row.type, schemaVersion: row.schema_version, payload: row.payload, revision: row.revision,
@@ -102,13 +105,16 @@ export function mountLibrary(app: Hono<AccountEnv>, { pool, owner, limit, reject
         const earlier = typeof requestId === 'string' && UUID.test(requestId) ? (await client.query('SELECT body_hash, result FROM aski_library_request WHERE owner_id = $1 AND device_id = $2 AND request_id = $3',
           [who.userId, deviceId, requestId])).rows[0] : undefined;
         if (earlier) {
-          if (earlier.body_hash !== hash) throw new Refusal(409, 'This change ID was already used for a different change.');
+          if (earlier.body_hash !== hash) throw new Refusal(409, 'This change ID was already used for a different change.', { entityId: earlier.result.entityId });
           results.push(earlier.result); touched.add(earlier.result.entityId); continue;
         }
-        const m = parseMutation(raw);
+        const rawId = (raw as { entityId?: unknown } | null)?.entityId;
+        let m: Mutation;
+        try { m = parseMutation(raw); }
+        catch (error) { if (error instanceof Refusal && typeof rawId === 'string' && UUID.test(rawId)) error.entityId = rawId; throw error; }
         const current: Row | undefined = (await client.query(`SELECT ${COLUMNS} FROM aski_library_record WHERE owner_id = $1 AND id = $2 FOR UPDATE`, [who.userId, m.entityId])).rows[0];
-        const missing = () => new Refusal(404, 'This item is not in your library.');
-        const stale = () => new Refusal(409, 'This item changed in another session.', wire(current!));
+        const missing = () => new Refusal(404, 'This item is not in your library.', { entityId: m.entityId });
+        const stale = () => new Refusal(409, 'This item changed in another session.', { record: wire(current!), entityId: m.entityId });
         let revision: number;
         if (m.delete) {
           if (!current) throw missing();
@@ -129,7 +135,8 @@ export function mountLibrary(app: Hono<AccountEnv>, { pool, owner, limit, reject
         } else {
           if (m.baseRevision === 0 ? current : !current) throw m.baseRevision === 0 ? stale() : missing();
           if (current && (current.deleted_at || current.revision !== m.baseRevision)) throw stale();
-          if (current && current.type !== m.type) throw new Refusal(400, 'An item cannot change its type.');
+          if (current && current.type !== m.type) throw new Refusal(400, 'An item cannot change its type.', { entityId: m.entityId });
+          if (!current) await checkDuplicate(client, who.userId, m);
           await checkReferences(client, who.userId, m);
           revision = m.baseRevision + 1;
           if (current) await client.query('UPDATE aski_library_record SET payload = $3, updated_at = NOW(), revision = $4, seq = $5 WHERE owner_id = $1 AND id = $2',
@@ -148,7 +155,8 @@ export function mountLibrary(app: Hono<AccountEnv>, { pool, owner, limit, reject
       return c.json({ results, changes });
     } catch (error) {
       await client.query('ROLLBACK');
-      if (error instanceof Refusal) return c.json({ message: error.message, ...(error.record ? { record: error.record } : {}) }, error.status);
+      if (error instanceof Refusal) return c.json({ message: error.message, ...(error.entityId ? { entityId: error.entityId } : {}),
+        ...(error.record ? { record: error.record } : {}), ...(error.duplicate ? { duplicate: true } : {}), ...(error.code ? { code: error.code } : {}) }, error.status);
       if ((error as { code?: string }).code === '23505') return c.json({ message: 'This item is already in your library.' }, 409);
       throw error;
     } finally { client.release(); }
@@ -161,8 +169,21 @@ async function checkReferences(client: PoolClient, ownerId: string, m: Mutation)
     [ownerId, id, type])).rowCount === 1;
   if (m.type === 'membership') {
     const link = m.payload as MembershipPayload;
-    if (!await owned(link.collectionId, 'collection') || !await owned(link.itemId, link.itemType)) throw new Refusal(400, 'This collection or item is not in your library.');
+    if (!await owned(link.collectionId, 'collection') || !await owned(link.itemId, link.itemType)) throw new Refusal(400, 'This collection or item is not in your library.', { entityId: m.entityId });
   }
-  // Image files are not stored in accounts yet; a design that lists them is refused rather than saved half-way.
-  if (m.type === 'design' && (m.payload as DesignPayload).artifacts?.length) throw new Refusal(400, 'Image files cannot be saved to an account yet.');
+  // A design may list only image files its owner has uploaded and not deleted.
+  for (const id of m.type === 'design' ? (m.payload as DesignPayload).artifacts ?? [] : [])
+    if ((await client.query('SELECT 1 FROM aski_artifact WHERE owner_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE', [ownerId, id])).rowCount !== 1)
+      throw new Refusal(400, 'An image file of this design is not in your library.', { entityId: m.entityId, code: 'artifact' });
+}
+// A new favorite or collection entry equal to a live one is refused with the existing record, so the client
+// can use that one instead. The unique indexes still guard against a race between two batches.
+async function checkDuplicate(client: PoolClient, ownerId: string, m: Mutation) {
+  const p = m.payload as Record<string, string | undefined>;
+  const query = m.type === 'favorite' ? [`payload->>'familyId' = $2 AND COALESCE(payload->>'variantId', '') = $3`, p.familyId, p.variantId ?? '']
+    : m.type === 'membership' ? [`payload->>'collectionId' = $2 AND payload->>'itemId' = $3`, p.collectionId, p.itemId] : null;
+  if (!query) return;
+  const existing: Row | undefined = (await client.query(`SELECT ${COLUMNS} FROM aski_library_record WHERE owner_id = $1 AND type = $4 AND deleted_at IS NULL AND ${query[0]}`,
+    [ownerId, query[1], query[2], m.type])).rows[0];
+  if (existing) throw new Refusal(409, 'This item is already in your library.', { record: wire(existing), entityId: m.entityId, duplicate: true });
 }

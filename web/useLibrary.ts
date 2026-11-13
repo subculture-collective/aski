@@ -8,6 +8,8 @@ export function useLibrary() {
   const [warning, setWarning] = useState('');
   const [artifacts, setArtifacts] = useState<ArtifactMeta[]>([]);
   useEffect(() => { loadArtifactMeta().then(setArtifacts, () => {}); }, []);
+  // Bumped to read the library again after records were added from outside this page's actions.
+  const [version, setVersion] = useState(0);
   useEffect(() => {
     let current = true;
     loadLibrary().then(({ records: loaded, unreadable }) => {
@@ -16,7 +18,7 @@ export function useLibrary() {
       if (unreadable) setWarning(`${unreadable} saved ${unreadable === 1 ? 'item' : 'items'} could not be read and ${unreadable === 1 ? 'was' : 'were'} kept unchanged.`);
     }, error => { if (current) setWarning((error as Error).message === 'blocked' ? 'Another aski tab is using an older library. Close it and reload to see your saved items.' : UNAVAILABLE); });
     return () => { current = false; };
-  }, []);
+  }, [version]);
   // The visible library changes first; a failed write keeps the change for this page and explains why.
   function save(record: LibraryRecord) {
     setRecords(previous => [...previous.filter(item => item.id !== record.id), record]);
@@ -63,6 +65,6 @@ export function useLibrary() {
     if (existing) remove(existing);
     else save(createRecord<MembershipPayload>('membership', { collectionId, itemType: item.type as MembershipPayload['itemType'], itemId: item.id }));
   }
-  return { kind: 'browser' as const, loading: false, artifacts, addDesign, readArtifact, palettes: ofType<PalettePayload>('palette'), collections: ofType<CollectionPayload>('collection'), toggleMembership, records, favorites: ofType<FavoritePayload>('favorite'), inputs: ofType<InputPayload>('input'), designs: ofType<DesignPayload>('design'),
+  return { kind: 'browser' as const, loading: false, reread: () => setVersion(value => value + 1), artifacts, addDesign, readArtifact, palettes: ofType<PalettePayload>('palette'), collections: ofType<CollectionPayload>('collection'), toggleMembership, records, favorites: ofType<FavoritePayload>('favorite'), inputs: ofType<InputPayload>('input'), designs: ofType<DesignPayload>('design'),
     warning, toggleFavorite, add: <T,>(type: RecordType, payload: T) => save(createRecord(type, payload)), rename, remove, isFavorite: (favorite: FavoritePayload) => !!findFavorite(records, favorite), removeFavorite: remove };
 }
