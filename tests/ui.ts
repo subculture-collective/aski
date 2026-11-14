@@ -66,11 +66,10 @@ export async function openFilters(page: Page) {
 export const card = (page: Page, name: string) => page.locator('article.family-card').filter({ has: page.getByRole('button', { name: `Use ${name}`, exact: true }) });
 /** The card's select button. */
 export const useButton = (card: Locator) => card.locator('button.card-select');
-/** The card's variant select. */
+/** The card's variant select, inside its "more" menu. */
 export const variantSelect = (card: Locator) => card.locator('select.variant-select');
 /** The variant the card shows. */
 export const shownVariant = (card: Locator) => variantSelect(card).locator('option:checked');
-export const selectVariant = (card: Locator, name: string) => variantSelect(card).selectOption({ label: name });
 
 const cardMenu = (card: Locator) => card.locator('details.card-menu');
 /** The summary that opens the card's "more" menu; its accessible name is "More for <Family name>". */
@@ -87,5 +86,11 @@ export async function closeCardMenu(card: Locator) {
 /** Presses a button in the card's "more" menu, then closes the menu so it does not cover the next card. */
 export async function cardAction(card: Locator, name: string) {
   await (await openCardMenu(card)).getByRole('button', { name, exact: true }).click();
+  await closeCardMenu(card);
+}
+/** Chooses a variant from the card's "more" menu, then closes the menu. */
+export async function selectVariant(card: Locator, name: string) {
+  await openCardMenu(card);
+  await variantSelect(card).selectOption({ label: name });
   await closeCardMenu(card);
 }

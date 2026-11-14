@@ -55,6 +55,8 @@ test('keyboard users switch variants and select a family without leaving the edi
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('KEYS');
   const emboss = card(page, 'Emboss');
+  // The variant choice lives in the card's "more" menu.
+  await openCardMenu(emboss);
   await variantSelect(emboss).focus();
   await page.keyboard.press('ArrowDown');
   await expect(shownVariant(emboss)).toHaveText('Emboss 2');
@@ -66,6 +68,7 @@ test('keyboard users switch variants and select a family without leaving the edi
   await expect(page.getByLabel('Style', { exact: true })).toHaveValue('figlet/emboss-2');
   await expect(useButton(emboss)).toHaveAttribute('aria-pressed', 'true');
   // Switching the active family's variant updates the design and is undoable.
+  await openCardMenu(emboss);
   await variantSelect(emboss).focus();
   await page.keyboard.press('ArrowUp');
   await expect(page.getByRole('heading', { level: 2, name: 'Emboss', exact: true })).toBeVisible();

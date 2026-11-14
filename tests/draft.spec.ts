@@ -8,7 +8,7 @@ test('reload restores text/style; undo and redo include complete editing changes
   await page.reload();
   await expect(input).toHaveValue(' A\nB');
   await expect(style).toHaveValue('figlet/future-thin');
-  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Undo', exact: true, includeHidden: true })).toBeDisabled();  // Undo and redo stay out of sight until there is history.
   await input.fill('EXPERIMENT');
   await style.selectOption('figlet/circle');
   await page.getByRole('button', { name: 'Undo', exact: true }).click();

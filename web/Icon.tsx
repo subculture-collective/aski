@@ -9,6 +9,7 @@ const PATHS = {
   copy: 'M9 9h10v11H9zM5 15V4h10',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   pin: 'M9 4h6l-1 6 4 4H6l4-4zM12 14v6',
+  search: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13zM20 20l-4.8-4.8',
 } as const;
 export function Icon({ name, filled = false }: { name: keyof typeof PATHS; filled?: boolean }) {
   return <svg className="icon-svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"

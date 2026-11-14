@@ -87,10 +87,10 @@ export function App() {
     return () => observer.disconnect();
   }, []);
   const [panel, setPanel] = useState<'' | 'colors' | 'layout' | 'animation'>('colors');
-  // On phones the editor sticks to the top, so content behind it is not in view.
+  // The editor sticks to the top, so content behind it is not in view.
   const inset = useCallback(() => {
     const box = editor.current?.getBoundingClientRect();
-    return box && matchMedia('(max-width: 760px)').matches && box.top <= 1 ? box.bottom : 0;
+    return box && box.top <= 1 ? box.bottom : 0;
   }, []);
   useScrollAnchor(studio, inset);
 
@@ -280,9 +280,9 @@ export function App() {
     </header>
     <div className="studio" ref={studio}>
       <section className="editor" ref={editor} aria-labelledby="input-title">
-        <label id="input-title" htmlFor="input">Text</label>
+        <label id="input-title" htmlFor="input" className="visually-hidden">Text</label>
         <div className="input-wrap">
-        <textarea id="input" rows={2} value={recipe.input} spellCheck={false} aria-describedby="input-limit" placeholder="Type your text"
+        <textarea id="input" rows={2} value={recipe.input} spellCheck={false} aria-describedby="input-limit" placeholder="Type something"
           onChange={e => { setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
         <div className="history-controls">
           <button className="icon" aria-label="Undo" title="Undo" onClick={() => moveHistory('undo')} disabled={!canUndo}><Icon name="undo" /></button>
@@ -323,7 +323,7 @@ export function App() {
             </details>
           </div>
         </div>
-        <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={artColors}>
+        <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={{ ...artColors, '--cols': result?.columns || 1 } as CSSProperties}>
           {runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
         </pre>
         {font.blocks && recipe.layout.blocks && ready && <Seamless runs={runs} colors={recipe.colors} columns={result.columns} rows={result.rows} />}
@@ -393,7 +393,7 @@ export function App() {
           onRemoveMember={(collectionId, item) => library.toggleMembership(collectionId, item)} />
       </aside>
     </div>
-    <footer><span><a href={font.noticePath}>{font.name} license</a> · Type: <a href="/brand/fonts/fraunces-OFL.txt">Fraunces</a>, <a href="/brand/fonts/atkinsonhyperlegiblenext-OFL.txt">Atkinson</a></span><a href="/about/">About</a></footer>
+    <footer><a href={font.noticePath}>{font.name} license</a><a href="/about/">About and credits</a></footer>
     <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => { setManual(false); copyButton.current?.focus(); }}>
       <h2 id="copy-title">Copy text</h2><p>Select and copy the text.</p>
       <textarea ref={manualText} aria-label="Text to copy" value={manualValue} readOnly />

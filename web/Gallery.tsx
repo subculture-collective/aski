@@ -56,10 +56,11 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
     <div className="gallery-heading"><h2 id="gallery-title">Styles</h2>
       <div className="filters" role="search" aria-label="Find styles">
         <label htmlFor="style-search" className="visually-hidden">Search styles</label>
+        <span className="search-icon" aria-hidden="true"><Icon name="search" /></span>
         <input id="style-search" ref={search} type="search" value={filters.query} placeholder="Search styles" onChange={event => set({ query: event.target.value })} />
         <button className="secondary" aria-expanded={filtersOpen} aria-controls="filter-options" onClick={() => setFiltersOpen(value => !value)}>Filters{activeFilters ? ` (${activeFilters})` : ''}<Icon name="chevron" /></button>
       </div>
-      {/* The count appears once a search or filter narrows the list. */}
+      {/* The count replaces the hint once a search or filter narrows the list. */}
       <span data-testid="filter-count" aria-live="polite">{filtered ? `Showing ${shown.length} of ${families.length} families` : ''}</span>
     </div>
     {pins.length > 0 && <section className="compare" aria-labelledby="compare-title">
@@ -102,17 +103,19 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         const open = expanded.has(family.familyId);
         // The name button covers the whole card, so a click anywhere selects the style. The star, the variant
         // menu and the "more" menu sit above it.
-        return <article key={family.familyId} className="family-card" data-anchor={family.familyId} data-active={active || undefined} aria-labelledby={`family-${id}`}>
+        const favorite = isFavorite(family.familyId, variant.variantId);
+        return <article key={family.familyId} className="family-card" data-anchor={family.familyId} data-active={active || undefined} data-favorite={favorite || undefined} aria-labelledby={`family-${id}`}>
           <div className="family-heading">
-            <h3 id={`family-${id}`}><button className="card-select" aria-pressed={active} aria-label={`Use ${family.name}`} onClick={() => onUse(family)}>{family.name}</button></h3>
-            {family.variants.length > 1 && <select className="variant-select" aria-label={`${family.name} variant`} value={variant.variantId} onChange={event => onVariant(family, event.target.value)}>
-              {family.variants.map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
-            </select>}
+            <h3 id={`family-${id}`} title={family.name}><button className="card-select" aria-pressed={active} aria-label={`Use ${family.name}`} onClick={() => onUse(family)}>{family.name}</button></h3>
             <button className="favorite" aria-pressed={isFavorite(family.familyId, variant.variantId)} aria-label={`Favorite ${variant.name}`}
               onClick={() => onFavorite(family.familyId, variant.variantId)}><Icon name="star" filled={isFavorite(family.familyId, variant.variantId)} /></button>
             <details className="menu card-menu">
               <summary aria-label={`More for ${family.name}`}><Icon name="more" /></summary>
               <div className="exports">
+                {family.variants.length > 1 && <label className="field">Variant
+                  <select className="variant-select" aria-label={`${family.name} variant`} value={variant.variantId} onChange={event => onVariant(family, event.target.value)}>
+                    {family.variants.map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
+                  </select></label>}
                 <button aria-pressed={pins.includes(variant.variantId)} aria-label={`Pin ${variant.name}`} onClick={() => onPin(variant.variantId)}><Icon name="pin" />{pins.includes(variant.variantId) ? 'Unpin from compare' : 'Pin to compare'}</button>
                 <button aria-expanded={open} aria-controls={`details-${id}`} onClick={() => onToggle(family)}>Details</button>
               </div>
@@ -120,7 +123,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
           </div>
           {/* Each preview is scaled to fit its box from its own columns and rows. */}
           <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}
-            style={{ '--cols': preview?.result?.columns || 1, '--rows': preview?.result?.rows || 1 } as CSSProperties}>
+            style={{ '--cols': preview?.result?.columns || 1, '--rows': preview?.result?.rows || 1, '--base': (preview?.result?.rows || 1) <= 2 ? '26px' : '13px' } as CSSProperties}>
             {preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}
           </pre>
           <p className="card-meta" data-testid={`meta-${id}`} hidden={!open && !activeFilters}>
