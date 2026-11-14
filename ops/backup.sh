@@ -4,6 +4,7 @@
 #   backup.sh               nightly (aski-backup.timer, as root): also an encrypted restic snapshot on Kvant
 # Local dumps and snapshots are kept for 30 days at most, the contract's backup bound.
 set -euo pipefail
+umask 077
 data=/srv/apps/data/aski
 config=/srv/apps/config/aski
 backups="$data/backups"
