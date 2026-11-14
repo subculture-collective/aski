@@ -75,7 +75,10 @@ test('measure typing, export fidelity, GIF encoding and cancellation', async ({ 
   const shown = (await page.getByTestId('output').textContent())!;
   await openDownload(page);
   const text = await download(page, () => page.getByRole('button', { name: 'Download text' }).click());
+  // Text downloads close the menu; image downloads keep it open.
+  await openDownload(page);
   const ansi = await download(page, () => page.getByRole('button', { name: 'Download ANSI' }).click());
+  await openDownload(page);
   const visible = ansi.bytes.toString('utf8').replace(/\x1b\[[\d;]*m/g, '');
   const exports = page.getByRole('group', { name: 'Image export' });
   const png = await download(page, () => exports.getByRole('button', { name: 'Download PNG' }).click());

@@ -54,6 +54,12 @@ select{appearance:none;-webkit-appearance:none;height:44px;padding-right:36px;ba
 #font:hover,#font:focus{border-color:var(--line-strong);}
 small{font-size:13px;color:var(--aski-muted);}
 .artwork{min-width:0;background:var(--aski-panel);border:var(--line-strong);border-radius:var(--aski-radius);container-type:inline-size;}
+/* Some engines (seen in Chrome 124 on Android) make every container-type element its own stacking context, so
+   later cards covered an open menu. Every card is one here too, so all engines stack alike: the result card and a
+   card with an open menu sit above the other cards. */
+.artwork{position:relative;z-index:1;}
+.family-card{z-index:0;}
+.family-card:has(.card-menu[open]){z-index:2;}
 .output-heading{display:flex;align-items:center;gap:8px 12px;padding:12px 16px;border-bottom:var(--line);flex-wrap:wrap;}
 .output-actions{display:flex;gap:4px;align-items:center;margin-left:auto;flex-wrap:wrap;}
 .output-actions>.secondary,.output-actions>.menu>summary{border-color:transparent;background:transparent;}
