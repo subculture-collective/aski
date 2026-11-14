@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { openCustomize } from './ui.ts';
 const layout = (page: Page) => page.getByRole('region', { name: 'Layout' });
 const output = (page: Page) => page.getByTestId('output');
 const size = async (page: Page) => {
@@ -14,6 +15,7 @@ const size = async (page: Page) => {
 test('spacing modes follow font capability and keep word gaps', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('A B');
+  await openCustomize(page, 'Layout');
   await expect(layout(page).getByRole('radio', { name: 'Font default (fitted)' })).toBeChecked();
   await expect(layout(page).getByRole('radio', { name: 'Smushed' })).toBeDisabled();
   await expect(layout(page).getByText('ANSI Compact defines no smushing rules')).toBeVisible();
@@ -38,6 +40,7 @@ test('maximum width and alignment change the output dimensions and persist with 
   await page.getByLabel('Style', { exact: true }).selectOption('figlet/future');
   await input.fill('ONE TWO THREE FOUR');
   const wide = await size(page);
+  await openCustomize(page, 'Layout');
   await layout(page).getByLabel('Maximum width').fill('10');
   await layout(page).getByRole('button', { name: 'Set width' }).click();
   await expect(layout(page).getByRole('alert')).toContainText('from 20 to 1000');
@@ -53,6 +56,7 @@ test('maximum width and alignment change the output dimensions and persist with 
   const right = await size(page);
   expect(right.columns).toBe(wrapped.columns);
   await page.reload();
+  await openCustomize(page, 'Layout');
   await expect(layout(page).getByRole('radio', { name: 'Right' })).toBeChecked();
   expect((await size(page)).lines).toEqual(right.lines);
   await layout(page).getByRole('button', { name: 'No limit' }).click();

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import type { Browser, Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { closeLibrary, openCustomize, openLibrary } from './ui.ts';
 test.skip(process.env.ASKI_ACCOUNT_TEST !== '1', 'Run make test-account-ui for an isolated database and capture transport.');
 // The capture server trusts the preview proxy's forwarded address; each context acts as its own visitor.
 const projects = ['chromium', 'firefox', 'phone'];
@@ -56,9 +57,11 @@ test('a captured link signs in through the confirm page, and signing out keeps l
   const favorites=page.getByRole('region',{name:'Favorites'}); const collections=page.getByRole('region',{name:'Collections'});
   const records=()=>page.evaluate(()=>new Promise<number>(resolve=>{const open=indexedDB.open('aski-library');open.onsuccess=()=>{const all=open.result.transaction('records').objectStore('records').count();all.onsuccess=()=>{open.result.close();resolve(all.result);};};}));
   await page.goto('/');
-  await page.locator('article.family-card').filter({has:page.getByRole('heading',{name:'Pagga',exact:true,level:3})}).getByRole('button',{name:'Favorite Pagga'}).click();
+  await page.locator('article.family-card').filter({has:page.getByRole('button',{name:'Use Pagga',exact:true})}).getByRole('button',{name:'Favorite Pagga'}).click();
+  await openLibrary(page);
   await collections.getByLabel('New collection').fill('Keep'); await collections.getByLabel('New collection').press('Enter');
   await expect(favorites.getByRole('listitem')).toHaveCount(1); await expect.poll(records).toBe(2);
+  await closeLibrary(page);
   await page.getByRole('button',{name:'Sign in',exact:true}).click();
   await page.getByLabel('Email',{exact:true}).fill(email);
   await page.getByRole('button',{name:'Email a link',exact:true}).click();
@@ -92,6 +95,7 @@ test('a captured link signs in through the confirm page, and signing out keeps l
   expect((await context.cookies()).some(c=>c.name.includes('session_token'))).toBe(false);
   await page.reload();
   await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
+  await openLibrary(page);
   await expect(favorites.getByRole('listitem')).toHaveCount(1);
   await expect(collections.getByRole('listitem',{name:'Collection Keep',exact:true})).toBeVisible();
   expect(await records()).toBe(2);
@@ -103,13 +107,17 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   const designs = (page: Page) => saved(page).getByRole('list',{name:'Saved designs'}).getByRole('listitem');
   // Work saved before sign-in stays in this browser and is not uploaded.
   await one.page.goto('/'); await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('LOCAL ONLY');
+  await openLibrary(one.page);
   await saved(one.page).getByRole('button',{name:'Save text',exact:true}).click();
   await expect(saved(one.page).getByRole('listitem',{name:'Text LOCAL ONLY'})).toBeVisible();
   await signIn(one.page, owner);
+  await openLibrary(one.page);
   await expect(one.page.getByRole('radio',{name:'Account'})).toBeChecked();
   await expect(saved(one.page).getByText('No saved text yet.')).toBeVisible();
+  await closeLibrary(one.page);
   await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('ACCOUNT ART');
   await expect(one.page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
+  await openLibrary(one.page);
   await saved(one.page).getByRole('button',{name:'Save design',exact:true}).click();
   await expect(designs(one.page)).toHaveCount(1);
   await designs(one.page).getByRole('button',{name:'Rename'}).click();
@@ -119,6 +127,7 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   // Another signed-in session for the same account lists and reopens it.
   const two = await visitor(browser, project);
   await signIn(two.page, owner);
+  await openLibrary(two.page);
   await expect(saved(two.page).getByRole('listitem',{name:'Design Account design'})).toBeVisible();
   await expect(saved(two.page).getByText('LOCAL ONLY')).toHaveCount(0);
   await saved(two.page).getByRole('button',{name:'Account design',exact:true}).click();
@@ -126,6 +135,7 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   // A different account sees nothing, through the interface or the API.
   const other = await visitor(browser, project);
   await signIn(other.page, `${project}-other@example.test`);
+  await openLibrary(other.page);
   await expect(saved(other.page).getByText('No saved designs yet.')).toBeVisible();
   expect((await (await other.page.request.get('/api/library')).json()).changes).toEqual([]);
   // Deleting in one session removes it for the account; the local item is still in the first browser.
@@ -133,6 +143,7 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   await item.getByRole('button',{name:'Delete'}).click(); await item.getByRole('button',{name:'Confirm delete'}).click();
   await expect(designs(two.page)).toHaveCount(0);
   await one.page.reload();
+  await openLibrary(one.page);
   await expect(saved(one.page).getByText('No saved designs yet.')).toBeVisible();
   await one.page.getByRole('radio',{name:'This browser'}).check();
   await expect(saved(one.page).getByRole('listitem',{name:'Text LOCAL ONLY'})).toBeVisible();
@@ -165,8 +176,10 @@ test('signing in offers an explicit import that survives a lost reply and reache
   const one = await visitor(browser, project);
   await one.page.goto('/'); await expect(one.page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
   await seedLocal(one.page); await one.page.reload();
+  await openLibrary(one.page);
   await expect(collections(one.page).getByRole('listitem',{name:'Collection Keep'})).toBeVisible();
   await signIn(one.page, owner);
+  await openLibrary(one.page);
   const panel = one.page.getByRole('region',{name:'Import from this browser'});
   await expect(panel).toContainText('This browser has 1 favorite, 1 design, 1 collection, 2 collection entries that are not in your account.');
   await panel.getByRole('button',{name:'Review import'}).click();
@@ -187,6 +200,8 @@ test('signing in offers an explicit import that survives a lost reply and reache
   // Another signed-in session reads the collection and reopens the style and the exact design.
   const two = await visitor(browser, project);
   await signIn(two.page, owner);
+  await openLibrary(two.page);
+  await expect(two.page.getByRole('region',{name:'Collections'})).toBeVisible();
   await expect(two.page.getByRole('region',{name:'Import from this browser'})).toHaveCount(0);
   const keep = collections(two.page).getByRole('listitem',{name:'Collection Keep'});
   await expect(keep.getByRole('list',{name:'Items in Keep'}).getByRole('listitem')).toHaveCount(2);
@@ -198,16 +213,21 @@ test('signing in offers an explicit import that survives a lost reply and reache
   // A fresh import from the first browser finds nothing left to add.
   await one.page.getByRole('radio',{name:'Account'}).check(); await one.page.reload();
   await expect(one.page.getByText(`Signed in as ${owner}`)).toBeVisible();
+  await openLibrary(one.page);
+  await expect(collections(one.page)).toBeVisible();
   await expect(one.page.getByRole('region',{name:'Import from this browser'})).toHaveCount(0);
   for (const session of [one, two]) await session.context.close();
 });
 const savedText = (page: Page) => page.getByRole('region',{name:'Saved work'}).getByRole('list',{name:'Saved text'});
 const liveRecords = async (page: Page) => ((await (await page.request.get('/api/library')).json()).changes as { type: string; deletedAt: string | null; payload: { name?: string } }[]).filter(r => !r.deletedAt);
 async function saveText(page: Page, text: string) {
+  await closeLibrary(page);
   await page.getByRole('textbox',{name:'Text',exact:true}).fill(text);
+  await openLibrary(page);
   await page.getByRole('region',{name:'Saved work'}).getByRole('button',{name:'Save text',exact:true}).click();
 }
 async function renameText(page: Page, from: string, to: string) {
+  await openLibrary(page);
   const item = savedText(page).getByRole('listitem',{name:`Text ${from}`});
   await item.getByRole('button',{name:'Rename'}).click(); await item.getByLabel('Name',{exact:true}).fill(to); await item.getByRole('button',{name:'Save name'}).click();
 }
@@ -215,6 +235,7 @@ test('changes made while the account service is down survive a reload and are se
   const project = testInfo.project.name; const owner = `${project}-outage@example.test`;
   const one = await visitor(browser, project);
   await signIn(one.page, owner);
+  await openLibrary(one.page);
   await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved');
   await one.page.route('**/api/**', route => route.abort());
   await saveText(one.page, 'WHILE DOWN');
@@ -222,11 +243,14 @@ test('changes made while the account service is down survive a reload and are se
   // A reload while the service is down shows the account's copy and the waiting change.
   await one.page.reload();
   await expect(one.page.getByText(`Signed in as ${owner} (offline)`)).toBeVisible();
+  await openLibrary(one.page);
   await expect(savedText(one.page).getByRole('listitem',{name:'Text WHILE DOWN'})).toBeVisible();
   await expect(one.page.getByTestId('sync-status')).toContainText('1 change kept in this browser');
   // Local drafting keeps working.
+  await closeLibrary(one.page);
   await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('STILL DRAFTING');
   await expect(one.page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();
+  await openLibrary(one.page);
   await one.page.unroute('**/api/**');
   await one.page.evaluate(() => dispatchEvent(new Event('online')));
   await expect(one.page.getByText(`Signed in as ${owner} (offline)`)).toHaveCount(0);
@@ -242,6 +266,7 @@ test('edits made in two sessions are both kept, and an edit to an item deleted e
   await saveText(one.page, 'SHARED'); await saveText(one.page, 'DOOMED');
   await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved');
   await signIn(two.page, owner);
+  await openLibrary(two.page);
   await expect(savedText(two.page).getByRole('listitem')).toHaveCount(2);
   // The second session cannot reach the account while it edits.
   await two.page.route('**/api/library/mutations', route => route.abort());
@@ -258,6 +283,7 @@ test('edits made in two sessions are both kept, and an edit to an item deleted e
   await expect(savedText(two.page).getByRole('listitem')).toHaveCount(3);
   for (const name of ['From one', 'From two (conflicting copy)', 'Saved by two (recovered)']) await expect(savedText(two.page).getByRole('listitem',{name:`Text ${name}`})).toBeVisible();
   await one.page.reload();
+  await openLibrary(one.page);
   await expect(savedText(one.page).getByRole('listitem')).toHaveCount(3);
   expect((await liveRecords(one.page)).map(r => r.payload.name).sort()).toEqual(['From one', 'From two (conflicting copy)', 'Saved by two (recovered)']);
   for (const session of [one, two]) await session.context.close();
@@ -273,11 +299,15 @@ test('unsent changes stay bound to their account after the session ends and can 
   expect((await one.page.request.post('/api/sign-out', { headers: { origin: 'http://127.0.0.1:4179', 'content-type': 'application/json' }, data: {} })).status()).toBe(200);
   await one.page.unroute('**/api/library/mutations');
   await one.page.evaluate(() => dispatchEvent(new Event('online')));
+  await closeLibrary(one.page);
   await expect(one.page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible({ timeout: 15_000 });
+  await openLibrary(one.page);
   const waiting = one.page.getByRole('region',{name:'Unsent account changes'});
   await expect(waiting).toContainText(`1 unsent change for ${owner} is kept in this browser.`);
   // A different account never receives them.
+  await closeLibrary(one.page);
   await signIn(one.page, `${project}-someone-else@example.test`);
+  await openLibrary(one.page);
   await expect(waiting).toBeVisible();
   expect(await liveRecords(one.page)).toEqual([]);
   await one.page.getByRole('radio',{name:'This browser'}).check();
@@ -294,6 +324,7 @@ test('a saved animated design and its GIF reach another session byte for byte, a
   await one.page.emulateMedia({ reducedMotion: 'reduce' });
   await signIn(one.page, owner);
   await one.page.getByRole('textbox',{name:'Text',exact:true}).fill('MOVE');
+  await openCustomize(one.page, 'Animation');
   await animation(one.page).getByRole('radio',{name:'Glitch'}).check();
   await animation(one.page).getByLabel('Frame rate').selectOption('10');
   await animation(one.page).getByLabel('Duration (seconds)').fill('1'); await animation(one.page).getByLabel('Duration (seconds)').press('Enter');
@@ -303,16 +334,21 @@ test('a saved animated design and its GIF reach another session byte for byte, a
   const original = readFileSync((await made.path())!);
   await gif(one.page).getByRole('button',{name:'Save design with this GIF'}).click();
   await expect(one.page.getByTestId('gif-save-note')).toHaveText('Saved with this GIF in Saved work.');
+  await openLibrary(one.page);
   await expect(one.page.getByTestId('sync-status')).toContainText('All changes are saved', { timeout: 15_000 });
   const [file] = (await (await one.page.request.get('/api/artifacts')).json()).artifacts;
   expect(file).toMatchObject({ mime: 'image/gif', sha256: sha(original), byteLength: original.length });
   // Another session for the account reopens the design and downloads the identical GIF.
   const two = await visitor(browser, project);
   await signIn(two.page, owner);
+  await openLibrary(two.page);
   const design = two.page.getByRole('region',{name:'Saved work'}).getByRole('listitem',{name:'Design ANSI Compact: MOVE',exact:true});
   await expect(design.getByText(/^Original GIF/)).toBeVisible();
   await design.getByRole('button',{name:'ANSI Compact: MOVE',exact:true}).click();
+  await closeLibrary(two.page);
+  await openCustomize(two.page, 'Animation');
   await expect(animation(two.page).getByRole('radio',{name:'Glitch'})).toBeChecked();
+  await openLibrary(two.page);
   const [download] = await Promise.all([two.page.waitForEvent('download'), design.getByRole('button',{name:'Download original'}).click()]);
   expect(download.suggestedFilename()).toMatch(/\.gif$/);
   expect(sha(readFileSync((await download.path())!))).toBe(sha(original));

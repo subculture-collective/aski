@@ -9,6 +9,7 @@ import { decompressFrames, parseGIF } from 'gifuct-js';
 // projects run on this machine's engines, so they measure layout and engine behaviour, not phone hardware.
 test.skip(process.env.ASKI_QUALIFY !== '1', 'Run make qualify-export to record measurements.');
 test.describe.configure({ timeout: 600_000 });
+import { closeDownload, openCustomize, openDownload } from './ui.ts';
 const panel = (page: Page) => page.getByRole('region', { name: 'Animation' });
 const gif = (page: Page) => page.getByRole('group', { name: 'GIF export' });
 const quantile = (values: number[], q: number) => { const sorted = [...values].sort((a, b) => a - b); return Math.round(sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))]); };
@@ -23,7 +24,9 @@ function decodeGif(bytes: Buffer) {
     disposal: [...new Set(frames.map(frame => frame.disposalType))], width: bytes.readUInt16LE(6), height: bytes.readUInt16LE(8) };
 }
 async function animate(page: Page, text: string, effect: string, seconds: string, hold: string, fps: string) {
+  await closeDownload(page);
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill(text);
+  await openCustomize(page, 'Animation');
   await panel(page).getByRole('radio', { name: effect }).check();
   await panel(page).getByLabel('Duration (seconds)').fill(seconds); await panel(page).getByLabel('Duration (seconds)').press('Enter');
   await panel(page).getByLabel('End hold (seconds)').fill(hold); await panel(page).getByLabel('End hold (seconds)').press('Enter');
@@ -66,9 +69,11 @@ test('measure typing, export fidelity, GIF encoding and cancellation', async ({ 
   // Fidelity: every format downloaded from one seamless block design with spaces and two lines.
   await page.getByLabel('Style', { exact: true }).selectOption('ansi-compact.regular');
   await input.fill('  A B\nCD  ');
+  await openCustomize(page, 'Layout');
   await page.getByLabel(/^Seamless blocks/).check();
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
   const shown = (await page.getByTestId('output').textContent())!;
+  await openDownload(page);
   const text = await download(page, () => page.getByRole('button', { name: 'Download text' }).click());
   const ansi = await download(page, () => page.getByRole('button', { name: 'Download ANSI' }).click());
   const visible = ansi.bytes.toString('utf8').replace(/\x1b\[[\d;]*m/g, '');

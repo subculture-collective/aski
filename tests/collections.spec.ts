@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { card, openLibrary } from './ui.ts';
 const region = (page: Page, name: string) => page.getByRole('region', { name });
-const card = (page: Page, name: string) => page.locator('article.family-card').filter({ has: page.getByRole('heading', { name, exact: true, level: 3 }) });
 const collection = (page: Page, name: string) => region(page, 'Collections').getByRole('listitem', { name: `Collection ${name}`, exact: true });
 const stored = (page: Page) => page.evaluate(() => new Promise<number>(resolve => {
   const open = indexedDB.open('aski-library');
@@ -12,6 +12,8 @@ async function setup(page: Page) {
   await card(page, 'Pagga').getByRole('button', { name: 'Favorite Pagga' }).click();
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('LOGO');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
+  // The library stays open from here on; these tests only use the page behind it to check the result.
+  await openLibrary(page);
   await region(page, 'Saved work').getByRole('button', { name: 'Save design' }).click();
 }
 async function create(page: Page, name: string) {
@@ -42,6 +44,7 @@ test('styles and designs join several collections and survive reload, rename and
   await expect.poll(() => stored(page)).toBe(7);
 
   await page.reload();
+  await openLibrary(page);
   await expect(collection(page, 'Project').getByRole('listitem')).toHaveCount(2);
   await expect(collection(page, 'Ideas').getByRole('listitem')).toHaveCount(1);
   // Opening a style from a collection applies it to the current text.
@@ -68,6 +71,7 @@ test('styles and designs join several collections and survive reload, rename and
   await expect(collection(page, 'Later').getByRole('listitem')).toHaveCount(0);
   await expect.poll(() => stored(page)).toBe(2);
   await page.reload();
+  await openLibrary(page);
   await expect(collection(page, 'Later')).toBeVisible();
   await expect(pick(page, 'Favorites', 'Pagga')).toBeVisible();
 });
