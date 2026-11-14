@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { families, getVariant } from '../shared/catalog.ts';
 import type { FontFamily } from '../shared/catalog.ts';
 import { PREVIEW_LIMIT, usePreviews } from './usePreviews.ts';
+import { Icon } from './Icon.tsx';
+import type { CSSProperties } from 'react';
 const slug = (id: string) => id.replace(/[^a-z\d]+/gi, '-');
 export const LOOK_LABELS: Record<string, string> = { block: 'Blocks', shaded: 'Shaded', line: 'Lines', braille: 'Braille', letter: 'Letters', enclosed: 'Enclosed', wide: 'Wide', symbol: 'Symbols' };
 interface Filters { query: string; looks: string[]; supportsText: boolean; maxColumns: string; maxRows: string }
@@ -18,6 +20,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
   // Pinned variants render through the same preview queue, after the cards' own variants.
   const { previews, text, truncated } = usePreviews(input, [...new Set([...selected, ...pins])]);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const set = (change: Partial<Filters>) => setFilters(previous => ({ ...previous, ...change }));
   const search = useRef<HTMLInputElement>(null);
   // Clearing removes the button that was pressed, so move focus to the search field.
@@ -47,8 +50,18 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
     return { family, index, uncategorized: uncategorized && filters.looks.length > 0 };
   }).filter(item => item !== null);
   const filtered = JSON.stringify(filters) !== JSON.stringify(NO_FILTERS);
+  // Filters other than the search field, shown on the toggle so a closed panel never hides an active filter.
+  const activeFilters = filters.looks.length + (filters.supportsText ? 1 : 0) + (filters.maxColumns ? 1 : 0) + (filters.maxRows ? 1 : 0);
   return <section className="gallery" aria-labelledby="gallery-title">
-    <div className="gallery-heading"><h2 id="gallery-title">Styles</h2><span>{families.length} families · live previews</span></div>
+    <div className="gallery-heading"><h2 id="gallery-title">Styles</h2>
+      <div className="filters" role="search" aria-label="Find styles">
+        <label htmlFor="style-search" className="visually-hidden">Search styles</label>
+        <input id="style-search" ref={search} type="search" value={filters.query} placeholder="Search styles" onChange={event => set({ query: event.target.value })} />
+        <button className="secondary" aria-expanded={filtersOpen} aria-controls="filter-options" onClick={() => setFiltersOpen(value => !value)}>Filters{activeFilters ? ` (${activeFilters})` : ''}<Icon name="chevron" /></button>
+      </div>
+      {/* The count appears once a search or filter narrows the list. */}
+      <span data-testid="filter-count" aria-live="polite">{filtered ? `Showing ${shown.length} of ${families.length} families` : ''}</span>
+    </div>
     {pins.length > 0 && <section className="compare" aria-labelledby="compare-title">
       <h3 id="compare-title">Compare ({pins.length})</h3>
       <div className="compare-grid">
@@ -66,9 +79,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         })}
       </div>
     </section>}
-    <div className="filters" role="search" aria-label="Find styles">
-      <div className="field"><label htmlFor="style-search">Search styles</label>
-        <input id="style-search" ref={search} type="search" value={filters.query} placeholder="Family or variant name" onChange={event => set({ query: event.target.value })} /></div>
+    <div id="filter-options" className="filter-options" role="group" aria-label="Filters" hidden={!filtersOpen}>
       <fieldset className="slots"><legend>Look</legend>
         {Object.entries(LOOK_LABELS).map(([look, label]) => <label key={look}>
           <input type="checkbox" checked={filters.looks.includes(look)} onChange={event => set({ looks: event.target.checked ? [...filters.looks, look] : filters.looks.filter(item => item !== look) })} />{label}
@@ -79,7 +90,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         <div className="field"><label htmlFor="max-rows">Max rows</label><input id="max-rows" inputMode="numeric" value={filters.maxRows} placeholder="Any" onChange={event => set({ maxRows: event.target.value })} /></div>
       </div>
       <label className="toggle"><input type="checkbox" checked={filters.supportsText} onChange={event => set({ supportsText: event.target.checked })} />Supports every character in my text</label>
-      <p className="hint" data-testid="filter-count" aria-live="polite">Showing {shown.length} of {families.length} families. Sizes are columns × rows for your text{truncated ? ` (first ${PREVIEW_LIMIT} characters)` : ''}. Looks come from the characters each font draws; reviewed style tags are not recorded yet.</p>
+      <p className="hint">Sizes are columns × rows for your text{truncated ? ` (first ${PREVIEW_LIMIT} characters)` : ''}. Looks come from the characters each font draws.</p>
     </div>
     {truncated && <p className="gallery-note">Previews show the first {PREVIEW_LIMIT} characters. The selected style renders all of your text.</p>}
     <div className="family-grid">
@@ -89,28 +100,33 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         const preview = previews[variant.variantId];
         const active = family.familyId === activeFamilyId;
         const open = expanded.has(family.familyId);
+        // The name button covers the whole card, so a click anywhere selects the style. The star, the variant
+        // menu and the "more" menu sit above it.
         return <article key={family.familyId} className="family-card" data-anchor={family.familyId} data-active={active || undefined} aria-labelledby={`family-${id}`}>
-          <div className="family-heading"><h3 id={`family-${id}`}>{family.name}</h3>{active && <span className="badge">In use</span>}
+          <div className="family-heading">
+            <h3 id={`family-${id}`}><button className="card-select" aria-pressed={active} aria-label={`Use ${family.name}`} onClick={() => onUse(family)}>{family.name}</button></h3>
+            {family.variants.length > 1 && <select className="variant-select" aria-label={`${family.name} variant`} value={variant.variantId} onChange={event => onVariant(family, event.target.value)}>
+              {family.variants.map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
+            </select>}
             <button className="favorite" aria-pressed={isFavorite(family.familyId, variant.variantId)} aria-label={`Favorite ${variant.name}`}
-              onClick={() => onFavorite(family.familyId, variant.variantId)}>{isFavorite(family.familyId, variant.variantId) ? '★' : '☆'}</button></div>
-          {family.variants.length > 1 && <fieldset className="variants"><legend>Variant</legend>
-              {family.variants.map(item => <label key={item.variantId}>
-                <input type="radio" name={`variant-${id}`} value={item.variantId} checked={item.variantId === variant.variantId} onChange={() => onVariant(family, item.variantId)} />
-                <span>{item.name}</span>
-              </label>)}
-            </fieldset>}
-          <p className="card-meta" data-testid={`meta-${id}`}>
+              onClick={() => onFavorite(family.familyId, variant.variantId)}><Icon name="star" filled={isFavorite(family.familyId, variant.variantId)} /></button>
+            <details className="menu card-menu">
+              <summary aria-label={`More for ${family.name}`}><Icon name="more" /></summary>
+              <div className="exports">
+                <button aria-pressed={pins.includes(variant.variantId)} aria-label={`Pin ${variant.name}`} onClick={() => onPin(variant.variantId)}><Icon name="pin" />{pins.includes(variant.variantId) ? 'Unpin from compare' : 'Pin to compare'}</button>
+                <button aria-expanded={open} aria-controls={`details-${id}`} onClick={() => onToggle(family)}>Details</button>
+              </div>
+            </details>
+          </div>
+          {/* Each preview is scaled to fit its box from its own columns and rows. */}
+          <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}
+            style={{ '--cols': preview?.result?.columns || 1, '--rows': preview?.result?.rows || 1 } as CSSProperties}>
+            {preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}
+          </pre>
+          <p className="card-meta" data-testid={`meta-${id}`} hidden={!open && !activeFilters}>
             {preview?.input !== text ? 'Measuring…' : preview.result ? `${preview.result.columns} × ${preview.result.rows}` : 'Size unavailable'}
             {' · '}{variant.looks.length ? variant.looks.map(look => LOOK_LABELS[look]).join(', ') : 'Look not recorded'}{uncategorized ? ' (shown because its look is unknown)' : ''}
           </p>
-          <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}>
-            {preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}
-          </pre>
-          <div className="card-actions">
-            <button aria-pressed={active} onClick={() => onUse(family)}>Use style</button>
-            <button aria-expanded={open} aria-controls={`details-${id}`} onClick={() => onToggle(family)}>Details</button>
-            <button aria-pressed={pins.includes(variant.variantId)} aria-label={`Pin ${variant.name}`} onClick={() => onPin(variant.variantId)}>Pin</button>
-          </div>
           {<dl id={`details-${id}`} className="family-details" hidden={!open}>
             <dt>Variants</dt><dd>{family.variants.length}</dd>
             <dt>Line height</dt><dd>{variant.height} rows</dd>
