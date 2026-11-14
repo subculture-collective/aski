@@ -15,6 +15,14 @@ interface GalleryProps {
   isFavorite: (familyId: string, variantId: string) => boolean; onFavorite: (familyId: string, variantId: string) => void;
   pins: string[]; onPin: (variantId: string) => void; onUseVariant: (variantId: string) => void;
 }
+// The rows from the first to the last that contain more than spaces.
+function inkedRows(text: string) {
+  const rows = text.replace(/\n$/, '').split('\n');
+  const first = rows.findIndex(row => row.trim());
+  let last = rows.length - 1;
+  while (last > first && !rows[last].trim()) last--;
+  return first < 0 ? [] : rows.slice(first, last + 1);
+}
 export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant, onUse, onToggle, isFavorite, onFavorite, pins, onPin, onUseVariant }: GalleryProps) {
   const selected = families.map(variantFor);
   // Pinned variants render through the same preview queue, after the cards' own variants.
@@ -99,6 +107,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
         const id = slug(family.familyId);
         const variant = getVariant(selected[index]);
         const preview = previews[variant.variantId];
+        const inked = inkedRows(preview?.result?.text || '');
         const active = family.familyId === activeFamilyId;
         const open = expanded.has(family.familyId);
         // The name button covers the whole card, so a click anywhere selects the style. The star, the variant
@@ -121,10 +130,11 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
               </div>
             </details>
           </div>
-          {/* Each preview is scaled to fit its box from its own columns and rows. */}
-          <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}
-            style={{ '--cols': preview?.result?.columns || 1, '--rows': preview?.result?.rows || 1, '--base': (preview?.result?.rows || 1) === 1 ? '34px' : (preview?.result?.rows || 1) <= 2 ? '26px' : '13px' } as CSSProperties}>
-            {preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}
+          {/* Each preview is scaled to fit its box from its own columns and the rows that hold ink: blank
+              rows above and below the lettering are left out of the preview, not out of the copied text. */}
+          <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text} data-blocks={variant.blocks || undefined}
+            style={{ '--cols': preview?.result?.columns || 1, '--rows': inked.length || 1, '--base': inked.length <= 1 ? '34px' : inked.length <= 2 ? '26px' : '13px' } as CSSProperties}>
+            {preview?.error ? 'Preview unavailable.' : inked.join('\n')}
           </pre>
           <p className="card-meta" data-testid={`meta-${id}`} hidden={!open && !activeFilters}>
             {preview?.input !== text ? 'Measuring…' : preview.result ? `${preview.result.columns} × ${preview.result.rows}` : 'Size unavailable'}

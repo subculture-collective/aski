@@ -27,7 +27,7 @@ export function SignIn({ account, onSignedOut }: { account: AccountState; onSign
   </>;
   if (account.status === 'unavailable') return null;
   return <>
-    <button ref={trigger} onClick={() => dialog.current?.showModal()}>Sign in</button>
+    <button ref={trigger} className="quiet" onClick={() => dialog.current?.showModal()}>Sign in</button>
     {notice && <span className="account-notice" role="status">{notice}</span>}
     <dialog ref={dialog} aria-labelledby="signin-title" onClose={() => trigger.current?.focus()}>
       <h2 id="signin-title">Sign in</h2>
