@@ -147,7 +147,7 @@ dialog textarea{min-height:220px;font-family:'aski Art Mono',ui-monospace,monosp
   main{padding:16px 16px 24px;} header{gap:12px;margin-bottom:20px;padding-bottom:16px;flex-wrap:wrap;}
   h1 img{width:128px;height:44px;} .header-actions{gap:8px;} button{padding:8px 12px;}
   .studio{gap:20px;}
-  #input{min-height:56px;height:56px;}
+  #input{min-height:56px;}
   #font{font-size:19px;} .output-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-left:0;width:100%;} .output-actions .primary{grid-column:1/-1;} .output-actions>*>summary,.output-actions>button{width:100%;padding:8px 6px;}
   header{padding-bottom:12px;} #input{resize:none;}
   .filters{flex-basis:100%;} .family-grid{gap:12px;} .preview{height:84px;--fs:clamp(3px,min(calc((100cqi - 24px) / (var(--cols,1) * .62)),calc(68px / (var(--rows,1) * 1.1)),var(--base,13px)),var(--base,13px));}
