@@ -79,7 +79,7 @@ pre.art{text-align:center;padding:20px 24px;font-size:clamp(18px,calc((100cqi - 
 .panel{border-top:var(--line);}
 .panel>.toggle{padding:0 20px 16px;}
 .warning{font-size:14px;margin:0;padding:12px;background:var(--aski-paper);border-left:3px solid var(--aski-focus);overflow-wrap:anywhere;}
-.artwork>.warning{margin:0 16px 12px;}
+.artwork>.warning,.artwork>.notice>.warning{margin:0 16px 12px;}
 .artwork>.share-link{padding:0 16px 12px;}
 .warning p{margin:0 0 8px;}
 footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14px;color:var(--aski-muted);margin-top:40px;padding-top:12px;border-top:var(--line);}
@@ -128,8 +128,8 @@ h3{font-family:var(--aski-display);font-weight:700;font-size:19px;line-height:1.
   --fs:clamp(3px,min(calc((100cqi - 24px) / (var(--cols,1) * .62)),calc(80px / (var(--rows,1) * 1.1)),var(--base,13px)),var(--base,13px));}
 .preview{font-size:var(--fs);}
 @supports (font-size:round(down,1.5px,1px)){.preview{font-size:max(3px,round(down,var(--fs),1px));}}
-/* Art Mono cells are 0.6em wide and its full block 1.175em tall: block styles snap to 5px steps so cells land on whole pixels, and rows overlap slightly, so blocks join without seams. */
-@supports (font-size:round(down,1.5px,1px)){.preview[data-blocks]{font-size:max(3px,round(down,var(--fs),5px),min(round(down,var(--fs),1px),9px));line-height:1.15;}}
+/* Art Mono cells are 0.6em wide and its full block 1.175em tall: block styles snap to 5px steps so cells land on whole pixels, and rows overlap slightly, so blocks join without seams. Art too big for 5px drops to 4px or 3px. */
+@supports (font-size:round(down,1.5px,1px)){.preview[data-blocks]{font-size:max(3px,round(down,var(--fs),5px),min(round(down,var(--fs),1px),4px));line-height:1.15;}}
 .compare .preview{height:auto;min-height:88px;font-size:12px;cursor:default;display:block;overflow-x:auto;}
 .family-card .preview{pointer-events:none;}
 .preview[data-error]{font-family:var(--aski-body);font-size:14px;white-space:normal;color:var(--aski-muted);}
@@ -140,7 +140,7 @@ h3{font-family:var(--aski-display);font-weight:700;font-size:19px;line-height:1.
 .card-actions .quiet{font-weight:400;font-size:14px;padding:8px 10px;}
 .card-actions .quiet[aria-pressed=true],.card-actions .quiet[aria-expanded=true]{background:var(--aski-secondary);}
 .compare .card-actions button{flex:1;}
-.family-details{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:0;font-size:14px;}
+.family-details{position:relative;z-index:1;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:0;font-size:14px;}
 .family-details dt{font-weight:700;}
 .family-details dd{margin:0;}
 dialog{max-width:440px;width:calc(100% - 32px);padding:24px;border:var(--aski-border);border-radius:var(--aski-radius);background:var(--aski-panel);color:var(--aski-ink);box-shadow:var(--aski-shadow);}
@@ -315,7 +315,7 @@ header button.quiet,.output-actions>.secondary,.output-actions>.menu>summary,.fi
   .artwork>*{order:5;}
   .output-heading{display:contents;}
   .output-heading>.select-wrap{order:1;margin:6px 12px 0;}
-  .artwork>pre.art,.artwork>.seamless{order:2;}
+  .artwork>pre.art,.artwork>.seamless{order:2;flex-shrink:0;}
   .output-heading>.output-actions{order:3;padding:0 12px 12px;}
   .output-heading>.select-wrap{align-self:flex-start;}
 }

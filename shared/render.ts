@@ -30,12 +30,14 @@ function figletText(input: string, recipe: Recipe) {
   const fits = (text: string) => Math.max(0, ...figlet.textSync(text, options).split('\n').map(row => Array.from(row).length)) <= width;
   const lines: string[] = [];
   for (const line of input.split('\n')) {
-    let current = '';
-    for (const word of line.split(' ')) {
-      const candidate = current === '' ? word : `${current} ${word}`;
-      if (fits(candidate)) { current = candidate; continue; }
+    // Leading spaces stay with the first word, so indented lines keep their indent.
+    const indent = line.match(/^ */)![0];
+    let current = indent, empty = true;
+    for (const word of line.slice(indent.length).split(' ')) {
+      const candidate = empty ? current + word : `${current} ${word}`;
+      if (fits(candidate)) { current = candidate; empty = false; continue; }
       if (current !== '') lines.push(current);
-      current = '';
+      current = ''; empty = false;
       for (const character of Array.from(word)) {
         if (current === '' || fits(current + character)) current += character;
         else { lines.push(current); current = character; }

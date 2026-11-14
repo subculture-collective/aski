@@ -73,6 +73,11 @@ test('a maximum width wraps between words and never merges them, whatever the sp
     const free = render(variantId, 'HELLO WORLD', { spacing });
     // A width wider than the art changes nothing.
     assert.equal(render(variantId, 'HELLO WORLD', { spacing, width: Math.max(20, free.columns + 10) }).text, free.text, `${variantId} ${spacing} wide`);
+    // Indented and space-only lines keep their spaces too.
+    for (const text of ['  INDENT', 'AB\n  CD', 'AB\n   \nCD']) {
+      const plain = render(variantId, text, { spacing });
+      assert.equal(render(variantId, text, { spacing, width: Math.max(20, plain.columns + 10) }).text, plain.text, `${variantId} ${spacing} ${JSON.stringify(text)}`);
+    }
     // A width that cannot hold both words puts each word on its own line, drawn as it is alone.
     const width = Math.max(20, render(variantId, 'HELLO', { spacing }).columns, render(variantId, 'WORLD', { spacing }).columns);
     if (width >= free.columns) continue;

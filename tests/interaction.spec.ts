@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { card, cardMenuToggle, openCustomize, openDownload, openLibrary } from './ui.ts';
+import { card, cardAction, cardMenuToggle, openCustomize, openDownload, openLibrary } from './ui.ts';
 // Interactions found broken in real browsers on the live studio, kept here so they stay fixed.
 const settled = (page: Page) => expect(page.locator('.preview[aria-busy=true]')).toHaveCount(0);
 const ready = (page: Page) => expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
@@ -113,4 +113,85 @@ test('the small copy bar appears once Copy text is out of sight and confirms a c
   const footer = await page.locator('footer a').first().boundingBox();
   const barBox = await bar.boundingBox();
   expect(footer!.y + footer!.height <= barBox!.y || footer!.x + footer!.width <= barBox!.x).toBe(true);
+});
+
+test('focus and caret stay where the user put them after the history buttons and shortcuts are used', async ({ page }) => {
+  await page.goto('/');
+  const input = page.getByRole('textbox', { name: 'Text', exact: true });
+  const undo = page.getByRole('button', { name: 'Undo', exact: true }), redo = page.getByRole('button', { name: 'Redo', exact: true });
+  await input.fill('');
+  await input.pressSequentially('abc');
+  await ready(page);
+  // Two Undo clicks leave both buttons in place; typing afterwards stays in the field.
+  await undo.click(); await undo.click();
+  await expect(input).toHaveValue('a');
+  await input.click(); await input.press('End');
+  await page.keyboard.type('xyz');
+  await expect(input).toHaveValue('axyz');
+  await expect(input).toBeFocused();
+  // A shortcut that undoes a style change leaves the caret alone for the next keystrokes.
+  await input.fill('aaaa'); await ready(page);
+  await style(page).selectOption('figlet/pagga'); await ready(page);
+  await input.click();
+  await input.evaluate(element => (element as HTMLTextAreaElement).setSelectionRange(1, 1));
+  await page.keyboard.press('Control+Z');
+  await expect(style(page)).toHaveValue('ansi-compact.regular');
+  await page.keyboard.type('aZ');
+  await expect(input).toHaveValue('aaZaaa');
+  // A shortcut pressed on the Undo or Redo button that hides it moves focus to the other one.
+  await undo.focus();
+  for (let step = 0; step < 50 && await undo.isVisible(); step++) await page.keyboard.press('Control+Z');
+  await expect(undo).toBeHidden();
+  await expect(redo).toBeFocused();
+  for (let step = 0; step < 50 && await redo.isVisible(); step++) await page.keyboard.press('Control+Shift+Z');
+  await expect(redo).toBeHidden();
+  await expect(undo).toBeFocused();
+});
+
+test('library items used from the keyboard return focus, and the license link in Details opens', async ({ page }) => {
+  await page.goto('/');
+  await ready(page);
+  await page.getByRole('button', { name: 'Favorite Circle', exact: true }).click();
+  const library = await openLibrary(page);
+  const favorites = library.getByRole('region', { name: 'Favorites', exact: true });
+  await favorites.getByRole('button', { name: 'Circle', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(library).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Library', exact: true })).toBeFocused();
+  await openLibrary(page);
+  await favorites.getByRole('button', { name: 'Remove Circle from favorites' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(favorites.getByRole('heading', { name: 'Favorites' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  // The card's stretched pick target sits under the Details text, so its link takes the click.
+  const classy = card(page, 'Classy');
+  await cardAction(classy, 'Details');
+  const link = classy.getByRole('link', { name: /notice$/ });
+  await expect(link).toBeVisible();
+  expect(await link.evaluate(element => { element.scrollIntoView({ block: 'center' }); const box = element.getBoundingClientRect(); return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest('a') === element; })).toBe(true);
+});
+
+test('a share link on a phone leaves the result art at full height', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'phone', 'Only the phone layout stacks the result card.');
+  await page.goto('/');
+  await ready(page);
+  const art = page.getByTestId('output');
+  const before = await art.evaluate(element => element.clientHeight);
+  await (await openDownload(page)).getByRole('button', { name: 'Share link' }).click();
+  await expect(page.getByLabel(/^Share link \(/)).toBeVisible();
+  expect(await art.evaluate(element => element.clientHeight)).toBe(before);
+});
+
+test('a control focused under the sticky text field scrolls out from under it', async ({ page }) => {
+  await page.goto('/');
+  await ready(page);
+  const search = page.getByRole('searchbox', { name: 'Search styles' });
+  // Put the search box just under the field, as Shift+Tab back from the gallery does, then focus it.
+  const covered = await search.evaluate(element => {
+    const field = document.querySelector('.editor')!;
+    scrollBy(0, element.getBoundingClientRect().top - field.getBoundingClientRect().height + 10);
+    (element as HTMLElement).focus();
+    return { top: element.getBoundingClientRect().top, field: field.getBoundingClientRect().bottom };
+  });
+  expect(covered.top).toBeGreaterThanOrEqual(covered.field);
 });

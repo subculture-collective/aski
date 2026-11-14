@@ -56,7 +56,8 @@ export function AnimationPanel({ animation, model, font, colors, blocks, fileNam
     try { onChange(parseAnimation({ ...animation, ...change })); return ''; } catch (error) { return (error as Error).message; }
   };
   const frame = useMemo(() => active ? frameDataAt(model!, animation, frameTime(animation, current), colors, font) : null, [active, model, animation, current, colors, font]);
-  const style = Object.fromEntries(Object.entries(frame?.colors || colors).map(([slot, color]) => [`--slot-${slot}`, color])) as CSSProperties;
+  // --cols sizes the type to fit the box, as in the result above.
+  const style = { ...Object.fromEntries(Object.entries(frame?.colors || colors).map(([slot, color]) => [`--slot-${slot}`, color])), '--cols': model?.columns || 1 } as CSSProperties;
   const ownSlots = font.slots.filter(slot => slot !== 'background');
   return <section className="animation" data-anchor="animation" aria-labelledby="animation-title">
     <h2 id="animation-title">Animation</h2>

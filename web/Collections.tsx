@@ -61,7 +61,7 @@ export function Collections({ records, collections, onCreate, onRename, onDelete
             {members.map(item => <li key={item.id} data-kind={item.type}>
               <span className="kind">{item.type === 'design' ? 'Design' : 'Style'}</span>
               <button className="open" onClick={() => setMessage(onOpen(item))}>{memberName(item)}</button>
-              <button className="remove" aria-label={`Remove ${memberName(item)} from ${collection.payload.name}`} onClick={() => onRemoveMember(collection.id, item)}>×</button>
+              <button className="remove" aria-label={`Remove ${memberName(item)} from ${collection.payload.name}`} onClick={() => { onRemoveMember(collection.id, item); heading.current?.focus(); }}>×</button>
             </li>)}
           </ul>}
           {renaming !== collection.id && (deleting === collection.id

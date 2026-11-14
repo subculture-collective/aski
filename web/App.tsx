@@ -135,6 +135,13 @@ export function App() {
     jobKey.current = renderKey;
     worker.current.postMessage({ jobId: ++latestJob.current, recipe });
   }, [renderKey, restart]);
+  // A render that failed while offline, such as a font that could not load, is tried again on reconnect.
+  useEffect(() => {
+    if (!error || error.startsWith('Use ')) return;
+    const retry = () => setRestart(value => value + 1);
+    addEventListener('online', retry);
+    return () => removeEventListener('online', retry);
+  }, [error]);
 
   useEffect(() => {
     if (manual) { dialog.current?.showModal(); manualText.current?.select(); }
@@ -198,7 +205,11 @@ export function App() {
   const applyFavorite = (favorite: FavoritePayload) => chooseVariant(favorite.variantId ?? variantFor(getFamily(favorite.familyId)));
   // A reopened design re-renders with this build; say so if that no longer matches its saved text.
   const openedDiffers = ready && opened?.recipe === JSON.stringify(recipe) && opened.snapshot !== result.text;
-  const unsupported = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
+  // While a new render is pending the last message stays, so its live region does not announce it again.
+  const unsupportedNow = result?.unsupported.map(c => `U+${c.codePointAt(0)!.toString(16).toUpperCase()}`).join(', ');
+  const lastUnsupported = useRef('');
+  if (!pending) lastUnsupported.current = error ? '' : unsupportedNow || '';
+  const unsupported = lastUnsupported.current;
   // Opening a share link applies its design as one undoable edit, then removes the fragment so a reload
   // does not apply it again. Invalid links leave the draft unchanged.
   useEffect(() => {
@@ -290,15 +301,16 @@ export function App() {
     if (from === 'button') focusAfter.current = direction;
     if (direction === 'undo') undo(); else redo();
   }
+  // Both run after every commit, so a request is used by the undo or redo that made it and never by a later edit.
   useLayoutEffect(() => {
     const before = caretAfter.current, field = inputField.current;
     caretAfter.current = null;
-    if (before === null || !field || document.activeElement !== field) return;
     const after = recipe.input;
+    if (before === null || before === after || !field || document.activeElement !== field) return;
     let end = 0;
     while (end < before.length && end < after.length && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
     field.setSelectionRange(after.length - end, after.length - end);
-  }, [recipe.input]);
+  });
   useLayoutEffect(() => {
     const direction = focusAfter.current;
     focusAfter.current = null;
@@ -308,7 +320,7 @@ export function App() {
     if (used && !used.disabled) used.focus();
     else if (other && !other.disabled) other.focus();
     else inputField.current?.focus();
-  }, [canUndo, canRedo]);
+  });
   const historyState = useRef({ canUndo, canRedo, moveHistory });
   historyState.current = { canUndo, canRedo, moveHistory };
   useEffect(() => {
@@ -321,7 +333,8 @@ export function App() {
       if (textEntry || target.closest?.('dialog[open]')) return;
       event.preventDefault();
       const { canUndo, canRedo, moveHistory } = historyState.current;
-      if (event.shiftKey ? canRedo : canUndo) moveHistory(event.shiftKey ? 'redo' : 'undo', target.id === 'input' ? 'field' : 'other');
+      if (event.shiftKey ? canRedo : canUndo) moveHistory(event.shiftKey ? 'redo' : 'undo',
+        target.id === 'input' ? 'field' : target === undoButton.current || target === redoButton.current ? 'button' : 'other');
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -359,9 +372,19 @@ export function App() {
     const onFocus = (event: FocusEvent) => {
       const target = event.target as Node;
       openMenus().forEach(menu => { if (!menu.contains(target)) menu.open = false; });
+      // A control focused from the keyboard under the sticky text field, such as by Shift+Tab, scrolls out from
+      // under it. A tap or click is left alone, so the press lands where it started.
+      const element = target as Element, field = editor.current;
+      if (field && element instanceof HTMLElement && element.matches(':focus-visible') && !field.contains(element) && !libraryPanel.current?.contains(element) && !element.closest('dialog, .copy-bar')) {
+        const covered = inset() - element.getBoundingClientRect().top;
+        if (covered > 0) scrollBy(0, -covered - 8);
+      }
+      // On a wide screen the page beside the drawer stays usable; tabbing out of the drawer closes it.
+      if (libraryState.current && !libraryPanel.current?.contains(target) && !libraryToggle.current?.contains(target) && !(target as Element).closest?.('dialog')) closeLibrary(false);
     };
     const onClick = (event: MouseEvent) => {
-      const button = (event.target as HTMLElement).closest?.('.menu > .exports button');
+      // Image downloads keep the menu open: they finish later and report a failure inside it.
+      const button = (event.target as HTMLElement).closest?.('.menu > .exports button:not(.image-export button)');
       const menu = button?.closest('details.menu') as HTMLDetailsElement | null;
       if (menu?.open) { menu.open = false; if (menu.contains(document.activeElement)) menu.querySelector('summary')?.focus(); }
     };
@@ -373,21 +396,25 @@ export function App() {
       document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onPointer);
       document.removeEventListener('focusin', onFocus); document.removeEventListener('click', onClick);
     };
-  }, [closeLibrary]);
+  }, [closeLibrary, inset]);
   // The Library takes focus when it opens. On a phone it covers the page, so the page behind it is inert.
   useEffect(() => {
     if (!libraryOpen) return;
     libraryClose.current?.focus();
-    const narrow = matchMedia('(max-width: 760px)').matches;
+    const narrow = matchMedia('(max-width: 760px)');
     const behind = [studio.current, footer.current, document.querySelector('main > header')].filter(Boolean) as HTMLElement[];
-    if (narrow) behind.forEach(element => { element.inert = true; });
+    const apply = () => behind.forEach(element => { element.inert = narrow.matches; });
+    apply();
+    narrow.addEventListener('change', apply);
     return () => {
+      narrow.removeEventListener('change', apply);
       behind.forEach(element => { element.inert = false; });
       if (libraryReturn.current) { libraryReturn.current = false; libraryToggle.current?.focus(); }
     };
   }, [libraryOpen]);
   // Opening a saved item, a favorite or a collection entry closes the Library so the result is in view.
-  const openFromLibrary = (open: () => string) => { const note = open(); if (!note) closeLibrary(false); return note; };
+  // Focus goes back to the Library button.
+  const openFromLibrary = (open: () => string) => { const note = open(); if (!note) closeLibrary(true); return note; };
   return <main>
     <header>
       <h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1>
@@ -407,12 +434,12 @@ export function App() {
       {account.status === 'signed-in' && inAccount && <Import subject={account.subject} local={browserLibrary.records} remote={accountLibrary.records}
         loading={accountLibrary.loading} send={accountLibrary.send} reload={accountLibrary.reload} />}
       {account.status !== 'checking' && <WaitingChanges current={hasAccount ? account.subject : ''} onCopied={browserLibrary.reread} />}
-      <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveInput={!!recipe.input} canSaveDesign={ready && !!recipe.input}
+      <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveInput={!!recipe.input && inputLength <= MAX_INPUT} canSaveDesign={ready && !!recipe.input}
         onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
         onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}
         onOpen={record => openFromLibrary(() => openSaved(record))} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
       <Favorites account={inAccount} favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
-        onApply={favorite => { applyFavorite(favorite); closeLibrary(false); }} onRemove={library.removeFavorite} picker={picker} />
+        onApply={favorite => { applyFavorite(favorite); closeLibrary(true); }} onRemove={library.removeFavorite} picker={picker} />
       <Collections records={library.records} collections={library.collections}
         onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}
         onOpen={item => openFromLibrary(() => { if (item.type === 'design') return openSaved(item as LibraryRecord<DesignPayload>); applyFavorite(item.payload as FavoritePayload); return ''; })}
@@ -464,16 +491,17 @@ export function App() {
           </div>
         </div>
         <pre tabIndex={0} role="img" aria-label={`Text art in ${font.name}`} data-testid="output" className="art" style={{ ...artColors, '--cols': result?.columns || 1 } as CSSProperties}>
-          <span className="art-body">{runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}</span>
+          <span className="art-body" aria-hidden="true">{runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}</span>
         </pre>
         {font.blocks && recipe.layout.blocks && ready && <Seamless runs={runs} colors={recipe.colors} columns={result.columns} rows={result.rows} />}
         <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
         {error && !error.startsWith('Use ') && <button className="retry" onClick={() => setRestart(value => value + 1)}>Try again</button>}
-        {unsupported && !pending && !error && <p className="warning" aria-live="polite">Unsupported: {unsupported}</p>}
+        {/* Live regions stay in the page so a new message in them is announced. */}
+        <div className="notice" aria-live="polite">{unsupported && <p className="warning">Unsupported: {unsupported}</p>}</div>
         {shareLink && <div className="share-link"><label htmlFor="share-link">Share link ({shareLink.length} characters)</label>
           <input id="share-link" readOnly value={shareLink} onFocus={event => event.target.select()} />
           <small>Anyone with this link sees this design’s text and settings. The design travels inside the link; nothing is stored on a server.</small></div>}
-        {shareNotice && <p className="warning" data-testid="share-notice" aria-live="polite">{shareNotice}</p>}
+        <div className="notice" aria-live="polite">{shareNotice && <p className="warning" data-testid="share-notice">{shareNotice}</p>}</div>
         {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
         <div id="customize" className="customize" role="group" aria-label="Customize" hidden={!customizing}>
           {(['colors', 'layout', 'animation'] as const).map(name => <button key={name} aria-expanded={panel === name} aria-controls={`panel-${name}`}
