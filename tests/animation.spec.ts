@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { openCustomize } from './ui.ts';
 const panel = (page: Page) => page.getByRole('region', { name: 'Animation' });
 const preview = (page: Page) => page.getByTestId('animation-preview');
 const dims = async (page: Page) => {
@@ -12,6 +13,7 @@ test('typewriter and reveal keep a fixed canvas and stay selected while editing'
   await page.goto('/');
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('TYPE');
+  await openCustomize(page, 'Animation');
   await panel(page).getByRole('radio', { name: 'Typewriter' }).check();
   await expect(preview(page)).toBeVisible();
   await expect(panel(page).getByRole('button', { name: 'Pause' })).toBeVisible();
@@ -36,6 +38,7 @@ test('typewriter and reveal keep a fixed canvas and stay selected while editing'
   await page.waitForTimeout(300);
   expect(await preview(page).textContent()).toBe(paused);
   await page.reload();
+  await openCustomize(page, 'Animation');
   await expect(panel(page).getByRole('radio', { name: 'Right to left' })).toBeChecked();
   await expect(input).toHaveValue('TYPE\nMORE');
 });
@@ -43,6 +46,7 @@ test('typewriter and reveal keep a fixed canvas and stay selected while editing'
 test('reduced motion starts the preview paused', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  await openCustomize(page, 'Animation');
   await panel(page).getByRole('radio', { name: 'Reveal' }).check();
   await expect(panel(page).getByRole('button', { name: 'Play' })).toBeVisible();
   await expect(page.getByTestId('frame-label')).toHaveText('Frame 1 of 36');
@@ -57,6 +61,7 @@ test('transport, seeking and timing settings survive text and color edits', asyn
   await page.goto('/');
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('SEEK');
+  await openCustomize(page, 'Animation');
   await panel(page).getByRole('radio', { name: 'Reveal' }).check();
   const scrubber = panel(page).getByRole('slider', { name: 'Frame' });
   await expect(scrubber).toHaveAttribute('max', '36');
@@ -86,13 +91,15 @@ test('transport, seeking and timing settings survive text and color edits', asyn
   await expect(panel(page).getByRole('button', { name: 'Play' })).toBeVisible();
   // Edits keep every transport setting.
   await input.fill('SEEK\nAGAIN');
-  await page.getByRole('region', { name: 'Colors' }).getByRole('button', { name: '#FF4D6D' }).click();
+  await (await openCustomize(page, 'Colors')).getByRole('button', { name: '#FF4D6D' }).click();
+  await openCustomize(page, 'Animation');
   await expect(panel(page).getByRole('radio', { name: 'Reveal' })).toBeChecked();
   await expect(panel(page).getByRole('radio', { name: 'Play once' })).toBeChecked();
   await expect(panel(page).getByLabel('Frame rate')).toHaveValue('10');
   await expect(panel(page).getByLabel('End hold (seconds)')).toHaveValue('0.5');
   await expect(scrubber).toHaveAttribute('max', '15');
   await page.reload();
+  await openCustomize(page, 'Animation');
   await expect(scrubber).toHaveAttribute('max', '15');
   await expect(panel(page).getByRole('radio', { name: 'Play once' })).toBeChecked();
 });
@@ -102,6 +109,7 @@ test('palette cycle, shimmer and glitch are repeatable and keep their settings',
   await page.goto('/');
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('FX');
+  await openCustomize(page, 'Animation');
   const scrubber = panel(page).getByRole('slider', { name: 'Frame' });
   await panel(page).getByRole('radio', { name: 'Palette cycle' }).check();
   await expect(page.getByTestId('cycle-note')).toContainText('ANSI Compact has one color slot');

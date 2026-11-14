@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { openLibrary } from './ui.ts';
 const saved = (page: Page) => page.getByRole('region', { name: 'Saved work' });
 const files = (page: Page) => page.evaluate(() => new Promise<number>(resolve => {
   const open = indexedDB.open('aski-library');
@@ -32,6 +33,7 @@ test('saved designs keep chosen PNG and SVG files exactly as exported', async ({
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('KEEP');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
+  await openLibrary(page);
   await saved(page).getByRole('checkbox', { name: 'PNG' }).check();
   await saved(page).getByRole('checkbox', { name: 'SVG' }).check();
   await saved(page).getByRole('button', { name: 'Save design' }).click();
@@ -39,6 +41,7 @@ test('saved designs keep chosen PNG and SVG files exactly as exported', async ({
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await expect.poll(() => files(page)).toBe(2);
   await page.reload();
+  await openLibrary(page);
   await expect(list.getByRole('listitem')).toHaveCount(2);
   const [png] = await Promise.all([page.waitForEvent('download'), list.getByRole('listitem').filter({ hasText: 'PNG' }).getByRole('button', { name: 'Download original' }).click()]);
   expect([...readFileSync((await png.path())!).subarray(0, 4)]).toEqual([137, 80, 78, 71]);
@@ -49,6 +52,7 @@ test('originals survive renderer changes, shared files outlive one design and da
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('CURRENT');
   const original = await seed(page);
   await page.reload();
+  await openLibrary(page);
   const one = saved(page).getByRole('listitem', { name: 'Design Legacy one', exact: true });
   const [file] = await Promise.all([page.waitForEvent('download'), one.getByRole('button', { name: 'Download original' }).click()]);
   expect(readFileSync((await file.path())!, 'utf8')).toBe(original);
@@ -62,6 +66,7 @@ test('originals survive renderer changes, shared files outlive one design and da
   await expect.poll(() => files(page)).toBe(0);
   await seed(page, true);
   await page.reload();
+  await openLibrary(page);
   const damaged = saved(page).getByRole('listitem', { name: 'Design Legacy one', exact: true });
   await damaged.getByRole('button', { name: 'Download original' }).click();
   await expect(damaged.getByTestId('saved-note')).toHaveText('This saved file is damaged.');
@@ -79,11 +84,13 @@ test('a full file store keeps the design and the draft', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('FULL');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
+  await openLibrary(page);
   await saved(page).getByRole('checkbox', { name: 'PNG' }).check();
   await saved(page).getByRole('button', { name: 'Save design' }).click();
   await expect(saved(page).getByRole('alert')).toHaveText('The design is saved, but this browser had no room to keep its exported files.');
   await expect(saved(page).getByRole('listitem', { name: 'Design ANSI Compact: FULL', exact: true })).toBeVisible();
   await page.reload();
+  await openLibrary(page);
   await expect(saved(page).getByRole('listitem', { name: 'Design ANSI Compact: FULL', exact: true })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue('FULL');
 });

@@ -8,7 +8,7 @@ test('reload restores text/style; undo and redo include complete editing changes
   await page.reload();
   await expect(input).toHaveValue(' A\nB');
   await expect(style).toHaveValue('figlet/future-thin');
-  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Undo', exact: true, includeHidden: true })).toBeDisabled();  // Undo and redo each stay out of sight while there is nothing to undo or redo.
   await input.fill('EXPERIMENT');
   await style.selectOption('figlet/circle');
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
@@ -18,7 +18,7 @@ test('reload restores text/style; undo and redo include complete editing changes
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
   await expect(input).toHaveValue('EXPERIMENT');
   await input.fill('A NEW BRANCH');
-  await expect(page.getByRole('button', { name: 'Redo', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Redo', exact: true, includeHidden: true })).toBeDisabled();
   await page.reload(); await expect(input).toHaveValue('A NEW BRANCH');
 });
 test('corrupt or future drafts stay intact until explicit replacement', async ({ page }) => {

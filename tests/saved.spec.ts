@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { closeLibrary, openLibrary } from './ui.ts';
 const saved = (page: Page) => page.getByRole('region', { name: 'Saved work' });
 const item = (page: Page, label: string) => saved(page).getByRole('listitem', { name: label, exact: true });
 const stored = (page: Page) => page.evaluate(() => new Promise<number>(resolve => {
@@ -14,18 +15,24 @@ test('text and designs save separately and each design restores its own variant 
   const style = page.getByLabel('Style', { exact: true });
   const output = page.getByTestId('output');
   await input.fill('SAME\nINPUT');
+  await openLibrary(page);
   await saved(page).getByRole('button', { name: 'Save text' }).click();
+  await closeLibrary(page);
   await style.selectOption('figlet/future-thin'); await ready(page);
   const thin = await output.textContent();
+  await openLibrary(page);
   await saved(page).getByRole('button', { name: 'Save design' }).click();
+  await closeLibrary(page);
   await style.selectOption('figlet/circle'); await ready(page);
   const circle = await output.textContent();
+  await openLibrary(page);
   await saved(page).getByRole('button', { name: 'Save design' }).click();
   await expect(saved(page).getByRole('list', { name: 'Saved designs' }).getByRole('listitem')).toHaveCount(2);
   await expect.poll(() => stored(page)).toBe(3);
 
   await page.reload();
   await input.fill('SOMETHING ELSE'); await style.selectOption('figlet/pagga');
+  await openLibrary(page);
   await item(page, 'Design Future Thin: SAME').getByRole('button', { name: 'Future Thin: SAME' }).click();
   await expect(style).toHaveValue('figlet/future-thin'); await expect(input).toHaveValue('SAME\nINPUT'); await ready(page);
   await expect(output).toHaveText(thin!);
@@ -35,9 +42,12 @@ test('text and designs save separately and each design restores its own variant 
   await expect(page.getByTestId('snapshot-differs')).toHaveCount(0);
 
   // Saved text reopens with whatever style is current.
+  await closeLibrary(page);
   await style.selectOption('figlet/letter'); await input.fill('X');
+  await openLibrary(page);
   await item(page, 'Text SAME').getByRole('button', { name: 'SAME', exact: true }).click();
   await expect(input).toHaveValue('SAME\nINPUT'); await expect(style).toHaveValue('figlet/letter');
+  await closeLibrary(page);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(input).toHaveValue('X');
 });
@@ -48,6 +58,7 @@ test('rename and delete persist; an unavailable renderer keeps current work and 
   await page.goto('/');
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('KEEP'); await ready(page);
+  await openLibrary(page);
   await saved(page).getByRole('button', { name: 'Save text' }).click();
   await saved(page).getByRole('button', { name: 'Save design' }).click();
   const text = item(page, 'Text KEEP');
@@ -66,6 +77,7 @@ test('rename and delete persist; an unavailable renderer keeps current work and 
   await expect(saved(page).getByText('No saved designs yet.')).toBeVisible();
   await expect.poll(() => stored(page)).toBe(1);
   await page.reload();
+  await openLibrary(page);
   await expect(item(page, 'Text Renamed text')).toBeVisible();
   await expect(saved(page).getByText('No saved designs yet.')).toBeVisible();
 
@@ -83,6 +95,7 @@ test('rename and delete persist; an unavailable renderer keeps current work and 
   }));
   await page.reload();
   await input.fill('UNSAVED WORK');
+  await openLibrary(page);
   const legacy = item(page, 'Design Legacy');
   await legacy.getByRole('button', { name: 'Legacy' }).click();
   await expect(legacy.getByTestId('saved-note')).toContainText('needs a font or renderer');

@@ -1,17 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { openCustomize, openDownload } from './ui.ts';
 test('a share link restores every editable setting in a fresh browser profile', async ({ page, browser, baseURL }) => {
   await page.goto('/');
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill('<img src=x onerror=alert(1)>\n🙂 ünï');
   await page.getByLabel('Style', { exact: true }).selectOption('figlet/future-thin');
-  await page.getByRole('region', { name: 'Colors' }).getByRole('button', { name: '#FF4D6D' }).click();
-  await page.getByRole('region', { name: 'Layout' }).getByRole('radio', { name: 'Right' }).check();
-  await page.getByRole('region', { name: 'Animation' }).getByRole('radio', { name: 'Shimmer' }).check();
+  await (await openCustomize(page, 'Colors')).getByRole('button', { name: '#FF4D6D' }).click();
+  await (await openCustomize(page, 'Layout')).getByRole('radio', { name: 'Right' }).check();
+  await (await openCustomize(page, 'Animation')).getByRole('radio', { name: 'Shimmer' }).check();
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
   const output = await page.getByTestId('output').textContent();
   // Nothing is shared until the user asks.
   expect(page.url()).not.toContain('#');
-  await page.getByRole('button', { name: 'Share link' }).click();
+  await (await openDownload(page)).getByRole('button', { name: 'Share link' }).click();
   const link = await page.getByLabel(/^Share link \(\d+ characters\)$/).inputValue();
   expect(link.startsWith(`${baseURL}/#share=1.`)).toBe(true);
 
@@ -24,8 +25,8 @@ test('a share link restores every editable setting in a fresh browser profile', 
   await expect(other.getByTestId('share-notice')).toContainText('Opened a shared design');
   await expect(other.getByRole('textbox', { name: 'Text', exact: true })).toHaveValue('<img src=x onerror=alert(1)>\n🙂 ünï');
   await expect(other.getByLabel('Style', { exact: true })).toHaveValue('figlet/future-thin');
-  await expect(other.getByRole('region', { name: 'Layout' }).getByRole('radio', { name: 'Right' })).toBeChecked();
-  await expect(other.getByRole('region', { name: 'Animation' }).getByRole('radio', { name: 'Shimmer' })).toBeChecked();
+  await expect((await openCustomize(other, 'Layout')).getByRole('radio', { name: 'Right' })).toBeChecked();
+  await expect((await openCustomize(other, 'Animation')).getByRole('radio', { name: 'Shimmer' })).toBeChecked();
   await expect(other.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
   await expect(other.getByTestId('output')).toHaveCSS('color', 'rgb(255, 77, 109)');
   expect(await other.getByTestId('output').textContent()).toBe(output);

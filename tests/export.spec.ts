@@ -1,19 +1,23 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 const multiline = readFileSync(new URL('../shared/fixtures/multiline.txt', import.meta.url), 'utf8');
+import { closeDownload, openCustomize, openDownload } from './ui.ts';
 const exportGroup = (page: import('@playwright/test').Page) => page.getByRole('group', { name: 'Export', exact: true });
 
 test('text and ANSI downloads keep exact whitespace; ANSI carries colors and resets', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill(' A\nB');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
-  await expect(exportGroup(page)).toContainText('no colors or animation');
+  await openDownload(page);
+  await expect(exportGroup(page)).toContainText('no colors');
   const [text] = await Promise.all([page.waitForEvent('download'), exportGroup(page).getByRole('button', { name: 'Download text' }).click()]);
   expect(text.suggestedFilename()).toBe('aski-ansi-compact-a-b.txt');
   const bytes = readFileSync((await text.path())!);
   expect(bytes.toString('utf8')).toBe(multiline);
   expect([...bytes.subarray(0, 3)]).not.toEqual([0xef, 0xbb, 0xbf]);
-  await page.getByRole('region', { name: 'Colors' }).getByRole('button', { name: '#FF4D6D' }).click();
+  await closeDownload(page);
+  await (await openCustomize(page, 'Colors')).getByRole('button', { name: '#FF4D6D' }).click();
+  await openDownload(page);
   const [ansi] = await Promise.all([page.waitForEvent('download'), exportGroup(page).getByRole('button', { name: 'Download ANSI' }).click()]);
   expect(ansi.suggestedFilename()).toBe('aski-ansi-compact-a-b.ans');
   const colored = readFileSync((await ansi.path())!, 'utf8');
@@ -30,6 +34,7 @@ test('code block copy falls back to manual copy and can be retried', async ({ pa
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
   const block = '```text\n' + multiline + (multiline.endsWith('\n') ? '' : '\n') + '```\n';
   for (let attempt = 0; attempt < 2; attempt++) {
+    await openDownload(page);
     await exportGroup(page).getByRole('button', { name: 'Copy as code block' }).click();
     if (browserName === 'chromium') {
       expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(block);

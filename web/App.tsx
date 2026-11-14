@@ -30,6 +30,7 @@ import { toPng } from './imageExport.ts';
 import { DEFAULT_IMAGE, imageSize, toSvg } from '../shared/image.ts';
 import type { ImageOptions } from '../shared/image.ts';
 import { CollectionPicker, Collections } from './Collections.tsx';
+import { Icon } from './Icon.tsx';
 import type { RenderReply, RenderResult } from '../shared/render.ts';
 
 export function App() {
@@ -74,10 +75,22 @@ export function App() {
         : 'All changes are saved to your account and available wherever you sign in. Work saved in this browser stays here and is not uploaded.';
   const inAccount = library.kind === 'account';
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
-  // On phones the editor sticks to the top, so content behind it is not in view.
+  // The library and the customize panels stay closed until asked for, so the page leads with type, browse, copy.
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [customizing, setCustomizing] = useState(false);
+  const artwork = useRef<HTMLElement>(null);
+  const [artworkInView, setArtworkInView] = useState(true);
+  useEffect(() => {
+    if (!artwork.current || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setArtworkInView(entry.isIntersecting), { threshold: 0 });
+    observer.observe(artwork.current);
+    return () => observer.disconnect();
+  }, []);
+  const [panel, setPanel] = useState<'' | 'colors' | 'layout' | 'animation'>('colors');
+  // The editor sticks to the top, so content behind it is not in view.
   const inset = useCallback(() => {
     const box = editor.current?.getBoundingClientRect();
-    return box && matchMedia('(max-width: 760px)').matches && box.top <= 1 ? box.bottom : 0;
+    return box && box.top <= 1 ? box.bottom : 0;
   }, []);
   useScrollAnchor(studio, inset);
 
@@ -258,27 +271,107 @@ export function App() {
       e.preventDefault(); if (e.shiftKey ? canRedo : canUndo) moveHistory(e.shiftKey ? 'redo' : 'undo');
     }
   }}>
-    <header><h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1><div className="header-actions"><SignIn account={account} onSignedOut={signedOut} /><button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}>Copy text</button></div></header>
+    <header>
+      <h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1>
+      <div className="header-actions">
+        <button className="quiet" aria-expanded={libraryOpen} aria-controls="library" onClick={() => setLibraryOpen(value => !value)}>Library</button>
+        <SignIn account={account} onSignedOut={signedOut} />
+      </div>
+    </header>
     <div className="studio" ref={studio}>
-      <div className="controls">
-        <section className="editor" ref={editor} aria-labelledby="input-title">
-          <label id="input-title" htmlFor="input">Text</label>
-          <div className="history-controls">
-            <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
-            <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
-          </div>
-          <textarea id="input" value={recipe.input} spellCheck={false} aria-describedby="input-limit" onChange={e => { setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
-          <small id="input-limit">Up to {MAX_INPUT} characters</small>
-        </section>
-        <div className="style-controls">
-          {warning && <div className="warning" data-testid="draft-warning"><p>{warning}</p><button onClick={saveCurrent}>Save this draft</button></div>}
-          <label htmlFor="font">Style</label>
-          <select id="font" value={recipe.variantId} onChange={e => chooseVariant(e.target.value)}>
-            {Array.from(new Set(variants.map(item => item.familyId))).map(family => <optgroup key={family} label={family.replace('figlet/', '')}>
-              {variants.filter(item => item.familyId === family).map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
-            </optgroup>)}
-          </select>
+      <section className="editor" ref={editor} aria-labelledby="input-title">
+        <label id="input-title" htmlFor="input" className="visually-hidden">Text</label>
+        <div className="input-wrap">
+        <textarea id="input" rows={2} value={recipe.input} spellCheck={false} aria-describedby="input-limit" placeholder="Type something"
+          onChange={e => { setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
+        <div className="history-controls">
+          <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
+          <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
         </div>
+        </div>
+        {/* The limit is shown once the text nears it; screen readers always have it. */}
+        <small id="input-limit" className={recipe.input.length < MAX_INPUT * 0.9 ? 'visually-hidden' : undefined}>{recipe.input.length} of {MAX_INPUT} characters</small>
+        {warning && <div className="warning" data-testid="draft-warning"><p>{warning}</p><button onClick={saveCurrent}>Save this draft</button></div>}
+      </section>
+      <section className="artwork" ref={artwork} data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
+        <div className="output-heading">
+          <h2 id="output-title" className="visually-hidden">{font.name}</h2>
+          <label htmlFor="font" className="visually-hidden">Style</label>
+          <span className="select-wrap">
+            <select id="font" value={recipe.variantId} onChange={e => chooseVariant(e.target.value)}>
+              {Array.from(new Set(variants.map(item => item.familyId))).map(family => <optgroup key={family} label={family.replace('figlet/', '')}>
+                {variants.filter(item => item.familyId === family).map(item => <option key={item.variantId} value={item.variantId}>{item.name}</option>)}
+              </optgroup>)}
+            </select>
+            <Icon name="chevron" />
+          </span>
+          <div className="output-actions">
+            <button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}><Icon name="copy" />Copy text</button>
+            <button className="secondary" aria-expanded={customizing} aria-controls="customize" onClick={() => setCustomizing(value => !value)}>Customize<Icon name="chevron" /></button>
+            <details className="menu">
+              <summary>Download<Icon name="chevron" /></summary>
+              <div className="exports" role="group" aria-label="Export">
+                <p className="hint" aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns × ${result.rows} rows` : ''}</p>
+                <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
+                <button onClick={() => download('text')} disabled={!ready || !result.text}>Download text</button>
+                <button onClick={() => download('ansi')} disabled={!ready || !result.text}>Download ANSI</button>
+                <ImageExport columns={result?.columns || 0} rows={result?.rows || 0} blocks={recipe.layout.blocks && font.blocks} disabled={!ready || !result.text} onExport={exportImage}
+                  frame={recipe.animation.effect === 'none' ? '' : `frame ${inspected + 1}`} />
+                <p className="hint">Text and code blocks keep every space and line break but no colors. ANSI keeps colors for terminals with 24-bit color.</p>
+                <button onClick={() => void share()} disabled={!ready || !result.text}>Share link</button>
+              </div>
+            </details>
+          </div>
+        </div>
+        <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={{ ...artColors, '--cols': result?.columns || 1 } as CSSProperties}>
+          {runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
+        </pre>
+        {font.blocks && recipe.layout.blocks && ready && <Seamless runs={runs} colors={recipe.colors} columns={result.columns} rows={result.rows} />}
+        <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
+        {error && !error.startsWith('Use ') && <button className="retry" onClick={() => setRestart(value => value + 1)}>Try again</button>}
+        {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
+        {shareLink && <div className="share-link"><label htmlFor="share-link">Share link ({shareLink.length} characters)</label>
+          <input id="share-link" readOnly value={shareLink} onFocus={event => event.target.select()} />
+          <small>Anyone with this link sees this design’s text and settings. The design travels inside the link; nothing is stored on a server.</small></div>}
+        {shareNotice && <p className="warning" data-testid="share-notice">{shareNotice}</p>}
+        {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
+        <div id="customize" className="customize" role="group" aria-label="Customize" hidden={!customizing}>
+          {(['colors', 'layout', 'animation'] as const).map(name => <button key={name} aria-expanded={panel === name} aria-controls={`panel-${name}`}
+            onClick={() => setPanel(name)}>{name[0].toUpperCase() + name.slice(1)}</button>)}
+        </div>
+        <div id="panel-colors" className="panel" hidden={!customizing || panel !== 'colors'}>
+          <Colors slots={font.slots as Slot[]} colors={recipe.colors} palettes={library.palettes}
+            onChange={colors => setRecipe(previous => ({ ...previous, colors }))}
+            onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
+        </div>
+        <div id="panel-layout" className="panel" hidden={!customizing || panel !== 'layout'}>
+          <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
+            onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
+          {font.blocks && <label className="toggle"><input type="checkbox" checked={recipe.layout.blocks}
+            onChange={event => setRecipe(previous => ({ ...previous, layout: { ...previous.layout, blocks: event.target.checked } }))} />
+            Seamless blocks <small>Draws block characters as solid shapes. Copied and downloaded text is unchanged.</small></label>}
+        </div>
+        <div id="panel-animation" className="panel" hidden={!customizing || panel !== 'animation'}>
+          <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} colors={recipe.colors} blocks={recipe.layout.blocks && font.blocks}
+            fileName={exportName(`${font.name} ${recipe.input}`, 'gif')} onInspect={setInspected} onSaveGif={saveDesignWithGif}
+            onChange={animation => setRecipe(previous => ({ ...previous, animation }))} />
+        </div>
+      </section>
+      <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
+        onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
+        onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}
+        pins={pins} onPin={variantId => setPins(previous => previous.includes(variantId) ? previous.filter(item => item !== variantId) : [...previous, variantId])}
+        onUseVariant={chooseVariant}
+        isFavorite={(familyId, variantId) => library.isFavorite({ familyId, variantId })}
+        onFavorite={(familyId, variantId) => library.toggleFavorite({ familyId, variantId })}
+        onToggle={family => setExpanded(previous => { const next = new Set(previous); if (!next.delete(family.familyId)) next.add(family.familyId); return next; })} />
+      {/* Once the result scrolls away, a small bar keeps the chosen style and Copy within reach. */}
+      <div className="copy-bar" hidden={artworkInView} aria-hidden={artworkInView}>
+        <span>{font.name}</span>
+        <button className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text} tabIndex={artworkInView ? -1 : undefined}><Icon name="copy" />Copy</button>
+      </div>
+      <aside id="library" className="library" aria-labelledby="library-title" hidden={!libraryOpen}>
+        <div className="library-heading"><h2 id="library-title">Library</h2><button className="quiet" onClick={() => setLibraryOpen(false)}>Close</button></div>
         {hasAccount && <fieldset className="library-source">
           <legend>Library</legend>
           <label><input type="radio" name="library-source" checked={!browserOnly} onChange={() => setBrowserOnly(false)} />Account</label>
@@ -298,54 +391,9 @@ export function App() {
           onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}
           onOpen={item => { if (item.type === 'design') return openSaved(item as LibraryRecord<DesignPayload>); applyFavorite(item.payload as FavoritePayload); return ''; }}
           onRemoveMember={(collectionId, item) => library.toggleMembership(collectionId, item)} />
-      </div>
-      <div className="workspace">
-        <section className="artwork" data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
-          <div className="output-heading"><h2 id="output-title">{font.name}</h2><span aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns / ${result.rows} rows` : ''}</span></div>
-          <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={artColors}>
-            {runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
-          </pre>
-          {font.blocks && <label className="toggle"><input type="checkbox" checked={recipe.layout.blocks}
-            onChange={event => setRecipe(previous => ({ ...previous, layout: { ...previous.layout, blocks: event.target.checked } }))} />
-            Seamless blocks <small>Draws block characters as solid shapes. Copied and downloaded text is unchanged.</small></label>}
-          {font.blocks && recipe.layout.blocks && ready && <Seamless runs={runs} colors={recipe.colors} columns={result.columns} rows={result.rows} />}
-          <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
-          {error && !error.startsWith('Use ') && <button onClick={() => setRestart(value => value + 1)}>Try again</button>}
-          {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
-          <div className="exports" role="group" aria-label="Export">
-            <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
-            <button onClick={() => download('text')} disabled={!ready || !result.text}>Download text</button>
-            <button onClick={() => download('ansi')} disabled={!ready || !result.text}>Download ANSI</button>
-            <button onClick={() => void share()} disabled={!ready || !result.text}>Share link</button>
-            {shareLink && <div className="share-link"><label htmlFor="share-link">Share link ({shareLink.length} characters)</label>
-              <input id="share-link" readOnly value={shareLink} onFocus={event => event.target.select()} />
-              <small>Anyone with this link sees this design’s text and settings. The design travels inside the link; nothing is stored on a server.</small></div>}
-            <ImageExport columns={result?.columns || 0} rows={result?.rows || 0} blocks={recipe.layout.blocks && font.blocks} disabled={!ready || !result.text} onExport={exportImage}
-              frame={recipe.animation.effect === 'none' ? '' : `frame ${inspected + 1}`} />
-            <p className="hint">Plain text and code blocks keep every space and line break but no colors or animation. ANSI keeps colors for terminals that support 24-bit color.</p>
-          </div>
-          {shareNotice && <p className="warning" data-testid="share-notice">{shareNotice}</p>}
-          {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
-        </section>
-        <Colors slots={font.slots as Slot[]} colors={recipe.colors} palettes={library.palettes}
-          onChange={colors => setRecipe(previous => ({ ...previous, colors }))}
-          onSavePalette={name => library.add<PalettePayload>('palette', { name, slots: { ...recipe.colors } })} onDeletePalette={library.remove} />
-        <LayoutControls layout={recipe.layout} fontName={font.name} fontDefault={font.spacing.default} canSmush={font.spacing.smush}
-          onChange={layout => setRecipe(previous => ({ ...previous, layout }))} />
-        <AnimationPanel animation={recipe.animation} model={ready ? result : null} font={font} colors={recipe.colors} blocks={recipe.layout.blocks && font.blocks}
-          fileName={exportName(`${font.name} ${recipe.input}`, 'gif')} onInspect={setInspected} onSaveGif={saveDesignWithGif}
-          onChange={animation => setRecipe(previous => ({ ...previous, animation }))} />
-        <Gallery input={recipe.input} activeFamilyId={recipe.familyId} variantFor={variantFor} expanded={expanded}
-          onVariant={(family, variantId) => { setChosenVariants(previous => ({ ...previous, [family.familyId]: variantId })); if (family.familyId === recipe.familyId) chooseVariant(variantId); }}
-          onUse={family => { if (family.familyId !== recipe.familyId) chooseVariant(variantFor(family)); }}
-          pins={pins} onPin={variantId => setPins(previous => previous.includes(variantId) ? previous.filter(item => item !== variantId) : [...previous, variantId])}
-          onUseVariant={chooseVariant}
-          isFavorite={(familyId, variantId) => library.isFavorite({ familyId, variantId })}
-          onFavorite={(familyId, variantId) => library.toggleFavorite({ familyId, variantId })}
-          onToggle={family => setExpanded(previous => { const next = new Set(previous); if (!next.delete(family.familyId)) next.add(family.familyId); return next; })} />
-      </div>
+      </aside>
     </div>
-    <footer><a href={font.noticePath}>{font.name} · {font.license} notice</a><span>Type: <a href="/brand/fonts/fraunces-OFL.txt">Fraunces</a> · <a href="/brand/fonts/atkinsonhyperlegiblenext-OFL.txt">Atkinson</a></span></footer>
+    <footer><a href={font.noticePath}>{font.name} license</a><a href="/about/">About and credits</a></footer>
     <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => { setManual(false); copyButton.current?.focus(); }}>
       <h2 id="copy-title">Copy text</h2><p>Select and copy the text.</p>
       <textarea ref={manualText} aria-label="Text to copy" value={manualValue} readOnly />

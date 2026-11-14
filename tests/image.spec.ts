@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { closeDownload, openCustomize, openDownload } from './ui.ts';
 const group = (page: Page) => page.getByRole('group', { name: 'Image export' });
 async function download(page: Page, name: string) {
+  await openDownload(page);
   const [file] = await Promise.all([page.waitForEvent('download'), group(page).getByRole('button', { name }).click()]);
   return { name: file.suggestedFilename(), bytes: readFileSync((await file.path())!) };
 }
@@ -21,6 +23,7 @@ test('PNG and SVG downloads match the chosen size, colors, padding and transpare
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('<b>&');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
+  await openDownload(page);
   const [columns, rows] = (await page.getByLabel('Output dimensions').textContent())!.match(/\d+/g)!.map(Number);
   await group(page).getByLabel('Scale').selectOption('3');
   await group(page).getByLabel('Padding (pixels)').fill('10');
@@ -33,7 +36,10 @@ test('PNG and SVG downloads match the chosen size, colors, padding and transpare
   expect([opaque.width, opaque.height]).toEqual([width, height]);
   expect(opaque.pixels[0]).toEqual([255, 255, 255, 255]);
   // Seamless block mode: a full-block run is solid foreground across cell edges.
+  await closeDownload(page);
+  await openCustomize(page, 'Layout');
   await page.getByRole('checkbox', { name: /Seamless blocks/ }).check();
+  await openDownload(page);
   await group(page).getByRole('checkbox', { name: 'Transparent background' }).check();
   const text = (await page.getByTestId('output').textContent())!.split('\n');
   const row = text.findIndex(line => line.includes('██')), column = text[row].indexOf('██');
@@ -53,6 +59,7 @@ test('PNG and SVG downloads match the chosen size, colors, padding and transpare
   expect([vector.width, vector.height]).toEqual([width, height]);
   for (const pixel of vector.pixels) expect(pixel).toEqual([33, 27, 48, 255]);
   // Text mode escapes the input's markup characters.
+  await closeDownload(page);
   await page.getByRole('checkbox', { name: /Seamless blocks/ }).uncheck();
   await page.getByLabel('Style', { exact: true }).selectOption('figlet/letter');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
@@ -66,6 +73,7 @@ test('over-budget sizes explain the limit and keep exports disabled', async ({ p
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('W'.repeat(200));
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
+  await openDownload(page);
   await group(page).getByLabel('Scale').selectOption('8');
   await expect(page.getByTestId('image-size')).toContainText('Lower the scale or padding');
   await expect(group(page).getByRole('button', { name: 'Download PNG' })).toBeDisabled();

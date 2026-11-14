@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { openCustomize } from './ui.ts';
 const colors = (page: Page) => page.getByRole('region', { name: 'Colors' });
 const output = (page: Page) => page.getByTestId('output');
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
@@ -10,6 +11,7 @@ test('slots follow font mappings; swatches, custom colors, presets and reset kee
   const input = page.getByRole('textbox', { name: 'Text', exact: true });
   await input.fill(' AK\nB'); await ready(page);
   const text = await output(page).textContent();
+  await openCustomize(page, 'Colors');
   await expect(colors(page).getByRole('radio')).toHaveCount(2);
   await colors(page).getByRole('button', { name: '#FF4D6D' }).click();
   await expect(output(page)).toHaveCSS('color', rgb('#FF4D6D'));
@@ -50,6 +52,7 @@ test('slots follow font mappings; swatches, custom colors, presets and reset kee
 test('colors join undo history, survive reload and save as reusable palettes', async ({ page }) => {
   await page.goto('/');
   await ready(page);
+  await openCustomize(page, 'Colors');
   await colors(page).getByRole('button', { name: '#3A86FF' }).click();
   await expect(output(page)).toHaveCSS('color', rgb('#3A86FF'));
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
@@ -63,10 +66,12 @@ test('colors join undo history, survive reload and save as reusable palettes', a
   await page.reload();
   await expect(output(page)).toHaveCSS('color', rgb('#211B30'));
   await page.getByLabel('Style', { exact: true }).selectOption('figlet/pagga');
+  await openCustomize(page, 'Colors');
   await colors(page).getByRole('button', { name: 'Ocean', exact: true }).click();
   await expect(output(page)).toHaveCSS('color', rgb('#3A86FF'));
   await page.reload();
   await expect(output(page)).toHaveCSS('color', rgb('#3A86FF'));
+  await openCustomize(page, 'Colors');
   await colors(page).getByRole('button', { name: 'Delete palette Ocean' }).click();
   await expect(colors(page).getByRole('list', { name: 'Saved palettes' })).toHaveCount(0);
 });

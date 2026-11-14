@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { decompressFrames, parseGIF } from 'gifuct-js';
+import { openCustomize, openDownload } from './ui.ts';
 const panel = (page: Page) => page.getByRole('region', { name: 'Animation' });
 const gif = (page: Page) => page.getByRole('group', { name: 'GIF export' });
 function decode(bytes: Buffer) {
@@ -12,6 +13,7 @@ async function setup(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('GIF');
+  await openCustomize(page, 'Animation');
   await panel(page).getByRole('radio', { name: 'Reveal' }).check();
   await panel(page).getByLabel('Duration (seconds)').fill('1'); await panel(page).getByLabel('Duration (seconds)').press('Enter');
   await panel(page).getByLabel('End hold (seconds)').fill('0.5'); await panel(page).getByLabel('End hold (seconds)').press('Enter');
@@ -72,7 +74,7 @@ test('encoding can be cancelled and restarted; over-budget GIFs explain the limi
 test('the inspected frame exports through the still image controls', async ({ page }) => {
   await setup(page);
   await panel(page).getByRole('slider', { name: 'Frame' }).fill('3');
-  const still = page.getByRole('group', { name: 'Image export' });
+  const still = (await openDownload(page)).getByRole('group', { name: 'Image export' });
   const download = async () => {
     const [file] = await Promise.all([page.waitForEvent('download'), still.getByRole('button', { name: 'Download SVG' }).click()]);
     return readFileSync((await file.path())!, 'utf8');
