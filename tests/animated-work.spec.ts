@@ -44,6 +44,8 @@ test('a saved design keeps its animation settings and the original GIF', async (
   await expect(panel(page).getByRole('slider', { name: 'Intensity' })).toHaveValue('4');
   await expect(panel(page).getByText(/^Pattern \d+\./)).toHaveText(pattern);
   await expect(panel(page).getByLabel('Frame rate')).toHaveValue('10');
+  // Opening a design closes the Library so the result is in view; reopen it for the original file.
+  await openLibrary(page);
   const [original] = await Promise.all([page.waitForEvent('download'), saved.getByRole('button', { name: 'Download original' }).click()]);
   expect(original.suggestedFilename()).toMatch(/\.gif$/);
   expect(readFileSync((await original.path())!).equals(bytes)).toBe(true);

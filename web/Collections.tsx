@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { getFamily, getVariant } from '../shared/catalog.ts';
 import { MAX_NAME, membersOf } from '../shared/library.ts';
 import type { CollectionPayload, DesignPayload, FavoritePayload, LibraryRecord } from '../shared/library.ts';
@@ -32,9 +32,12 @@ export function Collections({ records, collections, onCreate, onRename, onDelete
   const [renaming, setRenaming] = useState('');
   const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState('');
+  // Focus follows Rename and Delete to the buttons that replace them, and to the heading after a delete.
+  const [refocus, setRefocus] = useState('');
+  const heading = useRef<HTMLHeadingElement>(null);
   function attempt(action: () => void) { try { action(); setMessage(''); return true; } catch (error) { setMessage((error as Error).message); return false; } }
   return <section className="collections" data-anchor="collections" aria-labelledby="collections-title">
-    <h2 id="collections-title">Collections</h2>
+    <h2 id="collections-title" ref={heading} tabIndex={-1}>Collections</h2>
     <form className="new-collection" onSubmit={event => { event.preventDefault(); if (attempt(() => onCreate(name))) setName(''); }}>
       <label htmlFor="collection-name">New collection</label>
       <input id="collection-name" value={name} maxLength={MAX_NAME} onChange={event => setName(event.target.value)} />
@@ -47,11 +50,11 @@ export function Collections({ records, collections, onCreate, onRename, onDelete
         const members = membersOf(records, collection.id);
         return <li key={collection.id} aria-label={`Collection ${collection.payload.name}`}>
           {renaming === collection.id
-            ? <form onSubmit={event => { event.preventDefault(); if (attempt(() => onRename(collection, draftName))) setRenaming(''); }}>
+            ? <form onSubmit={event => { event.preventDefault(); if (attempt(() => onRename(collection, draftName))) { setRenaming(''); setRefocus(`${collection.id}:rename`); } }}>
               <label htmlFor={`rename-${collection.id}`}>Name</label>
               <input id={`rename-${collection.id}`} value={draftName} maxLength={MAX_NAME} autoFocus onChange={event => setDraftName(event.target.value)}
-                onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setRenaming(''); } }} />
-              <div className="item-actions"><button type="submit">Save name</button><button type="button" onClick={() => setRenaming('')}>Cancel</button></div>
+                onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setRenaming(''); setRefocus(`${collection.id}:rename`); } }} />
+              <div className="item-actions"><button type="submit">Save name</button><button type="button" onClick={() => { setRenaming(''); setRefocus(`${collection.id}:rename`); }}>Cancel</button></div>
             </form>
             : <h3>{collection.payload.name} <small>{members.length} {members.length === 1 ? 'item' : 'items'}</small></h3>}
           {members.length > 0 && <ul className="members" aria-label={`Items in ${collection.payload.name}`}>
@@ -62,10 +65,10 @@ export function Collections({ records, collections, onCreate, onRename, onDelete
             </li>)}
           </ul>}
           {renaming !== collection.id && (deleting === collection.id
-            ? <div className="item-actions"><button onClick={() => { setDeleting(''); onDelete(collection); }}>Confirm delete</button><button onClick={() => setDeleting('')}>Cancel</button></div>
+            ? <div className="item-actions"><button autoFocus onClick={() => { setDeleting(''); onDelete(collection); heading.current?.focus(); }}>Confirm delete</button><button onClick={() => { setDeleting(''); setRefocus(`${collection.id}:delete`); }}>Cancel</button></div>
             : <div className="item-actions">
-              <button onClick={() => { setRenaming(collection.id); setDraftName(collection.payload.name); setDeleting(''); }}>Rename</button>
-              <button onClick={() => { setDeleting(collection.id); setRenaming(''); }}>Delete</button>
+              <button autoFocus={refocus === `${collection.id}:rename`} onClick={() => { setRenaming(collection.id); setDraftName(collection.payload.name); setDeleting(''); }}>Rename</button>
+              <button autoFocus={refocus === `${collection.id}:delete`} onClick={() => { setDeleting(collection.id); setRenaming(''); }}>Delete</button>
             </div>)}
           {deleting === collection.id && <p className="hint">Deleting a collection keeps its styles and designs.</p>}
         </li>;

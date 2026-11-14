@@ -11,7 +11,7 @@ body{overflow-anchor:none;margin:0;font-size:16px;line-height:1.4;}
 main{max-width:1120px;margin:auto;padding:20px 32px 32px;}
 header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 0 20px;margin-bottom:8px;}
 h1{margin:0;font-family:var(--aski-display);font-weight:700;font-size:38px;line-height:1.1;}
-h1 img{display:block;width:120px;height:40px;object-fit:contain;}
+h1 img{display:block;width:120px;height:44px;object-fit:contain;}
 h1 a{display:block;}
 h2{font-family:var(--aski-display);font-weight:700;font-size:28px;line-height:1.15;margin:0;}
 .header-actions,.history-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -25,7 +25,7 @@ button.icon{min-width:44px;padding:0;border-color:transparent;background:transpa
 button.secondary{background:var(--aski-panel);}
 button.secondary[aria-expanded=true]{background:var(--aski-secondary);}
 button:hover:not(:disabled){background:var(--aski-secondary);}
-button:active:not(:disabled){transform:translate(1px,1px);}
+button:active:not(:disabled):not(.card-select){transform:translate(1px,1px);}
 button:disabled{opacity:.45;cursor:default;}
 .primary{background:var(--aski-accent);border:var(--aski-border);}
 button.primary:hover:not(:disabled){background:#C6F240;}
@@ -34,7 +34,8 @@ a{color:var(--aski-ink);text-underline-offset:3px;}
 a:hover{background:var(--aski-secondary);}
 :focus-visible{outline:3px solid var(--aski-focus);outline-offset:4px;}
 .studio{display:grid;gap:24px;min-width:0;}
-.editor{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;margin:0 -8px;padding:8px;background:var(--aski-paper);}
+:is(input,textarea)::placeholder{color:var(--aski-muted);opacity:1;}
+.editor{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;margin:0 -8px;padding:8px;background:var(--aski-paper);}
 .input-wrap{position:relative;}
 .input-wrap #input{padding-right:132px;}
 .history-controls{position:absolute;right:6px;top:4px;gap:2px;}
@@ -64,7 +65,10 @@ small{font-size:13px;color:var(--aski-muted);}
 .menu>.exports{position:absolute;right:0;top:calc(100% + 6px);z-index:5;width:min(420px,calc(100vw - 32px));display:grid;gap:6px;padding:12px;background:var(--aski-panel);border:var(--aski-border);border-radius:var(--aski-radius);box-shadow:var(--aski-shadow);}
 .menu>.exports>button{justify-content:flex-start;text-align:left;}
 pre{margin:0;padding:32px 24px;max-height:60vh;overflow:auto;white-space:pre;font-family:'aski Art Mono',ui-monospace,'Cascadia Mono','Liberation Mono',monospace;font-size:18px;line-height:1.15;tab-size:4;}
-pre.art{display:grid;justify-content:center;min-height:96px;align-content:center;padding:12px 24px;font-size:clamp(18px,calc((100cqi - 48px) / (var(--cols,1) * .62)),32px);}
+/* The art is one inline block centred in the scroll box: colour runs flow as text, blank rows and indents are
+   kept, and art wider than the box starts at its left edge so all of it can be scrolled to. */
+pre.art .art-body{display:inline-block;text-align:left;vertical-align:top;}
+pre.art{text-align:center;padding:20px 24px;font-size:clamp(18px,calc((100cqi - 48px) / (var(--cols,1) * .62)),32px);}
 .status{padding:0 16px;font-size:14px;color:var(--aski-muted);}
 .status:empty{height:0;overflow:hidden;}
 .status:not(:empty){padding:8px 16px;}
@@ -91,7 +95,7 @@ footer a{display:inline-flex;align-items:center;min-height:44px;}
 .family-card:hover{border:var(--line-strong);}
 .family-card[data-active]{background:color-mix(in srgb,var(--aski-secondary) 35%,var(--aski-panel));border:var(--line-strong);}
 @media(hover:hover){.family-card .favorite,.family-card .card-menu>summary{opacity:0;transition:opacity var(--aski-motion);}
-  .family-card:hover .favorite,.family-card:focus-within .favorite,.family-card[data-active] .favorite,.family-card[data-favorite] .favorite,
+  .family-card:hover .favorite,.family-card:focus-within .favorite,.family-card[data-active] .favorite,.family-card[data-favorite] .favorite,.family-card[data-favorite] .card-menu>summary,
   .family-card:hover .card-menu>summary,.family-card:focus-within .card-menu>summary,.family-card[data-active] .card-menu>summary,.card-menu[open]>summary{opacity:1;}}
 .family-card:has(.card-select:focus-visible){outline:3px solid var(--aski-focus);outline-offset:2px;}
 /* The name button stretches over the card; the controls in the heading stay on top of it. */
@@ -100,14 +104,15 @@ footer a{display:inline-flex;align-items:center;min-height:44px;}
 .card-select:focus-visible{outline:none;}
 .card-select::after{content:'';position:absolute;inset:0;}
 .family-heading>:not(h3){position:relative;z-index:1;}
+.family-heading>.card-menu[open]{z-index:6;}
 .variant-select{width:100%;min-height:44px;height:44px;font-weight:400;}
 .card-menu .field{font-size:13px;}
 .card-menu>summary{min-width:44px;padding:0;border-color:transparent;background:transparent;}
 .card-menu[open]>summary{background:var(--aski-secondary);}
 .card-menu>.exports{width:220px;}
 .family-heading{display:flex;justify-content:space-between;align-items:center;gap:0;min-height:44px;}
-.family-heading>.favorite,.family-heading>.card-menu>summary{min-width:40px;width:40px;}
-.family-heading>.card-menu{margin-right:-10px;}
+.family-heading>.favorite,.family-heading>.card-menu>summary{min-width:44px;width:44px;}
+.family-heading>.card-menu{margin-right:-12px;}
 h3{font-family:var(--aski-display);font-weight:700;font-size:19px;line-height:1.15;margin:0;overflow-wrap:anywhere;}
 .family-heading h3{font-family:var(--aski-body);font-size:14px;font-weight:600;min-width:0;overflow:hidden;}
 .card-select{display:flex;align-items:center;width:100%;min-height:44px;padding:4px 0;line-height:1.25;overflow-wrap:anywhere;text-align:left;}
@@ -119,13 +124,15 @@ h3{font-family:var(--aski-display);font-weight:700;font-size:19px;line-height:1.
 .variants label:has(input:checked){background:var(--aski-secondary);}
 .variants label:has(input:focus-visible){outline:3px solid var(--aski-focus);outline-offset:2px;}
 /* The art is scaled from its own columns and rows to fit the box: wide styles shrink, one-row styles grow (capped). */
-.preview{display:flex;align-items:center;justify-content:center;height:96px;overflow:hidden;padding:8px 4px;line-height:1.1;background:transparent;border-radius:var(--aski-radius);
+.preview{display:grid;place-content:safe center;height:96px;overflow:hidden;padding:8px 4px;line-height:1.1;background:transparent;border-radius:var(--aski-radius);
   --fs:clamp(3px,min(calc((100cqi - 24px) / (var(--cols,1) * .62)),calc(80px / (var(--rows,1) * 1.1)),var(--base,13px)),var(--base,13px));}
 .preview{font-size:var(--fs);}
 @supports (font-size:round(down,1.5px,1px)){.preview{font-size:max(3px,round(down,var(--fs),1px));}}
 /* Art Mono cells are 0.6em wide and its full block 1.175em tall: block styles snap to 5px steps so cells land on whole pixels, and rows overlap slightly, so blocks join without seams. */
-@supports (font-size:round(down,1.5px,1px)){.preview[data-blocks]{font-size:max(5px,round(down,var(--fs),5px));line-height:1.15;}}
-.compare .preview{height:auto;min-height:88px;font-size:12px;cursor:default;display:block;}
+@supports (font-size:round(down,1.5px,1px)){.preview[data-blocks]{font-size:max(3px,round(down,var(--fs),5px),min(round(down,var(--fs),1px),9px));line-height:1.15;}}
+.compare .preview{height:auto;min-height:88px;font-size:12px;cursor:default;display:block;overflow-x:auto;}
+.family-card .preview{pointer-events:none;}
+.preview[data-error]{font-family:var(--aski-body);font-size:14px;white-space:normal;color:var(--aski-muted);}
 .preview[aria-busy=true]{opacity:.55;}
 .card-actions{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
 .card-actions .use{min-width:72px;}
@@ -144,7 +151,7 @@ dialog form button{background:var(--aski-accent);}
 dialog p{margin:16px 0;}
 dialog textarea{min-height:220px;font-family:'aski Art Mono',ui-monospace,monospace;}
 @media(max-width:760px){
-  main{padding:16px 16px 24px;} header{gap:12px;margin-bottom:20px;padding-bottom:16px;flex-wrap:wrap;}
+  main{padding:16px 16px 96px;} header{gap:12px;margin-bottom:20px;padding-bottom:16px;flex-wrap:wrap;}
   h1 img{width:128px;height:44px;} .header-actions{gap:8px;} button{padding:8px 12px;}
   .studio{gap:20px;}
   #input{min-height:56px;}
@@ -153,7 +160,7 @@ dialog textarea{min-height:220px;font-family:'aski Art Mono',ui-monospace,monosp
   .filters{flex-basis:100%;} .family-grid{gap:12px;} .preview{height:84px;--fs:clamp(3px,min(calc((100cqi - 24px) / (var(--cols,1) * .62)),calc(68px / (var(--rows,1) * 1.1)),var(--base,13px)),var(--base,13px));}
   .menu>.exports{max-width:calc(100vw - 32px);}
   .family-grid{grid-template-columns:minmax(0,1fr);}
-  pre{padding:16px 12px;max-height:50vh;} pre.art{min-height:96px;font-size:clamp(10px,3.6vw,18px);}
+  pre{padding:16px 12px;max-height:50vh;} pre.art{font-size:clamp(10px,3.6vw,18px);}
   .output-heading{padding:10px 12px;}
   footer{margin-top:32px;font-size:14px;} dialog{padding:20px;box-shadow:2px 2px 0 var(--aski-ink);}
 }
@@ -208,7 +215,7 @@ dialog textarea{min-height:220px;font-family:'aski Art Mono',ui-monospace,monosp
 .colors fieldset,.layout fieldset,.animation fieldset{margin:0;padding:0;border:0;min-width:0;}
 .colors legend,.colors>form>label,.layout legend,.layout>form>label,.animation legend{font-weight:700;font-size:15px;margin-bottom:6px;padding:0;}
 .slots{display:flex;flex-wrap:wrap;gap:6px;}
-.slots label{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 12px;font-size:14px;border:var(--line);border-radius:var(--aski-radius);background:var(--aski-panel);cursor:pointer;}
+.slots label{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px;font-size:14px;border:var(--line);border-radius:var(--aski-radius);background:var(--aski-panel);cursor:pointer;}
 .slots input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;min-height:0;}
 .slots label:has(input:checked){background:var(--aski-secondary);}
 .slots label:has(input:focus-visible){outline:3px solid var(--aski-focus);outline-offset:2px;}
@@ -254,14 +261,14 @@ a.button{display:inline-flex;align-items:center;justify-content:center;min-heigh
 .filters input{min-width:0;border:var(--line);background:var(--aski-panel);padding-left:36px;}
 .search-icon{position:absolute;left:10px;top:13px;color:var(--aski-muted);pointer-events:none;}
 .filters input:focus{border-color:var(--aski-ink);}
-.filters>.secondary{border-color:transparent;background:transparent;}
+.filters>.secondary{border-color:transparent;background:transparent;white-space:nowrap;flex-shrink:0;}
 header button.quiet,.output-actions>.secondary,.output-actions>.menu>summary,.filters>.secondary{font-weight:400;}
 
 .filter-options{display:grid;gap:12px;padding:16px;background:var(--aski-panel);border:var(--line);border-radius:var(--aski-radius);}
 
-.filters fieldset{margin:0;padding:0;border:0;min-width:0;}
-.filters legend{font-weight:700;font-size:15px;margin-bottom:6px;padding:0;}
-.filters .toggle{padding:0;}
+.filter-options fieldset{margin:0;padding:0;border:0;min-width:0;}
+.filter-options legend{font-weight:700;font-size:15px;margin-bottom:6px;padding:0;}
+.filter-options .toggle{padding:0;}
 .card-meta{margin:0;font-size:13px;color:var(--aski-muted);}
 .empty{display:grid;gap:8px;justify-items:start;padding:16px;border:2px dashed var(--aski-ink);border-radius:var(--aski-radius);}
 .empty p{margin:0;}
@@ -314,7 +321,7 @@ header button.quiet,.output-actions>.secondary,.output-actions>.menu>summary,.fi
 }
 @media(max-width:760px){
   main{padding-top:16px;} .editor{padding-bottom:0;} .gallery-heading h2{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;} header{padding-bottom:6px;margin-bottom:0;} .studio{gap:16px;}
-  pre.art{min-height:64px;padding:8px 12px;}
+  pre.art{padding:12px;}
   .gallery{gap:10px;} .gallery-heading{gap:8px;}
   .family-card{padding:6px 12px 8px;}
   .preview{height:72px;padding:4px 12px;--fs:clamp(3px,min(calc((100cqi - 24px) / (var(--cols,1) * .62)),calc(56px / (var(--rows,1) * 1.1)),var(--base,13px)),var(--base,13px));}

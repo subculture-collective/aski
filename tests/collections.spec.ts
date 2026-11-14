@@ -12,7 +12,7 @@ async function setup(page: Page) {
   await card(page, 'Pagga').getByRole('button', { name: 'Favorite Pagga' }).click();
   await page.getByRole('textbox', { name: 'Text', exact: true }).fill('LOGO');
   await expect(page.getByRole('button', { name: 'Copy text', exact: true })).toBeEnabled();
-  // The library stays open from here on; these tests only use the page behind it to check the result.
+  // The library stays open from here on, except that opening an item closes it so the result is in view.
   await openLibrary(page);
   await region(page, 'Saved work').getByRole('button', { name: 'Save design' }).click();
 }
@@ -50,6 +50,8 @@ test('styles and designs join several collections and survive reload, rename and
   // Opening a style from a collection applies it to the current text.
   await collection(page, 'Project').getByRole('button', { name: 'Pagga', exact: true }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Pagga', exact: true })).toBeVisible();
+  await expect(page.locator('aside#library')).toBeHidden();
+  await openLibrary(page);
 
   await collection(page, 'Ideas').getByRole('button', { name: 'Rename' }).click();
   await collection(page, 'Ideas').getByRole('textbox', { name: 'Name' }).fill('Later');

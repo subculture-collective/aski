@@ -60,5 +60,11 @@ export function usePreviews(input: string, wanted: string[]) {
     return () => { current.terminate(); clearTimeout(timer.current); if (worker.current === current) worker.current = null; inFlight.current = null; };
   }, [generation]);
   useEffect(pump);
+  // Previews that failed (for example while offline) are tried again when the connection returns.
+  useEffect(() => {
+    const retry = () => setPreviews(previous => Object.fromEntries(Object.entries(previous).filter(([, preview]) => !preview?.error)));
+    addEventListener('online', retry);
+    return () => removeEventListener('online', retry);
+  }, []);
   return { previews, text, truncated: text !== input.replace(/\r\n?/g, '\n') };
 }

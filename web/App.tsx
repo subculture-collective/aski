@@ -4,7 +4,7 @@ import { colorize } from '../shared/color.ts';
 import { exportName, toAnsi, toCodeBlock } from '../shared/export.ts';
 import { frameDataAt, frameTime } from '../shared/animation.ts';
 import { decodeShare, encodeShare } from '../shared/share.ts';
-import { MAX_INPUT, parseRecipe } from '../shared/recipe.ts';
+import { MAX_INPUT, characterCount, parseRecipe } from '../shared/recipe.ts';
 import type { Slot } from '../shared/recipe.ts';
 import { defaultName, findMembership, parseName } from '../shared/library.ts';
 import type { ArtifactMeta, CollectionPayload, DesignPayload, FavoritePayload, InputPayload, LibraryRecord, PalettePayload } from '../shared/library.ts';
@@ -78,13 +78,28 @@ export function App() {
   // The library and the customize panels stay closed until asked for, so the page leads with type, browse, copy.
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [customizing, setCustomizing] = useState(false);
-  const artwork = useRef<HTMLElement>(null);
-  const [artworkInView, setArtworkInView] = useState(true);
+  const libraryToggle = useRef<HTMLButtonElement>(null);
+  const libraryPanel = useRef<HTMLElement>(null);
+  const libraryClose = useRef<HTMLButtonElement>(null);
+  const footer = useRef<HTMLElement>(null);
+  // The small Copy bar appears while the result's Copy text button is out of sight, including when it sits
+  // under the sticky text field. The observer is rebuilt whenever the field changes height.
+  const [copyInView, setCopyInView] = useState(true);
   useEffect(() => {
-    if (!artwork.current || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(([entry]) => setArtworkInView(entry.isIntersecting), { threshold: 0 });
-    observer.observe(artwork.current);
-    return () => observer.disconnect();
+    const target = copyButton.current, field = editor.current;
+    if (!target || !field || typeof IntersectionObserver === 'undefined') return;
+    let observer: IntersectionObserver | null = null, top = -1;
+    const watch = () => {
+      const height = Math.round(field.getBoundingClientRect().height);
+      if (height === top) return;
+      top = height; observer?.disconnect();
+      observer = new IntersectionObserver(([entry]) => setCopyInView(entry.isIntersecting), { rootMargin: `-${height}px 0px 0px 0px`, threshold: 1 });
+      observer.observe(target);
+    };
+    watch();
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(watch);
+    resize?.observe(field);
+    return () => { observer?.disconnect(); resize?.disconnect(); };
   }, []);
   const [panel, setPanel] = useState<'' | 'colors' | 'layout' | 'animation'>('colors');
   // The editor sticks to the top, so content behind it is not in view.
@@ -174,6 +189,7 @@ export function App() {
     return '';
   }
   const font = getVariant(recipe.variantId);
+  const inputLength = characterCount(recipe.input);
   const ready = !!result && !pending && !error;
   const runs = useMemo(() => colorize(result?.text || '', font), [result, font]);
   const artColors = Object.fromEntries(Object.entries(recipe.colors).map(([slot, color]) => [`--slot-${slot}`, color])) as CSSProperties;
@@ -262,38 +278,162 @@ export function App() {
     setRecipe(previous => ({ ...previous, familyId: next.familyId, variantId: next.variantId, fontSha256: next.sha256,
       layout: previous.layout.spacing === 'smush' && !next.spacing.smush ? { ...previous.layout, spacing: 'default' } : previous.layout }));
   }
-  function moveHistory(direction: 'undo' | 'redo') {
+  // After a keyboard undo or redo in the text field the caret goes to the end of the change, as a native undo
+  // would; after the Undo or Redo button empties its own history and hides, focus moves to the other one.
+  const inputField = useRef<HTMLTextAreaElement>(null);
+  const caretAfter = useRef<string | null>(null);
+  const focusAfter = useRef<'undo' | 'redo' | null>(null);
+  const undoButton = useRef<HTMLButtonElement>(null);
+  const redoButton = useRef<HTMLButtonElement>(null);
+  function moveHistory(direction: 'undo' | 'redo', from: 'field' | 'button' | 'other' = 'other') {
+    if (from === 'field') caretAfter.current = recipe.input;
+    if (from === 'button') focusAfter.current = direction;
     if (direction === 'undo') undo(); else redo();
   }
-  return <main onKeyDown={e => {
-    if (e.target instanceof HTMLInputElement || (e.target instanceof HTMLTextAreaElement && e.target.id !== 'input')) return;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z') {
-      e.preventDefault(); if (e.shiftKey ? canRedo : canUndo) moveHistory(e.shiftKey ? 'redo' : 'undo');
-    }
-  }}>
+  useLayoutEffect(() => {
+    const before = caretAfter.current, field = inputField.current;
+    caretAfter.current = null;
+    if (before === null || !field || document.activeElement !== field) return;
+    const after = recipe.input;
+    let end = 0;
+    while (end < before.length && end < after.length && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
+    field.setSelectionRange(after.length - end, after.length - end);
+  }, [recipe.input]);
+  useLayoutEffect(() => {
+    const direction = focusAfter.current;
+    focusAfter.current = null;
+    if (!direction) return;
+    const used = direction === 'undo' ? undoButton.current : redoButton.current;
+    const other = direction === 'undo' ? redoButton.current : undoButton.current;
+    if (used && !used.disabled) used.focus();
+    else if (other && !other.disabled) other.focus();
+    else inputField.current?.focus();
+  }, [canUndo, canRedo]);
+  const historyState = useRef({ canUndo, canRedo, moveHistory });
+  historyState.current = { canUndo, canRedo, moveHistory };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
+      const target = event.target as HTMLElement;
+      const textEntry = target instanceof HTMLTextAreaElement ? target.id !== 'input'
+        : target instanceof HTMLInputElement ? !['radio', 'checkbox', 'button', 'submit', 'reset', 'range', 'color', 'file'].includes(target.type)
+          : target.isContentEditable;
+      if (textEntry || target.closest?.('dialog[open]')) return;
+      event.preventDefault();
+      const { canUndo, canRedo, moveHistory } = historyState.current;
+      if (event.shiftKey ? canRedo : canUndo) moveHistory(event.shiftKey ? 'redo' : 'undo', target.id === 'input' ? 'field' : 'other');
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Menus (the Download menu and each card's "more" menu) and the Library close on Escape, on a click or tap
+  // outside them, and when focus moves elsewhere. A menu also closes once one of its buttons is used.
+  const libraryState = useRef(libraryOpen);
+  libraryState.current = libraryOpen;
+  // Focus goes back to the Library button once the page behind the drawer is usable again.
+  const libraryReturn = useRef(false);
+  const closeLibrary = useCallback((returnFocus: boolean) => {
+    libraryReturn.current = returnFocus;
+    setLibraryOpen(false);
+  }, []);
+  useEffect(() => {
+    const openMenus = () => Array.from(document.querySelectorAll<HTMLDetailsElement>('details.menu[open]'));
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog[open]')) return;
+      const menus = openMenus();
+      if (menus.length) {
+        const holder = menus.find(menu => menu.contains(document.activeElement));
+        menus.forEach(menu => { menu.open = false; });
+        holder?.querySelector('summary')?.focus();
+        event.preventDefault();
+        return;
+      }
+      if (libraryState.current) { event.preventDefault(); closeLibrary(!!libraryPanel.current?.contains(document.activeElement) || document.activeElement === document.body); }
+    };
+    const onPointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      openMenus().forEach(menu => { if (!menu.contains(target)) menu.open = false; });
+      if (libraryState.current && !libraryPanel.current?.contains(target) && !libraryToggle.current?.contains(target)) closeLibrary(false);
+    };
+    const onFocus = (event: FocusEvent) => {
+      const target = event.target as Node;
+      openMenus().forEach(menu => { if (!menu.contains(target)) menu.open = false; });
+    };
+    const onClick = (event: MouseEvent) => {
+      const button = (event.target as HTMLElement).closest?.('.menu > .exports button');
+      const menu = button?.closest('details.menu') as HTMLDetailsElement | null;
+      if (menu?.open) { menu.open = false; if (menu.contains(document.activeElement)) menu.querySelector('summary')?.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('focusin', onFocus);
+    document.addEventListener('click', onClick);
+    return () => {
+      document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('focusin', onFocus); document.removeEventListener('click', onClick);
+    };
+  }, [closeLibrary]);
+  // The Library takes focus when it opens. On a phone it covers the page, so the page behind it is inert.
+  useEffect(() => {
+    if (!libraryOpen) return;
+    libraryClose.current?.focus();
+    const narrow = matchMedia('(max-width: 760px)').matches;
+    const behind = [studio.current, footer.current, document.querySelector('main > header')].filter(Boolean) as HTMLElement[];
+    if (narrow) behind.forEach(element => { element.inert = true; });
+    return () => {
+      behind.forEach(element => { element.inert = false; });
+      if (libraryReturn.current) { libraryReturn.current = false; libraryToggle.current?.focus(); }
+    };
+  }, [libraryOpen]);
+  // Opening a saved item, a favorite or a collection entry closes the Library so the result is in view.
+  const openFromLibrary = (open: () => string) => { const note = open(); if (!note) closeLibrary(false); return note; };
+  return <main>
     <header>
       <h1><a href="/" aria-label="aski studio"><img src="/brand/lockup.svg" alt="aski" /></a></h1>
       <div className="header-actions">
-        <button className="quiet" aria-expanded={libraryOpen} aria-controls="library" onClick={() => setLibraryOpen(value => !value)}>Library</button>
+        <button ref={libraryToggle} className="quiet" aria-expanded={libraryOpen} aria-controls="library" onClick={() => setLibraryOpen(value => !value)}>Library</button>
         <SignIn account={account} onSignedOut={signedOut} />
       </div>
     </header>
+    <aside id="library" ref={libraryPanel} className="library" aria-labelledby="library-title" hidden={!libraryOpen}>
+      <div className="library-heading"><h2 id="library-title">Library</h2><button ref={libraryClose} className="quiet" onClick={() => closeLibrary(true)}>Close</button></div>
+      {hasAccount && <fieldset className="library-source">
+        <legend>Library</legend>
+        <label><input type="radio" name="library-source" checked={!browserOnly} onChange={() => setBrowserOnly(false)} />Account</label>
+        <label><input type="radio" name="library-source" checked={browserOnly} onChange={() => setBrowserOnly(true)} />This browser</label>
+        <small role="status" data-testid="sync-status">{inAccount ? syncText : 'Saved in this browser only. Nothing here is uploaded to your account.'}</small>
+      </fieldset>}
+      {account.status === 'signed-in' && inAccount && <Import subject={account.subject} local={browserLibrary.records} remote={accountLibrary.records}
+        loading={accountLibrary.loading} send={accountLibrary.send} reload={accountLibrary.reload} />}
+      {account.status !== 'checking' && <WaitingChanges current={hasAccount ? account.subject : ''} onCopied={browserLibrary.reread} />}
+      <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveInput={!!recipe.input} canSaveDesign={ready && !!recipe.input}
+        onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
+        onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}
+        onOpen={record => openFromLibrary(() => openSaved(record))} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
+      <Favorites account={inAccount} favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
+        onApply={favorite => { applyFavorite(favorite); closeLibrary(false); }} onRemove={library.removeFavorite} picker={picker} />
+      <Collections records={library.records} collections={library.collections}
+        onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}
+        onOpen={item => openFromLibrary(() => { if (item.type === 'design') return openSaved(item as LibraryRecord<DesignPayload>); applyFavorite(item.payload as FavoritePayload); return ''; })}
+        onRemoveMember={(collectionId, item) => library.toggleMembership(collectionId, item)} />
+    </aside>
     <div className="studio" ref={studio}>
       <section className="editor" ref={editor} aria-labelledby="input-title">
         <label id="input-title" htmlFor="input" className="visually-hidden">Text</label>
         <div className="input-wrap">
-        <textarea id="input" rows={2} value={recipe.input} spellCheck={false} aria-describedby="input-limit" placeholder="Type something"
+        <textarea ref={inputField} id="input" rows={2} value={recipe.input} spellCheck={false} aria-describedby="input-limit" placeholder="Type something"
           onChange={e => { setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
         <div className="history-controls">
-          <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
-          <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
+          <button ref={undoButton} onClick={() => moveHistory('undo', 'button')} disabled={!canUndo}>Undo</button>
+          <button ref={redoButton} onClick={() => moveHistory('redo', 'button')} disabled={!canRedo}>Redo</button>
         </div>
         </div>
         {/* The limit is shown once the text nears it; screen readers always have it. */}
-        <small id="input-limit" className={recipe.input.length < MAX_INPUT * 0.9 ? 'visually-hidden' : undefined}>{recipe.input.length} of {MAX_INPUT} characters</small>
+        <small id="input-limit" className={inputLength < MAX_INPUT * 0.9 ? 'visually-hidden' : undefined}>{inputLength} of {MAX_INPUT} characters</small>
         {warning && <div className="warning" data-testid="draft-warning"><p>{warning}</p><button onClick={saveCurrent}>Save this draft</button></div>}
       </section>
-      <section className="artwork" ref={artwork} data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
+      <section className="artwork" data-anchor="detail" aria-labelledby="output-title" aria-busy={pending}>
         <div className="output-heading">
           <h2 id="output-title" className="visually-hidden">{font.name}</h2>
           <label htmlFor="font" className="visually-hidden">Style</label>
@@ -323,17 +463,17 @@ export function App() {
             </details>
           </div>
         </div>
-        <pre tabIndex={0} aria-label="Rendered text art" data-testid="output" className="art" style={{ ...artColors, '--cols': result?.columns || 1 } as CSSProperties}>
-          {runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
+        <pre tabIndex={0} role="img" aria-label={`Text art in ${font.name}`} data-testid="output" className="art" style={{ ...artColors, '--cols': result?.columns || 1 } as CSSProperties}>
+          <span className="art-body">{runs.map((run, index) => run.slot && run.slot !== 'foreground' ? <span key={index} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}</span>
         </pre>
         {font.blocks && recipe.layout.blocks && ready && <Seamless runs={runs} colors={recipe.colors} columns={result.columns} rows={result.rows} />}
         <div className="status" role="status">{error || (pending ? 'Rendering…' : copied ? 'Copied' : !recipe.input ? 'Type something.' : '')}</div>
         {error && !error.startsWith('Use ') && <button className="retry" onClick={() => setRestart(value => value + 1)}>Try again</button>}
-        {unsupported && !pending && !error && <p className="warning">Unsupported: {unsupported}</p>}
+        {unsupported && !pending && !error && <p className="warning" aria-live="polite">Unsupported: {unsupported}</p>}
         {shareLink && <div className="share-link"><label htmlFor="share-link">Share link ({shareLink.length} characters)</label>
           <input id="share-link" readOnly value={shareLink} onFocus={event => event.target.select()} />
           <small>Anyone with this link sees this design’s text and settings. The design travels inside the link; nothing is stored on a server.</small></div>}
-        {shareNotice && <p className="warning" data-testid="share-notice">{shareNotice}</p>}
+        {shareNotice && <p className="warning" data-testid="share-notice" aria-live="polite">{shareNotice}</p>}
         {openedDiffers && <p className="warning" data-testid="snapshot-differs">This style now renders differently from the saved design. Copy saved text keeps the original.</p>}
         <div id="customize" className="customize" role="group" aria-label="Customize" hidden={!customizing}>
           {(['colors', 'layout', 'animation'] as const).map(name => <button key={name} aria-expanded={panel === name} aria-controls={`panel-${name}`}
@@ -366,34 +506,12 @@ export function App() {
         onFavorite={(familyId, variantId) => library.toggleFavorite({ familyId, variantId })}
         onToggle={family => setExpanded(previous => { const next = new Set(previous); if (!next.delete(family.familyId)) next.add(family.familyId); return next; })} />
       {/* Once the result scrolls away, a small bar keeps the chosen style and Copy within reach. */}
-      <div className="copy-bar" hidden={artworkInView} aria-hidden={artworkInView}>
+      <div className="copy-bar" hidden={copyInView} aria-hidden={copyInView}>
         <span>{font.name}</span>
-        <button className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text} tabIndex={artworkInView ? -1 : undefined}><Icon name="copy" />Copy</button>
+        <button className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text} tabIndex={copyInView ? -1 : undefined}><Icon name="copy" />{copied ? 'Copied' : 'Copy'}</button>
       </div>
-      <aside id="library" className="library" aria-labelledby="library-title" hidden={!libraryOpen}>
-        <div className="library-heading"><h2 id="library-title">Library</h2><button className="quiet" onClick={() => setLibraryOpen(false)}>Close</button></div>
-        {hasAccount && <fieldset className="library-source">
-          <legend>Library</legend>
-          <label><input type="radio" name="library-source" checked={!browserOnly} onChange={() => setBrowserOnly(false)} />Account</label>
-          <label><input type="radio" name="library-source" checked={browserOnly} onChange={() => setBrowserOnly(true)} />This browser</label>
-          <small role="status" data-testid="sync-status">{inAccount ? syncText : 'Saved in this browser only. Nothing here is uploaded to your account.'}</small>
-        </fieldset>}
-        {account.status === 'signed-in' && inAccount && <Import subject={account.subject} local={browserLibrary.records} remote={accountLibrary.records}
-          loading={accountLibrary.loading} send={accountLibrary.send} reload={accountLibrary.reload} />}
-        {account.status !== 'checking' && <WaitingChanges current={hasAccount ? account.subject : ''} onCopied={browserLibrary.reread} />}
-        <SavedWork account={inAccount} inputs={library.inputs} designs={library.designs} canSaveDesign={ready && !!recipe.input}
-          onSaveInput={() => library.add<InputPayload>('input', { text: recipe.input, name: defaultName(recipe.input) })}
-          onSaveDesign={saveDesign} artifacts={library.artifacts} onDownloadArtifact={downloadArtifact}
-          onOpen={openSaved} onRename={library.rename} onDelete={library.remove} onCopy={copySaved} picker={picker} />
-        <Favorites account={inAccount} favorites={library.favorites} warning={library.warning} activeVariantId={recipe.variantId}
-          onApply={applyFavorite} onRemove={library.removeFavorite} picker={picker} />
-        <Collections records={library.records} collections={library.collections}
-          onCreate={name => library.add<CollectionPayload>('collection', { name: parseName(name) })} onRename={library.rename} onDelete={library.remove}
-          onOpen={item => { if (item.type === 'design') return openSaved(item as LibraryRecord<DesignPayload>); applyFavorite(item.payload as FavoritePayload); return ''; }}
-          onRemoveMember={(collectionId, item) => library.toggleMembership(collectionId, item)} />
-      </aside>
     </div>
-    <footer><a href={font.noticePath}>{font.name} license</a><a href="/about/">About and credits</a></footer>
+    <footer ref={footer}><a href={font.noticePath}>{font.name} license</a><a href="/about/">About and credits</a></footer>
     <dialog ref={dialog} aria-labelledby="copy-title" onClose={() => { setManual(false); copyButton.current?.focus(); }}>
       <h2 id="copy-title">Copy text</h2><p>Select and copy the text.</p>
       <textarea ref={manualText} aria-label="Text to copy" value={manualValue} readOnly />

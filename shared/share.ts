@@ -36,7 +36,8 @@ export async function encodeShare(recipe: Recipe, size: { columns: number; rows:
 // Validates everything through the recipe parser; the caller supplies a fresh recipe id.
 export async function decodeShare(fragment: string, id: string): Promise<{ recipe: Recipe; size: SharedDesign['size'] }> {
   if (!fragment.startsWith('#share=')) throw new Error('This is not a share link.');
-  if (!fragment.startsWith(SHARE_PREFIX)) throw new Error('This share link comes from a newer version of aski.');
+  // Only a version number other than 1 means a newer aski; a cut-off prefix is a damaged link.
+  if (!fragment.startsWith(SHARE_PREFIX)) throw new Error(/^#share=\d+\./.test(fragment) ? 'This share link comes from a newer version of aski.' : 'This share link is damaged.');
   if (fragment.length > MAX_SHARE_LENGTH) throw new Error('This share link is too large.');
   let value: { v?: unknown; recipe?: { schemaVersion?: unknown }; size?: { columns?: unknown; rows?: unknown } };
   try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await transform(fromBase64Url(fragment.slice(SHARE_PREFIX.length)), new DecompressionStream('deflate-raw'), 256 * 1024))); }
