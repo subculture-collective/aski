@@ -132,6 +132,8 @@ test('a signed-in visitor saves to the account library, reopens it in another se
   await expect(saved(two.page).getByText('LOCAL ONLY')).toHaveCount(0);
   await saved(two.page).getByRole('button',{name:'Account design',exact:true}).click();
   await expect(two.page.getByRole('textbox',{name:'Text',exact:true})).toHaveValue('ACCOUNT ART');
+  // Opening an item closes the Library.
+  await openLibrary(two.page);
   // A different account sees nothing, through the interface or the API.
   const other = await visitor(browser, project);
   await signIn(other.page, `${project}-other@example.test`);
@@ -207,6 +209,8 @@ test('signing in offers an explicit import that survives a lost reply and reache
   await expect(keep.getByRole('list',{name:'Items in Keep'}).getByRole('listitem')).toHaveCount(2);
   await keep.getByRole('button',{name:'Imported design',exact:true}).click();
   await expect(two.page.getByRole('textbox',{name:'Text',exact:true})).toHaveValue('IMPORTED');
+  // Opening an item closes the Library.
+  await openLibrary(two.page);
   await keep.getByRole('button',{name:'Future',exact:true}).click();
   await expect(two.page.getByLabel('Style',{exact:true})).toHaveValue('figlet/future');
   await expect(two.page.getByRole('textbox',{name:'Text',exact:true})).toHaveValue('IMPORTED');
