@@ -30,4 +30,7 @@ test('unknown versions, IDs, fonts and oversized input fail explicitly', () => {
   assert.throws(() => parseRecipe({ ...recipe, fontSha256: 'wrong' }), /font version/);
   assert.throws(() => parseRecipe({ ...recipe, rendererVersion: 'unknown' }), /font version/);
   assert.throws(() => renderRecipe({ ...recipe, input: 'a'.repeat(MAX_INPUT + 1) }), /2000/);
+  // The limit counts characters, so an emoji is one of them.
+  assert.doesNotThrow(() => parseRecipe({ ...recipe, input: '🙂'.repeat(MAX_INPUT) }));
+  assert.throws(() => parseRecipe({ ...recipe, input: '🙂'.repeat(MAX_INPUT + 1) }), /2000/);
 });

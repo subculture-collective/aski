@@ -7,7 +7,8 @@ async function ensureFont(id: string) {
   if (!loading.has(id)) {
     const font = getVariant(id);
     const task = (async () => {
-      const response = await fetch(font.path);
+      // A network failure (offline) gets the same plain message as a failed response.
+      const response = await fetch(font.path).catch(() => { throw new Error('Could not load this font. Check your connection and try again.'); });
       if (!response.ok) throw new Error('Could not load this font. Try again.');
       const bytes = await response.arrayBuffer();
       const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join('');

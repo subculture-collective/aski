@@ -33,6 +33,8 @@ test('the longest text fits the measured link budget', async () => {
 test('malformed, oversized and future links fail with useful errors', async () => {
   await assert.rejects(decodeShare('#nothing', FRESH), /not a share link/);
   await assert.rejects(decodeShare('#share=2.abc', FRESH), /newer version/);
+  // A link cut off inside its prefix is damaged, not from a newer version.
+  for (const cut of ['#share=', '#share=1', '#share=x.abc']) await assert.rejects(decodeShare(cut, FRESH), /damaged/);
   await assert.rejects(decodeShare(SHARE_PREFIX + '$$$', FRESH), /damaged/);
   await assert.rejects(decodeShare(SHARE_PREFIX + 'AAAA', FRESH), /damaged/);
   await assert.rejects(decodeShare(encode(await deflate('{"v":1}')), FRESH), /damaged/);

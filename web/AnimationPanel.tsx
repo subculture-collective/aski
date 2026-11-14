@@ -16,7 +16,7 @@ function SecondsField({ id, label, value, range, onCommit }: { id: string; label
   const commit = () => {
     if (draft === null) return;
     const ms = Math.round(Number(draft) * 1000);
-    const error = draft.trim() && Number.isFinite(ms) ? onCommit(ms) : `${label} must be a number of seconds.`;
+    const error = draft.trim() && Number.isFinite(ms) ? (onCommit(ms) && `${label} must be from ${range[0] / 1000} to ${range[1] / 1000} seconds.`) : `${label} must be a number of seconds.`;
     setMessage(error); if (!error) setDraft(null);
   };
   return <div className="field">
@@ -83,8 +83,8 @@ export function AnimationPanel({ animation, model, font, colors, blocks, fileNam
       ? `Rotates the ${ownSlots.join(' and ')} colors.`
       : `${font.name} has one color slot, so the foreground moves through your ${cycleSlots(font.slots as Slot[]).join(', ')} colors.`} The background stays fixed.</p>}
     {animation.effect !== 'none' && <>
-      <pre className="art animation-preview" data-testid="animation-preview" aria-label="Animation preview" style={style}>
-        {(frame?.runs || []).map((run, key) => run.slot && run.slot !== 'foreground' ? <span key={key} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}
+      <pre className="art animation-preview" data-testid="animation-preview" role="img" aria-label="Animation preview" style={style}>
+        <span className="art-body">{(frame?.runs || []).map((run, key) => run.slot && run.slot !== 'foreground' ? <span key={key} className={`slot-${run.slot}`}>{run.text}</span> : run.text)}</span>
       </pre>
       <div className="item-actions">
         <button aria-pressed={playing} onClick={() => setPlaying(value => !value)} disabled={!model}>{playing ? 'Pause' : 'Play'}</button>

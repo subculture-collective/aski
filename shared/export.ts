@@ -30,6 +30,6 @@ export function toAnsi(runs: ColorRun[], colors: Colors) {
 // Removes the SGR sequences this exporter writes; used to prove the visible text is unchanged.
 export const stripAnsi = (text: string) => text.replace(/\u001b\[[\d;]*m/g, ''); // eslint-disable-line no-control-regex
 export function exportName(name: string, extension: string) {
-  const base = name.normalize('NFKD').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).toLowerCase() || 'design';
+  const base = name.normalize('NFKD').replace(/\p{M}+/gu, '').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).toLowerCase() || 'design';
   return `aski-${base}.${extension}`;
 }

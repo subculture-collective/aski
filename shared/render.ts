@@ -22,8 +22,28 @@ export function renderRecipe(value: unknown): RenderResult {
 }
 function figletText(input: string, recipe: Recipe) {
   const { spacing, width } = recipe.layout;
-  return figlet.textSync(input, { font: getVariant(recipe.variantId).name, horizontalLayout: spacing === 'smush' ? 'controlled smushing' : spacing,
-    verticalLayout: 'full', width: width ?? undefined, whitespaceBreak: true });
+  const options = { font: getVariant(recipe.variantId).name, horizontalLayout: spacing === 'smush' ? 'controlled smushing' as const : spacing, verticalLayout: 'full' as const };
+  if (width === null) return figlet.textSync(input, options);
+  // figlet's own word wrap joins words with the space glyph's overlap, which merges words under fitted
+  // spacing. So the text is wrapped first, whole words while they fit and a word wider than the limit
+  // between characters, and figlet draws the wrapped lines in one pass.
+  const fits = (text: string) => Math.max(0, ...figlet.textSync(text, options).split('\n').map(row => Array.from(row).length)) <= width;
+  const lines: string[] = [];
+  for (const line of input.split('\n')) {
+    let current = '';
+    for (const word of line.split(' ')) {
+      const candidate = current === '' ? word : `${current} ${word}`;
+      if (fits(candidate)) { current = candidate; continue; }
+      if (current !== '') lines.push(current);
+      current = '';
+      for (const character of Array.from(word)) {
+        if (current === '' || fits(current + character)) current += character;
+        else { lines.push(current); current = character; }
+      }
+    }
+    lines.push(current);
+  }
+  return figlet.textSync(lines.join('\n'), options);
 }
 const splitBlocks = (text: string, height: number) => {
   const rows = text.replace(/\n$/, '').split('\n').map(row => Array.from(row));

@@ -79,7 +79,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
           const preview = previews[variantId];
           return <div key={variantId} className="compare-item" data-testid={`pinned-${slug(variantId)}`}>
             <strong>{variant.name}</strong>
-            <pre className="preview" aria-label={`${variant.name} comparison`} aria-busy={preview?.input !== text}>{preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}</pre>
+            <pre className="preview" role="img" aria-label={`${variant.name} comparison`} aria-busy={preview?.input !== text} data-error={preview?.error ? true : undefined}>{preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}</pre>
             <div className="card-actions">
               <button aria-label={`Use ${variant.name}`} onClick={() => onUseVariant(variantId)}>Use</button>
               <button aria-label={`Unpin ${variant.name}`} onClick={() => unpin(variantId)}>Unpin</button>
@@ -132,9 +132,9 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
           </div>
           {/* Each preview is scaled to fit its box from its own columns and the rows that hold ink: blank
               rows above and below the lettering are left out of the preview, not out of the copied text. */}
-          <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text} data-blocks={variant.blocks || undefined}
+          <pre className="preview" data-testid={`preview-${id}`} role="img" aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text} data-blocks={variant.blocks || undefined} data-error={preview?.error ? true : undefined}
             style={{ '--cols': preview?.result?.columns || 1, '--rows': inked.length || 1, '--base': inked.length <= 1 ? '44px' : inked.length <= 2 ? '26px' : '16px' } as CSSProperties}>
-            {preview?.error ? 'Preview unavailable.' : inked.join('\n')}
+            {preview?.error ? 'Preview unavailable.' : <span>{inked.join('\n')}</span>}
           </pre>
           <p className="card-meta" data-testid={`meta-${id}`} hidden={!open && !activeFilters}>
             {preview?.input !== text ? 'Measuring…' : preview.result ? `${preview.result.columns} × ${preview.result.rows}` : 'Size unavailable'}

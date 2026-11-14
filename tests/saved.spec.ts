@@ -36,6 +36,9 @@ test('text and designs save separately and each design restores its own variant 
   await item(page, 'Design Future Thin: SAME').getByRole('button', { name: 'Future Thin: SAME' }).click();
   await expect(style).toHaveValue('figlet/future-thin'); await expect(input).toHaveValue('SAME\nINPUT'); await ready(page);
   await expect(output).toHaveText(thin!);
+  // Opening an item closes the Library so the result is in view.
+  await expect(page.locator('aside#library')).toBeHidden();
+  await openLibrary(page);
   await item(page, 'Design Circle: SAME').getByRole('button', { name: 'Circle: SAME' }).click();
   await expect(style).toHaveValue('figlet/circle'); await ready(page);
   await expect(output).toHaveText(circle!);

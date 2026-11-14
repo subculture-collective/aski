@@ -67,3 +67,15 @@ test('layout values are validated and smushing needs font rules', () => {
   const v2 = { schemaVersion: 2, id: '00000000-0000-4000-8000-000000000001', input: 'A', familyId: FONT.familyId, variantId: FONT.variantId, fontSha256: FONT.sha256, rendererVersion: FONT.rendererVersion, colors: DEFAULT_COLORS };
   assert.deepEqual(parseRecipe(v2).layout, DEFAULT_LAYOUT);
 });
+
+test('a maximum width wraps between words and never merges them, whatever the spacing', () => {
+  for (const variantId of variants.map(variant => variant.variantId)) for (const spacing of ['default', 'full', 'fitted'] as const) {
+    const free = render(variantId, 'HELLO WORLD', { spacing });
+    // A width wider than the art changes nothing.
+    assert.equal(render(variantId, 'HELLO WORLD', { spacing, width: Math.max(20, free.columns + 10) }).text, free.text, `${variantId} ${spacing} wide`);
+    // A width that cannot hold both words puts each word on its own line, drawn as it is alone.
+    const width = Math.max(20, render(variantId, 'HELLO', { spacing }).columns, render(variantId, 'WORLD', { spacing }).columns);
+    if (width >= free.columns) continue;
+    assert.equal(render(variantId, 'HELLO WORLD', { spacing, width }).text, render(variantId, 'HELLO\nWORLD', { spacing }).text, `${variantId} ${spacing} wrapped`);
+  }
+});
