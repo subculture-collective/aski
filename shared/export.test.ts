@@ -53,4 +53,8 @@ test('control characters never reach the terminal', () => {
 test('file names are safe', () => {
   assert.equal(exportName('Future Thin: HELLO/../x', 'txt'), 'aski-future-thin-hello-x.txt');
   assert.equal(exportName('🙂', 'ans'), 'aski-design.ans');
+  // Accents are dropped from their letters instead of splitting the word.
+  assert.equal(exportName('ANSI Compact Héllo ünï', 'txt'), 'aski-ansi-compact-hello-uni.txt');
+  // A cut at 60 characters that lands on a space leaves no trailing hyphen.
+  assert.equal(exportName(`${'a'.repeat(59)} bc`, 'txt'), `aski-${'a'.repeat(59)}.txt`);
 });

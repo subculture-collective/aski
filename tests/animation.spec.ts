@@ -80,7 +80,7 @@ test('transport, seeking and timing settings survive text and color edits', asyn
   await expect(scrubber).toHaveAttribute('max', '15');
   await panel(page).getByLabel('Duration (seconds)').fill('99');
   await panel(page).getByLabel('Duration (seconds)').press('Enter');
-  await expect(panel(page).getByRole('alert')).toContainText('Duration must be a whole number from 500 to 20000');
+  await expect(panel(page).getByRole('alert')).toContainText('Duration must be from 0.5 to 20 seconds.');
   await expect(scrubber).toHaveAttribute('max', '15');
   await panel(page).getByLabel('Duration (seconds)').fill('1');
   await panel(page).getByLabel('Duration (seconds)').press('Enter');

@@ -74,13 +74,14 @@ test('encoding can be cancelled and restarted; over-budget GIFs explain the limi
 test('the inspected frame exports through the still image controls', async ({ page }) => {
   await setup(page);
   await panel(page).getByRole('slider', { name: 'Frame' }).fill('3');
-  const still = (await openDownload(page)).getByRole('group', { name: 'Image export' });
+  // Choosing a download closes the menu, so each step opens it again.
+  const still = async () => (await openDownload(page)).getByRole('group', { name: 'Image export' });
   const download = async () => {
-    const [file] = await Promise.all([page.waitForEvent('download'), still.getByRole('button', { name: 'Download SVG' }).click()]);
+    const [file] = await Promise.all([page.waitForEvent('download'), (await still()).getByRole('button', { name: 'Download SVG' }).click()]);
     return readFileSync((await file.path())!, 'utf8');
   };
   const finished = await download();
-  await still.getByRole('checkbox', { name: 'Export the inspected animation frame (frame 3)' }).check();
+  await (await still()).getByRole('checkbox', { name: 'Export the inspected animation frame (frame 3)' }).check();
   const partial = await download();
   expect(partial.length).toBeLessThan(finished.length);
 });

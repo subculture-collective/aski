@@ -6,6 +6,8 @@ export const FONT = {
   sha256: '7725d789f12f20f854a2d0fb6f23df3080fefd0753e94055f2078b3853afe30f', name: 'ANSI Compact', rendererVersion: 'figlet@1.12.0',
 } as const;
 export const MAX_INPUT = 2000;
+// The limit counts characters as people see them in the field's counter: code points, so an emoji is one.
+export const characterCount = (text: string) => Array.from(text).length;
 export const SLOTS = ['foreground', 'background', 'shadow', 'highlight'] as const;
 export type Slot = typeof SLOTS[number];
 export type Colors = Record<Slot, string>;
@@ -67,7 +69,7 @@ export function parseRecipe(value: unknown): Recipe {
   if (!RECIPE_VERSIONS.includes(r.schemaVersion!)) throw new Error('This recipe version is not supported.');
   if (typeof r.id !== 'string' || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(r.id)) throw new Error('Invalid recipe ID.');
   if (typeof r.input !== 'string') throw new Error('Text is required.');
-  if (r.input.length > MAX_INPUT) throw new Error(`Use ${MAX_INPUT} characters or fewer.`);
+  if (characterCount(r.input) > MAX_INPUT) throw new Error(`Use ${MAX_INPUT} characters or fewer.`);
   const font = getVariant(typeof r.variantId === 'string' ? r.variantId : '');
   if (r.familyId !== font.familyId) throw new Error('This font is not available.');
   if (r.fontSha256 !== font.sha256 || r.rendererVersion !== FONT.rendererVersion) throw new Error('This font version is not available.');
