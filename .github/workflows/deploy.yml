@@ -3,8 +3,8 @@ run-name: Deploy ${{ github.sha }}
 
 # Deploys main to NUC (https://aski.subcult.tv). The job joins the tailnet as tag:github-ci and uses the
 # production environment's deploy key, which NUC accepts only from tailnet addresses and only for the aski
-# fleet-deploy receiver: it can receive this repository's web image, deploy the current main and nothing
-# else. See docs/runtime-recovery.md.
+# fleet-deploy receiver: it can receive this repository's web and API images, deploy the current main and
+# nothing else. PostgreSQL is not part of a release. See docs/runtime-recovery.md.
 'on':
   push:
     branches: [main]
@@ -56,7 +56,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/deploy"
           printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/deploy/key"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/deploy/known_hosts"
-      - name: Reuse an already accepted web image
+      - name: Reuse already accepted images
         id: artifact
         run: |
           set -euo pipefail
@@ -66,26 +66,30 @@ jobs:
             -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$d/known_hosts" -o ConnectTimeout=15 "$TARGET")
           # The receiver deploys only Gitea's current main. Kvant copies GitHub to Gitea within minutes,
           # so wait while the revision has not arrived.
-          for attempt in $(seq 1 20); do
-            # shellcheck disable=SC2029
-            if ssh "${ssh_args[@]}" "artifact $DEPLOY_REVISION web" > "$d/artifact.json" 2> "$d/err"; then break; fi
-            if grep -q "no longer the current main" "$d/err" && [ "$attempt" -lt 20 ]; then
-              echo "Gitea has not received $DEPLOY_REVISION yet; waiting 30 s ($attempt/20)"; sleep 30; continue
-            fi
-            cat "$d/err" >&2; exit 1
+          for service in web api; do
+            for attempt in $(seq 1 20); do
+              # shellcheck disable=SC2029
+              if ssh "${ssh_args[@]}" "artifact $DEPLOY_REVISION $service" > "$d/artifact-$service.json" 2> "$d/err"; then break; fi
+              if grep -q "no longer the current main" "$d/err" && [ "$attempt" -lt 20 ]; then
+                echo "Gitea has not received $DEPLOY_REVISION yet; waiting 30 s ($attempt/20)"; sleep 30; continue
+              fi
+              cat "$d/err" >&2; exit 1
+            done
           done
-          python3 - "$d/artifact.json" "$GITHUB_OUTPUT" <<'PYCODE'
+          python3 - "$d" "$GITHUB_OUTPUT" <<'PYCODE'
           import json, re, sys
           from pathlib import Path
-          info = json.loads(Path(sys.argv[1]).read_text())
-          available = info.get("available") is True
-          if available:
-              assert re.fullmatch(r"[0-9a-f]{64}", info.get("html_sha256", ""))
           with Path(sys.argv[2]).open("a") as output:
-              output.write("available=" + str(available).lower() + "\n")
+              for service in ("web", "api"):
+                  info = json.loads((Path(sys.argv[1]) / f"artifact-{service}.json").read_text())
+                  available = info.get("available") is True
+                  if available and service == "web":
+                      assert re.fullmatch(r"[0-9a-f]{64}", info.get("html_sha256", ""))
+                  output.write(f"{service}=" + str(available).lower() + "\n")
           PYCODE
       - name: Build and smoke-test the web image
-        if: steps.artifact.outputs.available != 'true'
+        if: steps.artifact.outputs.web != 'true'
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
@@ -99,10 +103,24 @@ jobs:
           curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz
           curl --fail --silent http://127.0.0.1:8080/ | grep -q '<div id="root">'
           curl --fail --silent http://127.0.0.1:8080/about/ | grep -q 'Lettering made of characters'
+          # Without an API container on its network the gateway answers /api with 503.
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/session)" = 503
-      - name: Deploy the image and verify the public site
+      - name: Build and smoke-test the API image
+        if: steps.artifact.outputs.api != 'true'
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
+          image="fleet-deploy/aski/api:$DEPLOY_REVISION"
+          docker build --target api --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
+            --label "org.opencontainers.image.source=https://git.subcult.tv/subculture-collective/aski" -t "$image" .
+          # The sources load under the release runtime; the database checks run on NUC after activation.
+          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true --entrypoint node "$image" \
+            -e "await import('./server/account.ts'); await import('./server/artifacts.ts'); console.log('API modules load')"
+      - name: Deploy the images and verify the public site
         env:
-          REUSE_ARTIFACT: ${{ steps.artifact.outputs.available }}
+          REUSE_WEB: ${{ steps.artifact.outputs.web }}
+          REUSE_API: ${{ steps.artifact.outputs.api }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
@@ -110,13 +128,16 @@ jobs:
           ssh_args=(-F /dev/null -i "$d/key" -o ControlPath=none -o ControlMaster=no -o BatchMode=yes -o IdentitiesOnly=yes
             -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$d/known_hosts" -o ConnectTimeout=15 "$TARGET")
           ssh "${ssh_args[@]}" status
-          image="fleet-deploy/aski/web:$DEPLOY_REVISION"
-          if [[ "$REUSE_ARTIFACT" != true ]]; then
+          if [[ "$REUSE_WEB" != true ]]; then
             # shellcheck disable=SC2029
-            docker save "$image" | ssh "${ssh_args[@]}" "receive $DEPLOY_REVISION web"
+            docker save "fleet-deploy/aski/web:$DEPLOY_REVISION" | ssh "${ssh_args[@]}" "receive $DEPLOY_REVISION web"
           fi
-          # The receiver activates the image, checks the public pages against the image's bytes and
-          # restores the previous image if anything fails.
+          if [[ "$REUSE_API" != true ]]; then
+            # shellcheck disable=SC2029
+            docker save "fleet-deploy/aski/api:$DEPLOY_REVISION" | ssh "${ssh_args[@]}" "receive $DEPLOY_REVISION api"
+          fi
+          # The receiver dumps the database, activates both images, checks the public pages against the
+          # web image's bytes and the API's readiness, and restores the previous images if anything fails.
           # shellcheck disable=SC2029
           ssh "${ssh_args[@]}" "deploy $DEPLOY_REVISION"
           # shellcheck disable=SC2029
