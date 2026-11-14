@@ -123,7 +123,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
           </div>
           {/* Each preview is scaled to fit its box from its own columns and rows. */}
           <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text}
-            style={{ '--cols': preview?.result?.columns || 1, '--rows': preview?.result?.rows || 1, '--base': (preview?.result?.rows || 1) <= 2 ? '26px' : '13px' } as CSSProperties}>
+            style={{ '--cols': preview?.result?.columns || 1, '--rows': preview?.result?.rows || 1, '--base': (preview?.result?.rows || 1) === 1 ? '34px' : (preview?.result?.rows || 1) <= 2 ? '26px' : '13px' } as CSSProperties}>
             {preview?.error ? 'Preview unavailable.' : preview?.result?.text || ''}
           </pre>
           <p className="card-meta" data-testid={`meta-${id}`} hidden={!open && !activeFilters}>

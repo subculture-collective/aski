@@ -1,7 +1,7 @@
 // One small stroke icon set (18px box, currentColor) so controls share a single visual weight.
 const PATHS = {
-  undo: 'M7 7H4V4M4 7c1.6-2.4 4.2-4 7.2-4A7.5 7.5 0 1 1 4 12',
-  redo: 'M17 7h3V4M20 7c-1.6-2.4-4.2-4-7.2-4A7.5 7.5 0 1 0 20 12',
+  undo: 'M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
+  redo: 'M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13',
   chevron: 'M6 9l6 6 6-6',
   star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z',
   sliders: 'M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4',
