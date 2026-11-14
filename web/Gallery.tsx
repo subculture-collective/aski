@@ -133,7 +133,7 @@ export function Gallery({ input, activeFamilyId, variantFor, expanded, onVariant
           {/* Each preview is scaled to fit its box from its own columns and the rows that hold ink: blank
               rows above and below the lettering are left out of the preview, not out of the copied text. */}
           <pre className="preview" data-testid={`preview-${id}`} aria-label={`${variant.name} preview`} aria-busy={preview?.input !== text} data-blocks={variant.blocks || undefined}
-            style={{ '--cols': preview?.result?.columns || 1, '--rows': inked.length || 1, '--base': inked.length <= 1 ? '34px' : inked.length <= 2 ? '26px' : '13px' } as CSSProperties}>
+            style={{ '--cols': preview?.result?.columns || 1, '--rows': inked.length || 1, '--base': inked.length <= 1 ? '34px' : inked.length <= 2 ? '26px' : '16px' } as CSSProperties}>
             {preview?.error ? 'Preview unavailable.' : inked.join('\n')}
           </pre>
           <p className="card-meta" data-testid={`meta-${id}`} hidden={!open && !activeFilters}>

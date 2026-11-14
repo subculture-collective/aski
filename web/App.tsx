@@ -307,9 +307,9 @@ export function App() {
           </span>
           <div className="output-actions">
             <button ref={copyButton} className="primary" onClick={() => void copy()} disabled={pending || !!error || !result?.text}><Icon name="copy" />Copy text</button>
-            <button className="secondary" aria-expanded={customizing} aria-controls="customize" onClick={() => setCustomizing(value => !value)}><Icon name="sliders" />Customize<Icon name="chevron" /></button>
+            <button className="secondary" aria-expanded={customizing} aria-controls="customize" onClick={() => setCustomizing(value => !value)}>Customize<Icon name="chevron" /></button>
             <details className="menu">
-              <summary><Icon name="download" />Download<Icon name="chevron" /></summary>
+              <summary>Download<Icon name="chevron" /></summary>
               <div className="exports" role="group" aria-label="Export">
                 <p className="hint" aria-label="Output dimensions">{result && !pending && !error ? `${result.columns} columns × ${result.rows} rows` : ''}</p>
                 <button onClick={() => void copy('code')} disabled={!ready || !result.text}>Copy as code block</button>
