@@ -168,7 +168,9 @@ export function App() {
   }
   function download(format: 'text' | 'ansi') {
     if (!result || pending || error) return;
-    save(new Blob([format === 'ansi' ? toAnsi(runs, recipe.colors) : result.text], { type: 'text/plain;charset=utf-8' }), format === 'ansi' ? 'ans' : 'txt');
+    // Chrome on Android adds .txt to any text/plain download, so ANSI files go out as plain bytes to keep .ans.
+    if (format === 'ansi') save(new Blob([toAnsi(runs, recipe.colors)], { type: 'application/octet-stream' }), 'ans');
+    else save(new Blob([result.text], { type: 'text/plain;charset=utf-8' }), 'txt');
   }
   async function exportImage(format: 'png' | 'svg', options: ImageOptions, useFrame: boolean) {
     if (!result || pending || error) throw new Error('The artwork is not ready.');

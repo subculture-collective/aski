@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-13T23:26:04.606Z",
+  "recordedAt": "2026-11-14T21:51:06.984Z",
   "project": "tablet",
   "browser": "webkit",
   "version": "27.2",
@@ -14,15 +14,15 @@
   },
   "typing:ansi-compact.regular": {
     "keystrokes": 39,
-    "p50Ms": 15,
-    "p95Ms": 84,
-    "maxMs": 86
+    "p50Ms": 29,
+    "p95Ms": 100,
+    "maxMs": 143
   },
   "typing:figlet/linguaholic-shadow-3d": {
     "keystrokes": 39,
-    "p50Ms": 23,
-    "p95Ms": 87,
-    "maxMs": 95
+    "p50Ms": 43,
+    "p95Ms": 125,
+    "maxMs": 130
   },
   "fidelity": {
     "text": {
@@ -51,7 +51,7 @@
   "gif": {
     "typical": {
       "settings": "296 × 112 pixels, 36 frames, 3.0 s, looping",
-      "encodeMs": 136,
+      "encodeMs": 184,
       "frames": 4,
       "totalMs": 3000,
       "loops": true,
@@ -62,7 +62,7 @@
       "height": 112
     },
     "typicalTransparent": {
-      "encodeMs": 173,
+      "encodeMs": 189,
       "frames": 4,
       "totalMs": 3000,
       "loops": true,
@@ -74,13 +74,13 @@
     },
     "atBudget": {
       "settings": "1040 × 208 pixels, 540 frames, 18.0 s, looping",
-      "encodeMs": 3552,
+      "encodeMs": 4130,
       "result": "1912.4 KB, 494 stored frames (identical neighbours merged). GIF keeps up to 256 colors per frame and on/off transparency"
     },
     "overBudgetMessage": "This GIF is too large to encode on most devices (1040 × 208 × 600 frames). Lower the scale, frame rate or duration.",
     "cancellation": {
-      "idleAfterCancelMs": 23,
-      "nextSmallJobMs": 110
+      "idleAfterCancelMs": 15,
+      "nextSmallJobMs": 182
     }
   }
 }

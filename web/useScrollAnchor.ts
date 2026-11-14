@@ -10,6 +10,10 @@ export function useScrollAnchor(root: RefObject<HTMLElement | null>, inset: () =
     if (!element) return;
     let anchor: { id: string; top: number; scroll: number } | null = null;
     let touched: string | null = null;
+    // WebKit scrolls the page to reveal the caret when text is inserted, even in the sticky text field. A scroll
+    // in the frames after an edit is that reveal, not the user, so it does not move the anchor.
+    let editing = 0;
+    const edited = () => { cancelAnimationFrame(editing); editing = requestAnimationFrame(() => { editing = requestAnimationFrame(() => { editing = 0; }); }); };
     const find = (id: string) => element.querySelector<HTMLElement>(`[data-anchor="${CSS.escape(id)}"]`);
     // Content in a sticky or fixed container does not move with the page, so it cannot anchor it.
     const pinned = (item: HTMLElement) => {
@@ -29,9 +33,13 @@ export function useScrollAnchor(root: RefObject<HTMLElement | null>, inset: () =
       const item = anchor && find(anchor.id);
       // Scroll events arrive a frame late. If the page scrolled since the anchor was recorded, the user (or
       // code) moved it on purpose: record the new position instead of undoing that scroll.
-      if (!anchor || !item || Math.abs(scrollY - anchor.scroll) >= 1) return record();
+      if (!anchor || !item || (Math.abs(scrollY - anchor.scroll) >= 1 && !editing)) return record();
       const delta = item.getBoundingClientRect().top - anchor.top;
-      if (Math.abs(delta) >= 1) { window.scrollBy(0, delta); anchor.scroll = scrollY; }
+      if (Math.abs(delta) < 1) return;
+      window.scrollBy(0, delta); anchor.scroll = scrollY;
+      // The page cannot scroll above its top, so there the anchor stays where it landed. Below a page that is
+      // still short, the target is kept and reached as the page grows.
+      if (delta < 0) anchor.top = item.getBoundingClientRect().top;
     }
     function touch(event: Event) {
       const card = (event.target as HTMLElement).closest<HTMLElement>('[data-anchor]');
@@ -45,13 +53,17 @@ export function useScrollAnchor(root: RefObject<HTMLElement | null>, inset: () =
     observer.observe(element);
     observeAnchors();
     record();
-    addEventListener('scroll', record, { passive: true });
+    // The scroll event for a restore arrives a frame late, after content may have moved again, so it restores
+    // rather than records; restore() records when the page really was scrolled.
+    addEventListener('scroll', restore, { passive: true });
     addEventListener('resize', record);
     element.addEventListener('pointerdown', touch);
     element.addEventListener('focusin', touch);
+    element.addEventListener('input', edited);
     return () => {
+      cancelAnimationFrame(editing); element.removeEventListener('input', edited);
       observer.disconnect(); mutations.disconnect();
-      removeEventListener('scroll', record); removeEventListener('resize', record);
+      removeEventListener('scroll', restore); removeEventListener('resize', record);
       element.removeEventListener('pointerdown', touch); element.removeEventListener('focusin', touch);
     };
   }, [root, inset]);
