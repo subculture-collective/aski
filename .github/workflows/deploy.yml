@@ -34,6 +34,36 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      # Images are built before the runner joins the tailnet: npm downloads inside docker build hung
+      # repeatedly on runners that had joined it, while builds before joining were unaffected.
+      - name: Build and smoke-test the web image
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
+          image="fleet-deploy/aski/web:$DEPLOY_REVISION"
+          # The fleet-deploy receiver identifies the application by this Gitea source label.
+          docker build --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
+            --label "org.opencontainers.image.source=https://git.subcult.tv/subculture-collective/aski" -t "$image" .
+          docker run -d --name aski-smoke --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
+            -p 127.0.0.1:8080:8080 "$image"
+          trap 'docker rm -f aski-smoke >/dev/null' EXIT
+          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz
+          curl --fail --silent http://127.0.0.1:8080/ | grep -q '<div id="root">'
+          curl --fail --silent http://127.0.0.1:8080/about/ | grep -q 'Lettering made of characters'
+          # Without an API container on its network the gateway answers /api with 503.
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/session)" = 503
+      - name: Build and smoke-test the API image
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
+          image="fleet-deploy/aski/api:$DEPLOY_REVISION"
+          docker build --target api --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
+            --label "org.opencontainers.image.source=https://git.subcult.tv/subculture-collective/aski" -t "$image" .
+          # The sources load under the release runtime; the database checks run on NUC after activation.
+          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true --entrypoint node "$image" \
+            -e "await import('./server/account.ts'); await import('./server/artifacts.ts'); console.log('API modules load')"
       - name: Join the tailnet
         uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3.3.0
         with:
@@ -87,36 +117,6 @@ jobs:
                       assert re.fullmatch(r"[0-9a-f]{64}", info.get("html_sha256", ""))
                   output.write(f"{service}=" + str(available).lower() + "\n")
           PYCODE
-      - name: Build and smoke-test the web image
-        if: steps.artifact.outputs.web != 'true'
-        timeout-minutes: 10
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
-          image="fleet-deploy/aski/web:$DEPLOY_REVISION"
-          # The fleet-deploy receiver identifies the application by this Gitea source label.
-          docker build --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
-            --label "org.opencontainers.image.source=https://git.subcult.tv/subculture-collective/aski" -t "$image" .
-          docker run -d --name aski-smoke --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
-            -p 127.0.0.1:8080:8080 "$image"
-          trap 'docker rm -f aski-smoke >/dev/null' EXIT
-          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/healthz
-          curl --fail --silent http://127.0.0.1:8080/ | grep -q '<div id="root">'
-          curl --fail --silent http://127.0.0.1:8080/about/ | grep -q 'Lettering made of characters'
-          # Without an API container on its network the gateway answers /api with 503.
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/session)" = 503
-      - name: Build and smoke-test the API image
-        if: steps.artifact.outputs.api != 'true'
-        timeout-minutes: 10
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
-          image="fleet-deploy/aski/api:$DEPLOY_REVISION"
-          docker build --target api --label "org.opencontainers.image.revision=$DEPLOY_REVISION" \
-            --label "org.opencontainers.image.source=https://git.subcult.tv/subculture-collective/aski" -t "$image" .
-          # The sources load under the release runtime; the database checks run on NUC after activation.
-          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges:true --entrypoint node "$image" \
-            -e "await import('./server/account.ts'); await import('./server/artifacts.ts'); console.log('API modules load')"
       - name: Deploy the images and verify the public site
         env:
           REUSE_WEB: ${{ steps.artifact.outputs.web }}
