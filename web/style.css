@@ -36,15 +36,15 @@ a:hover{background:var(--aski-secondary);}
 .studio{display:grid;gap:24px;min-width:0;}
 .editor{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;margin:0 -8px;padding:8px;background:var(--aski-paper);}
 .input-wrap{position:relative;}
-.input-wrap #input{padding-right:104px;}
+.input-wrap #input{padding-right:132px;}
 .history-controls{position:absolute;right:6px;top:4px;gap:2px;}
 .history-controls button:disabled{display:none;}
-.history-controls button{color:var(--aski-muted);}
+.history-controls button{color:var(--aski-muted);font-weight:400;font-size:15px;padding:0 10px;border-color:transparent;background:transparent;}
 .history-controls button:hover,.history-controls button:focus-visible{color:var(--aski-ink);}
 label{display:block;font-weight:700;font-size:15px;}
 textarea,input,select{width:100%;border:var(--line-strong);border-radius:var(--aski-radius);background:var(--aski-panel);padding:10px 12px;}
 textarea:focus,input:focus,select:focus{border-color:var(--aski-ink);}
-#input{width:100%;min-width:0;min-height:52px;max-height:30vh;field-sizing:content;resize:none;line-height:1.4;font-size:20px;}
+#input{width:100%;min-width:0;min-height:52px;max-height:30vh;field-sizing:content;resize:none;line-height:1.4;font-size:22px;}
 #input:focus-visible{outline:3px solid var(--aski-focus);outline-offset:0;border-color:var(--aski-ink);}
 select{appearance:none;-webkit-appearance:none;height:44px;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23211B30' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-position:right 10px center;background-size:18px 18px;background-repeat:no-repeat;}
 .select-wrap{position:relative;display:inline-flex;align-items:center;max-width:100%;}
@@ -78,7 +78,7 @@ pre.art{display:grid;justify-content:center;min-height:96px;align-content:center
 .artwork>.warning{margin:0 16px 12px;}
 .artwork>.share-link{padding:0 16px 12px;}
 .warning p{margin:0 0 8px;}
-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--aski-muted);margin-top:32px;padding-top:12px;border-top:var(--line);}
+footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14px;color:var(--aski-muted);margin-top:40px;padding-top:12px;border-top:var(--line);}
 footer a{display:inline-flex;align-items:center;min-height:44px;}
 .gallery{display:grid;gap:16px;min-width:0;}
 .gallery-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
@@ -155,7 +155,7 @@ dialog textarea{min-height:220px;font-family:'aski Art Mono',ui-monospace,monosp
   .family-grid{grid-template-columns:minmax(0,1fr);}
   pre{padding:16px 12px;max-height:50vh;} pre.art{min-height:96px;font-size:clamp(10px,3.6vw,18px);}
   .output-heading{padding:10px 12px;}
-  footer{margin-top:20px;font-size:12px;} dialog{padding:20px;box-shadow:2px 2px 0 var(--aski-ink);}
+  footer{margin-top:32px;font-size:14px;} dialog{padding:20px;box-shadow:2px 2px 0 var(--aski-ink);}
 }
 @media(max-width:420px){header{align-items:start;}.header-actions{flex:1;justify-content:flex-end;}h1 img{width:112px;}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important;}button:active:not(:disabled){transform:none;}}
@@ -311,11 +311,9 @@ header button.quiet,.output-actions>.secondary,.output-actions>.menu>summary,.fi
   .artwork>pre.art,.artwork>.seamless{order:2;}
   .output-heading>.output-actions{order:3;padding:0 12px 12px;}
   .output-heading>.select-wrap{align-self:flex-start;}
-  .output-actions{grid-template-columns:auto 1fr 1fr;}
-  .output-actions .primary{grid-column:auto;white-space:nowrap;}
 }
 @media(max-width:760px){
-  main{padding-top:16px;} .gallery-heading h2{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;} header{padding-bottom:6px;margin-bottom:0;} .studio{gap:14px;}
+  main{padding-top:16px;} .editor{padding-bottom:0;} .gallery-heading h2{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;} header{padding-bottom:6px;margin-bottom:0;} .studio{gap:16px;}
   pre.art{min-height:64px;padding:8px 12px;}
   .gallery{gap:10px;} .gallery-heading{gap:8px;}
   .family-card{padding:6px 12px 8px;}

@@ -285,8 +285,8 @@ export function App() {
         <textarea id="input" rows={2} value={recipe.input} spellCheck={false} aria-describedby="input-limit" placeholder="Type something"
           onChange={e => { setRecipe(previous => ({ ...previous, input: e.target.value })); }} />
         <div className="history-controls">
-          <button className="icon" aria-label="Undo" title="Undo" onClick={() => moveHistory('undo')} disabled={!canUndo}><Icon name="undo" /></button>
-          <button className="icon" aria-label="Redo" title="Redo" onClick={() => moveHistory('redo')} disabled={!canRedo}><Icon name="redo" /></button>
+          <button onClick={() => moveHistory('undo')} disabled={!canUndo}>Undo</button>
+          <button onClick={() => moveHistory('redo')} disabled={!canRedo}>Redo</button>
         </div>
         </div>
         {/* The limit is shown once the text nears it; screen readers always have it. */}
