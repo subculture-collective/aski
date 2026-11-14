@@ -89,6 +89,7 @@ jobs:
           PYCODE
       - name: Build and smoke-test the web image
         if: steps.artifact.outputs.web != 'true'
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"
@@ -106,6 +107,7 @@ jobs:
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8080/api/session)" = 503
       - name: Build and smoke-test the API image
         if: steps.artifact.outputs.api != 'true'
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$DEPLOY_REVISION"

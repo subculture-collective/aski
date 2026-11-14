@@ -4,7 +4,8 @@
 FROM docker.io/library/node:24-alpine AS api-deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+# A stalled registry download fails within minutes and is retried, instead of hanging the build.
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=5 --fetch-retry-maxtimeout=30000
 
 FROM docker.io/library/node:24-alpine AS api
 WORKDIR /app
@@ -21,7 +22,7 @@ ENTRYPOINT ["node", "server/main.ts"]
 FROM docker.io/library/node:24-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts --no-audit --no-fund
+RUN npm ci --ignore-scripts --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=5 --fetch-retry-maxtimeout=30000
 COPY . ./
 RUN npm run build && node scripts/check-build.mjs
 
